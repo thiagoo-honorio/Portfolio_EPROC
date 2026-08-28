@@ -134,7 +134,13 @@ body {
   }
 }
 
+.principio-wrap {
+  position: relative;
+}
+
 .principio-btn {
+  display: block;
+  width: 100%;
   text-align: left;
   border-radius: 0.75rem;
   padding: 1rem;
@@ -217,4 +223,228 @@ body {
     font-size: 2.25rem;
     line-height: 2.5rem;
   }
+}
+
+.barra-ferramentas {
+  position: fixed;
+  top: 1rem;
+  right: 1rem;
+  z-index: 1000;
+}
+
+.barra-ferramentas button {
+  background: #1e293b;
+  color: #fff;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  cursor: pointer;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.barra-ferramentas button.ativo {
+  background: #dc2626;
+}
+
+.toolbar-edicao {
+  position: fixed;
+  top: 3.5rem;
+  right: 1rem;
+  z-index: 999;
+  background: #1e293b;
+  padding: 0.75rem;
+  border-radius: 0.5rem;
+  display: none;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.toolbar-edicao.visivel {
+  display: flex;
+}
+
+.toolbar-edicao button {
+  background: #334155;
+  color: #fff;
+  border: none;
+  padding: 0.45rem 0.75rem;
+  border-radius: 0.375rem;
+  cursor: pointer;
+  font-size: 0.75rem;
+  text-align: left;
+  white-space: nowrap;
+}
+
+.toolbar-edicao button:hover {
+  background: #475569;
+}
+
+.card-icon-actions {
+  position: absolute;
+  top: 0.35rem;
+  right: 0.35rem;
+  display: flex;
+  gap: 0.25rem;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.principio-wrap:hover .card-icon-actions {
+  opacity: 1;
+}
+
+.icon-btn {
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 0.35rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #64748b;
+  transition: all 0.15s ease;
+  position: relative;
+}
+
+.icon-btn:hover {
+  color: #fff;
+}
+
+.icon-editar:hover {
+  background: #3b82f6;
+  border-color: #3b82f6;
+}
+
+.icon-remover:hover {
+  background: #ef4444;
+  border-color: #ef4444;
+}
+
+.icon-subir:hover {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.icon-descer:hover {
+  background: #10b981;
+  border-color: #10b981;
+}
+
+.icon-btn:disabled {
+  opacity: 0.3;
+  cursor: default;
+  pointer-events: none;
+}
+
+.icon-btn[data-tooltip]::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  right: calc(100% + 0.4rem);
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1e293b;
+  color: #fff;
+  font-size: 0.65rem;
+  font-weight: 600;
+  padding: 0.2rem 0.45rem;
+  border-radius: 0.25rem;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.icon-btn[data-tooltip]:hover::after {
+  opacity: 1;
+}
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.5);
+  z-index: 2000;
+  display: none;
+  align-items: center;
+  justify-content: center;
+}
+
+.modal-overlay.visivel {
+  display: flex;
+}
+
+.modal-conteudo {
+  background: #fff;
+  border-radius: 0.75rem;
+  padding: 1.5rem;
+  width: 90%;
+  max-width: 28rem;
+  max-height: 85vh;
+  overflow-y: auto;
+}
+
+.modal-conteudo h3 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  margin-bottom: 1rem;
+  color: #1e293b;
+}
+
+.modal-conteudo label {
+  display: block;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #475569;
+  margin-bottom: 0.2rem;
+  margin-top: 0.6rem;
+}
+
+.modal-conteudo input[type="text"],
+.modal-conteudo textarea {
+  width: 100%;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  font-size: 0.8rem;
+  font-family: inherit;
+  resize: vertical;
+}
+
+.modal-conteudo input[type="color"] {
+  width: 100%;
+  height: 2rem;
+  padding: 0.15rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 0.375rem;
+  cursor: pointer;
+}
+
+.modal-botoes {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
+  margin-top: 1rem;
+  padding-top: 0.75rem;
+  border-top: 1px solid #e2e8f0;
+}
+
+.btn-cancelar, .btn-salvar {
+  padding: 0.4rem 0.9rem;
+  border-radius: 0.375rem;
+  border: none;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-cancelar {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+.btn-salvar {
+  background: #2563eb;
+  color: #fff;
 }

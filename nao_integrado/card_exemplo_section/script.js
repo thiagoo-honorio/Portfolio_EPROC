@@ -1,121 +1,275 @@
-const principios = [
-  {
-    num: "01",
-    title: "Finalidade",
-    color: "#24469A",
-    bg: "rgba(36,70,154,0.05)",
-    border: "rgba(36,70,154,0.2)",
-    desc: "Tratamento para propósitos específicos, legítimos e informados ao titular. Não é permitida finalidade genérica ou indeterminada.",
-    exemplo: "Dados de matrícula coletados apenas para fins acadêmicos, não para marketing."
-  },
-  {
-    num: "02",
-    title: "Adequação",
-    color: "#1C4BD1",
-    bg: "rgba(28,75,209,0.05)",
-    border: "rgba(28,75,209,0.2)",
-    desc: "Compatibilidade do tratamento com as finalidades informadas ao titular.",
-    exemplo: "Não usar dados de saúde estudantil para análises de desempenho acadêmico sem base legal."
-  },
-  {
-    num: "03",
-    title: "Necessidade",
-    color: "#0891b2",
-    bg: "rgba(8,145,178,0.05)",
-    border: "rgba(8,145,178,0.2)",
-    desc: "Limitação do tratamento ao mínimo necessário para a finalidade. Proibição de coleta excessiva.",
-    exemplo: "Formulário de inscrição deve pedir apenas dados essenciais, não dados bancários desnecessários."
-  },
-  {
-    num: "04",
-    title: "Livre Acesso",
-    color: "#0d9488",
-    bg: "rgba(13,148,136,0.05)",
-    border: "rgba(13,148,136,0.2)",
-    desc: "Garantia de consulta facilitada e gratuita sobre a forma e duração do tratamento de dados.",
-    exemplo: "Estudante pode consultar quais dados a universidade possui sobre ele a qualquer momento."
-  },
-  {
-    num: "05",
-    title: "Qualidade dos Dados",
-    color: "#059669",
-    bg: "rgba(5,150,105,0.05)",
-    border: "rgba(5,150,105,0.2)",
-    desc: "Garantia de exatidão, clareza, relevância e atualização dos dados conforme a necessidade.",
-    exemplo: "Manter endereços e contatos de alunos atualizados nos sistemas acadêmicos."
-  },
-  {
-    num: "06",
-    title: "Transparência",
-    color: "#047857",
-    bg: "rgba(4,120,87,0.05)",
-    border: "rgba(4,120,87,0.2)",
-    desc: "Informações claras, precisas e facilmente acessíveis sobre o tratamento e os agentes responsáveis.",
-    exemplo: "Política de Privacidade publicada e acessível no site institucional."
-  },
-  {
-    num: "07",
-    title: "Segurança",
-    color: "#d97706",
-    bg: "rgba(217,119,6,0.05)",
-    border: "rgba(217,119,6,0.2)",
-    desc: "Medidas técnicas e administrativas para proteger dados de acessos não autorizados e situações acidentais ou ilícitas.",
-    exemplo: "Criptografia de bases de dados, controle de acesso por perfil de usuário."
-  },
-  {
-    num: "08",
-    title: "Prevenção",
-    color: "#ea580c",
-    bg: "rgba(234,88,12,0.05)",
-    border: "rgba(234,88,12,0.2)",
-    desc: "Adoção de medidas para prevenir a ocorrência de danos antes que aconteçam.",
-    exemplo: "Treinamentos periódicos, auditorias de segurança e testes de vulnerabilidade."
-  },
-  {
-    num: "09",
-    title: "Não Discriminação",
-    color: "#be185d",
-    bg: "rgba(190,24,93,0.05)",
-    border: "rgba(190,24,93,0.2)",
-    desc: "Impossibilidade de tratamento para fins discriminatórios, ilícitos ou abusivos.",
-    exemplo: "Dados de saúde não podem ser usados para discriminar estudantes em processos seletivos."
-  },
-  {
-    num: "10",
-    title: "Responsabilização",
-    color: "#6d28d9",
-    bg: "rgba(109,40,217,0.05)",
-    border: "rgba(109,40,217,0.2)",
-    desc: "Demonstração da adoção de medidas eficazes para cumprimento das normas de proteção de dados.",
-    exemplo: "Manter registros de tratamento (ROPA), políticas documentadas e evidências de conformidade."
-  }
-];
+const STORAGE_KEY = 'card_exemplo_section_data';
 
+const dadosPadrao = {
+  secao: {
+    tag: "Art. 6º da LGPD",
+    titulo: "Os 10 Princípios do Tratamento de Dados",
+    descricao: "Todo tratamento de dados pessoais na universidade deve observar a boa-fé e estes princípios fundamentais. Clique em cada princípio para ver exemplos práticos.",
+    tagCor: "#F6891F"
+  },
+  cards: [
+    { num: "01", title: "Finalidade", color: "#24469A", bg: "rgba(36,70,154,0.05)", border: "rgba(36,70,154,0.2)", desc: "Tratamento para propósitos específicos, legítimos e informados ao titular.", exemplo: "Dados de matrícula coletados apenas para fins acadêmicos, não para marketing." },
+    { num: "02", title: "Adequação", color: "#1C4BD1", bg: "rgba(28,75,209,0.05)", border: "rgba(28,75,209,0.2)", desc: "Compatibilidade do tratamento com as finalidades informadas ao titular.", exemplo: "Não usar dados de saúde estudantil para análises de desempenho acadêmico sem base legal." },
+    { num: "03", title: "Necessidade", color: "#0891b2", bg: "rgba(8,145,178,0.05)", border: "rgba(8,145,178,0.2)", desc: "Limitação do tratamento ao mínimo necessário para a finalidade.", exemplo: "Formulário de inscrição deve pedir apenas dados essenciais." },
+    { num: "04", title: "Livre Acesso", color: "#0d9488", bg: "rgba(13,148,136,0.05)", border: "rgba(13,148,136,0.2)", desc: "Garantia de consulta facilitada e gratuita sobre a forma e duração do tratamento.", exemplo: "Estudante pode consultar quais dados a universidade possui sobre ele." },
+    { num: "05", title: "Qualidade dos Dados", color: "#059669", bg: "rgba(5,150,105,0.05)", border: "rgba(5,150,105,0.2)", desc: "Garantia de exatidão, clareza, relevância e atualização dos dados.", exemplo: "Manter endereços e contatos de alunos atualizados nos sistemas acadêmicos." },
+    { num: "06", title: "Transparência", color: "#047857", bg: "rgba(4,120,87,0.05)", border: "rgba(4,120,87,0.2)", desc: "Informações claras, precisas e facilmente acessíveis sobre o tratamento.", exemplo: "Política de Privacidade publicada e acessível no site institucional." },
+    { num: "07", title: "Segurança", color: "#d97706", bg: "rgba(217,119,6,0.05)", border: "rgba(217,119,6,0.2)", desc: "Medidas técnicas e administrativas para proteger dados de acessos não autorizados.", exemplo: "Criptografia de bases de dados, controle de acesso por perfil de usuário." },
+    { num: "08", title: "Prevenção", color: "#ea580c", bg: "rgba(234,88,12,0.05)", border: "rgba(234,88,12,0.2)", desc: "Adoção de medidas para prevenir a ocorrência de danos antes que aconteçam.", exemplo: "Treinamentos periódicos, auditorias de segurança e testes de vulnerabilidade." },
+    { num: "09", title: "Não Discriminação", color: "#be185d", bg: "rgba(190,24,93,0.05)", border: "rgba(190,24,93,0.2)", desc: "Impossibilidade de tratamento para fins discriminatórios, ilícitos ou abusivos.", exemplo: "Dados de saúde não podem ser usados para discriminar estudantes." },
+    { num: "10", title: "Responsabilização", color: "#6d28d9", bg: "rgba(109,40,217,0.05)", border: "rgba(109,40,217,0.2)", desc: "Demonstração da adoção de medidas eficazes para cumprimento das normas.", exemplo: "Manter registros de tratamento (ROPA), políticas documentadas." }
+  ]
+};
+
+let dados = carregarDados();
 let expandedIndex = null;
+let editando = false;
+let editandoCard = null;
+
+function carregarDados() {
+  try {
+    const salvos = localStorage.getItem(STORAGE_KEY);
+    if (salvos) return JSON.parse(salvos);
+  } catch (e) { /* ignora */ }
+  return JSON.parse(JSON.stringify(dadosPadrao));
+}
+
+function salvarDados() {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+}
+
+function gerarCorAutomatica() {
+  const cores = ['#24469A','#1C4BD1','#0891b2','#0d9488','#059669','#047857','#d97706','#ea580c','#be185d','#6d28d9'];
+  const usadas = dados.cards.map(c => c.color);
+  const disponivel = cores.find(c => !usadas.includes(c));
+  if (disponivel) return disponivel;
+  const hex = Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');
+  return '#' + hex;
+}
+
+function gerarBg(color) {
+  const r = parseInt(color.slice(1,3),16);
+  const g = parseInt(color.slice(3,5),16);
+  const b = parseInt(color.slice(5,7),16);
+  return `rgba(${r},${g},${b},0.05)`;
+}
+
+function gerarBorder(color) {
+  const r = parseInt(color.slice(1,3),16);
+  const g = parseInt(color.slice(3,5),16);
+  const b = parseInt(color.slice(5,7),16);
+  return `rgba(${r},${g},${b},0.2)`;
+}
+
+function proximoNum() {
+  if (dados.cards.length === 0) return "01";
+  const nums = dados.cards.map(c => parseInt(c.num, 10));
+  const max = Math.max(...nums);
+  return String(max + 1).padStart(2, '0');
+}
+
+function renumerar() {
+  dados.cards.forEach((c, i) => { c.num = String(i + 1).padStart(2, '0'); });
+}
+
+function atualizarSecao() {
+  document.querySelector('#principios .font-bold.text-xs.uppercase').textContent = dados.secao.tag;
+  document.querySelector('#principios .font-bold.text-xs.uppercase').style.color = dados.secao.tagCor;
+  document.querySelector('#principios .w-1.h-6').style.backgroundColor = dados.secao.tagCor;
+  document.querySelector('#principios h2').textContent = dados.secao.titulo;
+  document.querySelector('#principios p').textContent = dados.secao.descricao;
+}
 
 function renderPrincipios() {
   const grid = document.getElementById('principios-grid');
-  grid.innerHTML = principios.map((p, i) => `
-    <button 
-      class="principio-btn ${expandedIndex === i ? 'expanded' : ''}"
-      style="--principio-color: ${p.color}; --principio-bg: ${p.bg}; --principio-border: ${p.border};"
-      onclick="togglePrincipio(${i})"
-    >
-      <div class="principio-num">${p.num}</div>
-      <div class="principio-title">${p.title}</div>
-      <div class="principio-content">
-        <p class="principio-desc">${p.desc}</p>
-        <div class="principio-exemplo">
-          <p class="exemplo-label">Exemplo:</p>
-          <p class="exemplo-text">${p.exemplo}</p>
+  grid.innerHTML = dados.cards.map((p, i) => `
+    <div class="principio-wrap" style="--principio-color: ${p.color}; --principio-bg: ${p.bg}; --principio-border: ${p.border};">
+      <button
+        class="principio-btn ${expandedIndex === i ? 'expanded' : ''}"
+        onclick="togglePrincipio(${i})"
+      >
+        <div class="principio-num">${p.num}</div>
+        <div class="principio-title">${p.title}</div>
+        <div class="principio-content">
+          <p class="principio-desc">${p.desc}</p>
+          <div class="principio-exemplo">
+            <p class="exemplo-label">Exemplo:</p>
+            <p class="exemplo-text">${p.exemplo}</p>
+          </div>
         </div>
-      </div>
-    </button>
+      </button>
+      ${editando ? `
+      <div class="card-icon-actions">
+        <button class="icon-btn icon-subir" data-tooltip="Mover para cima" onclick="event.stopPropagation(); moverCard(${i}, -1)" ${i === 0 ? 'disabled' : ''}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
+        </button>
+        <button class="icon-btn icon-descer" data-tooltip="Mover para baixo" onclick="event.stopPropagation(); moverCard(${i}, 1)" ${i === dados.cards.length - 1 ? 'disabled' : ''}>
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        </button>
+        <button class="icon-btn icon-editar" data-tooltip="Editar" onclick="event.stopPropagation(); abrirEditor(${i})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+        </button>
+        <button class="icon-btn icon-remover" data-tooltip="Remover" onclick="event.stopPropagation(); removerCard(${i})">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+        </button>
+      </div>` : ''}
+    </div>
   `).join('');
 }
 
 function togglePrincipio(index) {
   expandedIndex = expandedIndex === index ? null : index;
+  renderPrincipios();
+}
+
+function toggleModoEdicao() {
+  editando = !editando;
+  const btn = document.getElementById('btn-editar-toggle');
+  btn.textContent = editando ? 'Sair do Modo Edição' : 'Modo Edição';
+  btn.classList.toggle('ativo', editando);
+  document.getElementById('toolbar-edicao').classList.toggle('visivel', editando);
+  renderPrincipios();
+}
+
+function adicionarCard() {
+  const novoCard = {
+    num: proximoNum(),
+    title: "Novo Card",
+    color: gerarCorAutomatica(),
+    bg: "",
+    border: "",
+    desc: "Descrição do novo card.",
+    exemplo: "Exemplo do novo card."
+  };
+  novoCard.bg = gerarBg(novoCard.color);
+  novoCard.border = gerarBorder(novoCard.color);
+  dados.cards.push(novoCard);
+  salvarDados();
+  expandedIndex = dados.cards.length - 1;
+  renderPrincipios();
+  abrirEditor(dados.cards.length - 1);
+}
+
+function removerCard(index) {
+  if (!confirm(`Remover "${dados.cards[index].title}"?`)) return;
+  dados.cards.splice(index, 1);
+  renumerar();
+  if (expandedIndex === index) expandedIndex = null;
+  else if (expandedIndex > index) expandedIndex--;
+  salvarDados();
+  renderPrincipios();
+}
+
+function moverCard(index, direcao) {
+  const novoIndex = index + direcao;
+  if (novoIndex < 0 || novoIndex >= dados.cards.length) return;
+  const [card] = dados.cards.splice(index, 1);
+  dados.cards.splice(novoIndex, 0, card);
+  renumerar();
+  if (expandedIndex === index) expandedIndex = novoIndex;
+  else if (expandedIndex === novoIndex) expandedIndex = index;
+  salvarDados();
+  renderPrincipios();
+}
+
+function abrirEditor(index) {
+  editandoCard = index;
+  const card = dados.cards[index];
+  const modal = document.getElementById('modal-editor');
+  document.getElementById('edit-title').value = card.title;
+  document.getElementById('edit-color').value = card.color;
+  document.getElementById('edit-desc').value = card.desc;
+  document.getElementById('edit-exemplo').value = card.exemplo;
+  modal.classList.add('visivel');
+}
+
+function fecharEditor() {
+  document.getElementById('modal-editor').classList.remove('visivel');
+  editandoCard = null;
+}
+
+function salvarEdicao() {
+  if (editandoCard === null) return;
+  const card = dados.cards[editandoCard];
+  card.title = document.getElementById('edit-title').value.trim() || card.title;
+  card.color = document.getElementById('edit-color').value;
+  card.bg = gerarBg(card.color);
+  card.border = gerarBorder(card.color);
+  card.desc = document.getElementById('edit-desc').value.trim();
+  card.exemplo = document.getElementById('edit-exemplo').value.trim();
+  salvarDados();
+  fecharEditor();
+  renderPrincipios();
+}
+
+function editarSecao() {
+  const modal = document.getElementById('modal-secao');
+  document.getElementById('edit-secao-tag').value = dados.secao.tag;
+  document.getElementById('edit-secao-titulo').value = dados.secao.titulo;
+  document.getElementById('edit-secao-desc').value = dados.secao.descricao;
+  document.getElementById('edit-secao-tagcor').value = dados.secao.tagCor;
+  modal.classList.add('visivel');
+}
+
+function fecharEditorSecao() {
+  document.getElementById('modal-secao').classList.remove('visivel');
+}
+
+function salvarSecao() {
+  dados.secao.tag = document.getElementById('edit-secao-tag').value.trim() || dados.secao.tag;
+  dados.secao.titulo = document.getElementById('edit-secao-titulo').value.trim() || dados.secao.titulo;
+  dados.secao.descricao = document.getElementById('edit-secao-desc').value.trim();
+  dados.secao.tagCor = document.getElementById('edit-secao-tagcor').value;
+  salvarDados();
+  fecharEditorSecao();
+  atualizarSecao();
+}
+
+function exportarJSON() {
+  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'dados_cards.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+
+function importarJSON() {
+  document.getElementById('input-importar').click();
+}
+
+function lerImportado(event) {
+  const arquivo = event.target.files[0];
+  if (!arquivo) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    try {
+      const importado = JSON.parse(e.target.result);
+      if (!importado.cards || !Array.isArray(importado.cards)) {
+        alert('Formato inválido: esperado um JSON com "cards" e "secao".');
+        return;
+      }
+      dados = importado;
+      salvarDados();
+      atualizarSecao();
+      expandedIndex = null;
+      renderPrincipios();
+      alert('Dados importados com sucesso!');
+    } catch (err) {
+      alert('Erro ao ler o arquivo: ' + err.message);
+    }
+  };
+  reader.readAsText(arquivo);
+  event.target.value = '';
+}
+
+function restaurarPadrao() {
+  if (!confirm('Restaurar todos os dados para o padrão? Suas alterações serão perdidas.')) return;
+  dados = JSON.parse(JSON.stringify(dadosPadrao));
+  salvarDados();
+  expandedIndex = null;
+  atualizarSecao();
   renderPrincipios();
 }
 
