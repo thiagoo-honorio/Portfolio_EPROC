@@ -225,6 +225,44 @@ body {
   }
 }
 
+.secao-cor-picker {
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 2px solid #e2e8f0;
+  border-radius: 50%;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  display: none;
+}
+
+.secao-cor-picker::-webkit-color-swatch-wrapper { padding: 0; }
+.secao-cor-picker::-webkit-color-swatch { border: none; border-radius: 50%; }
+.secao-cor-picker::-moz-color-swatch { border: none; border-radius: 50%; }
+
+.editavel .secao-cor-picker {
+  display: inline-block;
+}
+
+[contenteditable="true"] {
+  outline: none;
+  border-radius: 0.25rem;
+  transition: box-shadow 0.15s ease;
+}
+
+[contenteditable="true"]:hover {
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+}
+
+[contenteditable="true"]:focus {
+  box-shadow: 0 0 0 2px rgba(59,130,246,0.5);
+}
+
+.editavel .w-1.h-6 {
+  cursor: pointer;
+}
+
 .barra-ferramentas {
   position: fixed;
   top: 1rem;
@@ -278,6 +316,15 @@ body {
 
 .toolbar-edicao button:hover {
   background: #475569;
+}
+
+.toolbar-edicao .btn-salvar-arquivo {
+  background: #16a34a;
+  font-weight: 700;
+}
+
+.toolbar-edicao .btn-salvar-arquivo:hover {
+  background: #15803d;
 }
 
 .card-icon-actions {

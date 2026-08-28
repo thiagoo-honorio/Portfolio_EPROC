@@ -1,4 +1,4 @@
-const STORAGE_KEY = 'card_exemplo_section_data';
+const ARQUIVO_JSON = 'card_exemplos_principios_lgpd_data.json';
 
 const dadosPadrao = {
   secao: {
@@ -21,21 +21,34 @@ const dadosPadrao = {
   ]
 };
 
-let dados = carregarDados();
+let dados = JSON.parse(JSON.stringify(dadosPadrao));
 let expandedIndex = null;
 let editando = false;
 let editandoCard = null;
 
-function carregarDados() {
+async function carregarDados() {
   try {
-    const salvos = localStorage.getItem(STORAGE_KEY);
-    if (salvos) return JSON.parse(salvos);
-  } catch (e) { /* ignora */ }
-  return JSON.parse(JSON.stringify(dadosPadrao));
+    const resp = await fetch(ARQUIVO_JSON + '?t=' + Date.now());
+    if (!resp.ok) throw new Error(resp.status);
+    const json = await resp.json();
+    if (json && json.cards && Array.isArray(json.cards)) {
+      dados = json;
+    }
+  } catch (e) {
+    dados = JSON.parse(JSON.stringify(dadosPadrao));
+  }
+  atualizarSecao();
+  renderPrincipios();
 }
 
-function salvarDados() {
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(dados));
+function salvarArquivo() {
+  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = ARQUIVO_JSON;
+  a.click();
+  URL.revokeObjectURL(url);
 }
 
 function gerarCorAutomatica() {
@@ -73,11 +86,33 @@ function renumerar() {
 }
 
 function atualizarSecao() {
-  document.querySelector('#principios .font-bold.text-xs.uppercase').textContent = dados.secao.tag;
-  document.querySelector('#principios .font-bold.text-xs.uppercase').style.color = dados.secao.tagCor;
-  document.querySelector('#principios .w-1.h-6').style.backgroundColor = dados.secao.tagCor;
-  document.querySelector('#principios h2').textContent = dados.secao.titulo;
-  document.querySelector('#principios p').textContent = dados.secao.descricao;
+  document.getElementById('secao-tag').textContent = dados.secao.tag;
+  document.getElementById('secao-tag').style.color = dados.secao.tagCor;
+  document.getElementById('secao-barra').style.backgroundColor = dados.secao.tagCor;
+  document.getElementById('secao-cor-input').value = dados.secao.tagCor;
+  document.getElementById('secao-titulo').textContent = dados.secao.titulo;
+  document.getElementById('secao-descricao').textContent = dados.secao.descricao;
+}
+
+function configurarEdicaoInline() {
+  const tag = document.getElementById('secao-tag');
+  const titulo = document.getElementById('secao-titulo');
+  const desc = document.getElementById('secao-descricao');
+  const container = tag.closest('.mb-12');
+
+  tag.contentEditable = editando;
+  titulo.contentEditable = editando;
+  desc.contentEditable = editando;
+  container.classList.toggle('editavel', editando);
+
+  tag.onblur = () => { dados.secao.tag = tag.textContent.trim(); };
+  titulo.onblur = () => { dados.secao.titulo = titulo.textContent.trim(); };
+  desc.onblur = () => { dados.secao.descricao = desc.textContent.trim(); };
+}
+
+function mudarCorSecao(cor) {
+  dados.secao.tagCor = cor;
+  atualizarSecao();
 }
 
 function renderPrincipios() {
@@ -128,6 +163,7 @@ function toggleModoEdicao() {
   btn.textContent = editando ? 'Sair do Modo Edição' : 'Modo Edição';
   btn.classList.toggle('ativo', editando);
   document.getElementById('toolbar-edicao').classList.toggle('visivel', editando);
+  configurarEdicaoInline();
   renderPrincipios();
 }
 
@@ -144,7 +180,6 @@ function adicionarCard() {
   novoCard.bg = gerarBg(novoCard.color);
   novoCard.border = gerarBorder(novoCard.color);
   dados.cards.push(novoCard);
-  salvarDados();
   expandedIndex = dados.cards.length - 1;
   renderPrincipios();
   abrirEditor(dados.cards.length - 1);
@@ -156,7 +191,6 @@ function removerCard(index) {
   renumerar();
   if (expandedIndex === index) expandedIndex = null;
   else if (expandedIndex > index) expandedIndex--;
-  salvarDados();
   renderPrincipios();
 }
 
@@ -168,7 +202,6 @@ function moverCard(index, direcao) {
   renumerar();
   if (expandedIndex === index) expandedIndex = novoIndex;
   else if (expandedIndex === novoIndex) expandedIndex = index;
-  salvarDados();
   renderPrincipios();
 }
 
@@ -197,42 +230,8 @@ function salvarEdicao() {
   card.border = gerarBorder(card.color);
   card.desc = document.getElementById('edit-desc').value.trim();
   card.exemplo = document.getElementById('edit-exemplo').value.trim();
-  salvarDados();
   fecharEditor();
   renderPrincipios();
-}
-
-function editarSecao() {
-  const modal = document.getElementById('modal-secao');
-  document.getElementById('edit-secao-tag').value = dados.secao.tag;
-  document.getElementById('edit-secao-titulo').value = dados.secao.titulo;
-  document.getElementById('edit-secao-desc').value = dados.secao.descricao;
-  document.getElementById('edit-secao-tagcor').value = dados.secao.tagCor;
-  modal.classList.add('visivel');
-}
-
-function fecharEditorSecao() {
-  document.getElementById('modal-secao').classList.remove('visivel');
-}
-
-function salvarSecao() {
-  dados.secao.tag = document.getElementById('edit-secao-tag').value.trim() || dados.secao.tag;
-  dados.secao.titulo = document.getElementById('edit-secao-titulo').value.trim() || dados.secao.titulo;
-  dados.secao.descricao = document.getElementById('edit-secao-desc').value.trim();
-  dados.secao.tagCor = document.getElementById('edit-secao-tagcor').value;
-  salvarDados();
-  fecharEditorSecao();
-  atualizarSecao();
-}
-
-function exportarJSON() {
-  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = 'dados_cards.json';
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 function importarJSON() {
@@ -251,9 +250,8 @@ function lerImportado(event) {
         return;
       }
       dados = importado;
-      salvarDados();
-      atualizarSecao();
       expandedIndex = null;
+      atualizarSecao();
       renderPrincipios();
       alert('Dados importados com sucesso!');
     } catch (err) {
@@ -265,12 +263,11 @@ function lerImportado(event) {
 }
 
 function restaurarPadrao() {
-  if (!confirm('Restaurar todos os dados para o padrão? Suas alterações serão perdidas.')) return;
+  if (!confirm('Restaurar todos os dados para o padrão?')) return;
   dados = JSON.parse(JSON.stringify(dadosPadrao));
-  salvarDados();
   expandedIndex = null;
   atualizarSecao();
   renderPrincipios();
 }
 
-renderPrincipios();
+carregarDados();
