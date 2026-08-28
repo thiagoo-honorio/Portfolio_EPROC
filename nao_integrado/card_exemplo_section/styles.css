@@ -341,6 +341,35 @@ body {
   opacity: 1;
 }
 
+.icon-drag {
+  cursor: grab;
+}
+
+.icon-drag:active {
+  cursor: grabbing;
+}
+
+.arrastavel {
+  cursor: grab;
+}
+
+.arrastavel:active {
+  cursor: grabbing;
+}
+
+.arrastando {
+  opacity: 0.4;
+  transform: scale(0.97);
+}
+
+.drop-antes {
+  border-top: 3px solid #3b82f6;
+}
+
+.drop-depois {
+  border-bottom: 3px solid #3b82f6;
+}
+
 .icon-btn {
   width: 1.6rem;
   height: 1.6rem;
@@ -368,16 +397,6 @@ body {
 .icon-remover:hover {
   background: #ef4444;
   border-color: #ef4444;
-}
-
-.icon-subir:hover {
-  background: #10b981;
-  border-color: #10b981;
-}
-
-.icon-descer:hover {
-  background: #10b981;
-  border-color: #10b981;
 }
 
 .icon-btn:disabled {

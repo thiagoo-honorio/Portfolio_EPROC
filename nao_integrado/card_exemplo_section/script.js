@@ -25,6 +25,7 @@ let dados = JSON.parse(JSON.stringify(dadosPadrao));
 let expandedIndex = null;
 let editando = false;
 let editandoCard = null;
+let dragIndex = null;
 
 async function carregarDados() {
   try {
@@ -118,7 +119,14 @@ function mudarCorSecao(cor) {
 function renderPrincipios() {
   const grid = document.getElementById('principios-grid');
   grid.innerHTML = dados.cards.map((p, i) => `
-    <div class="principio-wrap" style="--principio-color: ${p.color}; --principio-bg: ${p.bg}; --principio-border: ${p.border};">
+    <div class="principio-wrap ${editando ? 'arrastavel' : ''}"
+      draggable="${editando}"
+      ondragstart="onDragStart(event, ${i})"
+      ondragover="onDragOver(event, ${i})"
+      ondrop="onDrop(event, ${i})"
+      ondragend="onDragEnd(event)"
+      style="--principio-color: ${p.color}; --principio-bg: ${p.bg}; --principio-border: ${p.border};"
+    >
       <button
         class="principio-btn ${expandedIndex === i ? 'expanded' : ''}"
         onclick="togglePrincipio(${i})"
@@ -135,11 +143,8 @@ function renderPrincipios() {
       </button>
       ${editando ? `
       <div class="card-icon-actions">
-        <button class="icon-btn icon-subir" data-tooltip="Mover para cima" onclick="event.stopPropagation(); moverCard(${i}, -1)" ${i === 0 ? 'disabled' : ''}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="18 15 12 9 6 15"/></svg>
-        </button>
-        <button class="icon-btn icon-descer" data-tooltip="Mover para baixo" onclick="event.stopPropagation(); moverCard(${i}, 1)" ${i === dados.cards.length - 1 ? 'disabled' : ''}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+        <button class="icon-btn icon-drag" data-tooltip="Arrastar">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="5" r="1"/><circle cx="9" cy="12" r="1"/><circle cx="9" cy="19" r="1"/><circle cx="15" cy="5" r="1"/><circle cx="15" cy="12" r="1"/><circle cx="15" cy="19" r="1"/></svg>
         </button>
         <button class="icon-btn icon-editar" data-tooltip="Editar" onclick="event.stopPropagation(); abrirEditor(${i})">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
@@ -150,6 +155,50 @@ function renderPrincipios() {
       </div>` : ''}
     </div>
   `).join('');
+}
+
+function onDragStart(event, index) {
+  dragIndex = index;
+  event.dataTransfer.effectAllowed = 'move';
+  event.target.closest('.principio-wrap').classList.add('arrastando');
+}
+
+function onDragOver(event, index) {
+  event.preventDefault();
+  event.dataTransfer.dropEffect = 'move';
+  const alvo = event.target.closest('.principio-wrap');
+  if (!alvo || dragIndex === index) return;
+  const wraps = [...document.querySelectorAll('.principio-wrap')];
+  const arrastando = wraps[dragIndex];
+  if (!arrastando) return;
+  const rect = alvo.getBoundingClientRect();
+  const depois = index > dragIndex
+    ? event.clientY > rect.top + rect.height / 2
+    : event.clientY >= rect.top + rect.height / 2;
+  alvo.classList.remove('drop-antes', 'drop-depois');
+  alvo.classList.add(depois ? 'drop-depois' : 'drop-antes');
+}
+
+function onDrop(event, index) {
+  event.preventDefault();
+  if (dragIndex === null || dragIndex === index) return;
+  const [card] = dados.cards.splice(dragIndex, 1);
+  dados.cards.splice(index, 0, card);
+  renumerar();
+  if (expandedIndex === dragIndex) expandedIndex = index;
+  else if (expandedIndex !== null) {
+    if (dragIndex < expandedIndex && index >= expandedIndex) expandedIndex--;
+    else if (dragIndex > expandedIndex && index <= expandedIndex) expandedIndex++;
+  }
+  dragIndex = null;
+  renderPrincipios();
+}
+
+function onDragEnd(event) {
+  dragIndex = null;
+  document.querySelectorAll('.principio-wrap').forEach(w => {
+    w.classList.remove('arrastando', 'drop-antes', 'drop-depois');
+  });
 }
 
 function togglePrincipio(index) {
@@ -191,17 +240,6 @@ function removerCard(index) {
   renumerar();
   if (expandedIndex === index) expandedIndex = null;
   else if (expandedIndex > index) expandedIndex--;
-  renderPrincipios();
-}
-
-function moverCard(index, direcao) {
-  const novoIndex = index + direcao;
-  if (novoIndex < 0 || novoIndex >= dados.cards.length) return;
-  const [card] = dados.cards.splice(index, 1);
-  dados.cards.splice(novoIndex, 0, card);
-  renumerar();
-  if (expandedIndex === index) expandedIndex = novoIndex;
-  else if (expandedIndex === novoIndex) expandedIndex = index;
   renderPrincipios();
 }
 
