@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="styles.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 </head>
 <body>
 
@@ -20,6 +21,8 @@
     <button class="btn-salvar-arquivo" onclick="salvarArquivo()">Salvar Alterações</button>
     <button onclick="importarJSON()">Carregar JSON</button>
     <button onclick="restaurarPadrao()">Restaurar Padrão</button>
+    <button class="btn-exportar" onclick="exportarComoPacote()">Exportar ZIP</button>
+    <button class="btn-instr" onclick="toggleInstrucoes()">Como Embedar</button>
     <input type="file" id="input-importar" accept=".json" style="display:none" onchange="lerImportado(event)">
   </div>
 
@@ -60,6 +63,37 @@
         <button class="btn-cancelar" onclick="fecharEditor()">Cancelar</button>
         <button class="btn-salvar" onclick="salvarEdicao()">Salvar</button>
       </div>
+    </div>
+  </div>
+
+  <div id="modal-instr" class="modal-overlay" onclick="if(event.target===this)fecharInstrucoes()">
+    <div class="modal-instr-conteudo">
+      <h3>Como Embedar esta Seção</h3>
+      <div class="instr-passos">
+        <div class="instr-passo">
+          <span class="instr-num">1</span>
+          <p>Extraia o ZIP exportado. Os arquivos ficam: <code>index.html</code>, <code>styles.css</code>, <code>script.js</code> e <code>card_exemplos_principios_lgpd_data.json</code>.</p>
+        </div>
+        <div class="instr-passo">
+          <span class="instr-num">2</span>
+          <p>Copie os 4 arquivos para uma pasta dentro do seu projeto (ex.: <code>./secao-lgpd/</code>).</p>
+        </div>
+        <div class="instr-passo">
+          <span class="instr-num">3</span>
+          <p>No HTML da página onde quer embedar, cole o snippet abaixo no local desejado:</p>
+          <pre><code>&lt;!-- Seção LGPD --&gt;
+&lt;iframe src="secao-lgpd/index.html" width="100%" height="800" frameborder="0"&gt;&lt;/iframe&gt;</code></pre>
+        </div>
+        <div class="instr-passo">
+          <span class="instr-num">4</span>
+          <p><strong>Alternativa sem iframe</strong> — copie o conteúdo de cada arquivo e cole nos seus próprios arquivos (HTML no body, CSS no head, JS antes de &lt;/body&gt;).</p>
+        </div>
+        <div class="instr-passo">
+          <span class="instr-num">5</span>
+          <p>Certifique-se de que o <code>card_exemplos_principios_lgpd_data.json</code> está na mesma pasta do <code>index.html</code> exportado.</p>
+        </div>
+      </div>
+      <button class="btn-fechar-instr" onclick="fecharInstrucoes()">Fechar</button>
     </div>
   </div>
 

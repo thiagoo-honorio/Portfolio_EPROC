@@ -27,6 +27,197 @@ let editando = false;
 let editandoCard = null;
 let dragIndex = null;
 
+let fileHandle = null;
+
+async function salvarArquivo() {
+  const jsonStr = JSON.stringify(dados, null, 2);
+  try {
+    if (!fileHandle) {
+      fileHandle = await window.showSaveFilePicker({
+        types: [{ description: 'JSON Files', accept: { 'application/json': ['.json'] } }],
+        suggestedName: ARQUIVO_JSON
+      });
+    }
+    const writable = await fileHandle.createWritable();
+    await writable.write(jsonStr);
+    await writable.close();
+    alert('Arquivo JSON salvo diretamente!');
+  } catch (e) {
+    fileHandle = null;
+    if (e.name === 'AbortError') return;
+    const blob = new Blob([jsonStr], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = ARQUIVO_JSON;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+}
+
+async function exportarComoPacote() {
+  if (typeof JSZip === 'undefined') {
+    alert('JSZip não encontrado. Verifique sua conexão com a internet.');
+    return;
+  }
+  try {
+    const zip = new JSZip();
+    zip.file(ARQUIVO_JSON, JSON.stringify(dados, null, 2));
+    zip.file('index.html', gerarHTMLLimpo());
+    zip.file('styles.css', gerarCSSLimpo());
+    zip.file('script.js', gerarJSLimpo());
+    const blob = await zip.generateAsync({ type: 'blob' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'card_exemplo_section_export.zip';
+    a.click();
+    URL.revokeObjectURL(url);
+    alert('ZIP exportado com sucesso!');
+  } catch (e) {
+    alert('Erro ao exportar: ' + e.message);
+  }
+}
+
+function gerarHTMLLimpo() {
+  const s = dados.secao;
+  const cardsHTML = dados.cards.map(c =>
+    '<div class="principio-wrap" style="--principio-color: ' + c.color + '; --principio-bg: ' + c.bg + '; --principio-border: ' + c.border + ';">' +
+    '<button class="principio-btn" onclick="togglePrincipioClean(this)">' +
+    '<div class="principio-num">' + c.num + '</div>' +
+    '<div class="principio-title">' + c.title + '</div>' +
+    '<div class="principio-content">' +
+    '<p class="principio-desc">' + c.desc + '</p>' +
+    '<div class="principio-exemplo">' +
+    '<p class="exemplo-label">Exemplo:</p>' +
+    '<p class="exemplo-text">' + c.exemplo + '</p>' +
+    '</div></div></button></div>'
+  ).join('');
+  return '<!DOCTYPE html>\n' +
+    '<html lang="pt-BR">\n' +
+    '<head>\n' +
+    '  <meta charset="UTF-8">\n' +
+    '  <meta name="viewport" content="width=device-width, initial-scale=1.0">\n' +
+    '  <title>' + s.titulo + '</title>\n' +
+    '  <link rel="preconnect" href="https://fonts.googleapis.com">\n' +
+    '  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>\n' +
+    '  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700&display=swap" rel="stylesheet">\n' +
+    '  <link rel="stylesheet" href="styles.css">\n' +
+    '</head>\n' +
+    '<body>\n' +
+    '  <section id="principios" class="py-16 bg-white">\n' +
+    '    <div class="container">\n' +
+    '      <div class="mb-12">\n' +
+    '        <div class="flex items-center gap-2 mb-2">\n' +
+    '          <div class="w-1 h-6 rounded-full" style="background-color: ' + s.tagCor + ';"></div>\n' +
+    '          <span class="font-bold text-xs uppercase tracking-015em" style="color: ' + s.tagCor + ';">' + s.tag + '</span>\n' +
+    '        </div>\n' +
+    '        <h2 class="text-3xl font-bold text-slate-900 mb-4" style="font-family: \'Sora\', sans-serif;">' + s.titulo + '</h2>\n' +
+    '        <p class="text-slate-600 max-w-2xl text-lg leading-relaxed">' + s.descricao + '</p>\n' +
+    '      </div>\n' +
+    '      <div class="grid principios-grid gap-3" id="principios-grid">\n' +
+    '        ' + cardsHTML + '\n' +
+    '      </div>\n' +
+    '    </div>\n' +
+    '  </section>\n' +
+    '  <script src="script.js"><\/script>\n' +
+    '</body>\n' +
+    '</html>';
+}
+
+function gerarCSSLimpo() {
+  return '* {\n' +
+    '  margin: 0;\n' +
+    '  padding: 0;\n' +
+    '  box-sizing: border-box;\n' +
+    '}\n\n' +
+    'body {\n' +
+    '  font-family: -apple-system, BlinkMacSystemFont, \'Segoe UI\', Roboto, sans-serif;\n' +
+    '  background-color: #ffffff;\n' +
+    '}\n\n' +
+    '.py-16 { padding-top: 4rem; padding-bottom: 4rem; }\n' +
+    '.bg-white { background-color: #ffffff; }\n' +
+    '.container { width: 100%; max-width: 64rem; margin-left: auto; margin-right: auto; padding-left: 1.5rem; padding-right: 1.5rem; }\n' +
+    '.mb-12 { margin-bottom: 3rem; }\n' +
+    '.flex { display: flex; }\n' +
+    '.items-center { align-items: center; }\n' +
+    '.gap-2 { gap: 0.5rem; }\n' +
+    '.mb-2 { margin-bottom: 0.5rem; }\n' +
+    '.w-1 { width: 0.25rem; }\n' +
+    '.h-6 { height: 1.5rem; }\n' +
+    '.rounded-full { border-radius: 9999px; }\n' +
+    '.font-bold { font-weight: 700; }\n' +
+    '.text-xs { font-size: 0.75rem; line-height: 1rem; }\n' +
+    '.uppercase { text-transform: uppercase; }\n' +
+    '.tracking-015em { letter-spacing: 0.15em; }\n' +
+    '.text-3xl { font-size: 1.875rem; line-height: 2.25rem; }\n' +
+    '.font-semibold { font-weight: 600; }\n' +
+    '.text-slate-900 { color: #0f172a; }\n' +
+    '.mb-4 { margin-bottom: 1rem; }\n' +
+    '.text-slate-600 { color: #475569; }\n' +
+    '.max-w-2xl { max-width: 42rem; }\n' +
+    '.text-lg { font-size: 1.125rem; line-height: 1.75rem; }\n' +
+    '.leading-relaxed { line-height: 1.625; }\n' +
+    '.grid { display: grid; }\n' +
+    '.gap-3 { gap: 0.75rem; }\n' +
+    '.principios-grid { grid-template-columns: repeat(2, 1fr); }\n' +
+    '@media (min-width: 640px) { .principios-grid { grid-template-columns: repeat(2, 1fr); } }\n' +
+    '@media (min-width: 1024px) { .principios-grid { grid-template-columns: repeat(5, 1fr); } }\n\n' +
+    '.principio-wrap { position: relative; }\n' +
+    '.principio-btn {\n' +
+    '  display: block; width: 100%; text-align: left;\n' +
+    '  border-radius: 0.75rem; padding: 1rem;\n' +
+    '  border: 1px solid #e2e8f0; background: transparent;\n' +
+    '  cursor: pointer; transition: all 0.2s ease; font-family: inherit;\n' +
+    '}\n' +
+    '.principio-btn:hover { border-color: #cbd5e1; }\n' +
+    '.principio-btn.expanded { box-shadow: 0 4px 6px -1px rgba(0,0,0,0.1); }\n' +
+    '.principio-num {\n' +
+    '  font-size: 1.5rem; font-weight: 700; margin-bottom: 0.25rem;\n' +
+    '  font-family: \'Sora\', sans-serif; color: #cbd5e1; transition: color 0.2s ease;\n' +
+    '}\n' +
+    '.principio-btn.expanded .principio-num { color: var(--principio-color); }\n' +
+    '.principio-title { font-size: 0.875rem; font-weight: 600; color: #475569; transition: color 0.2s ease; }\n' +
+    '.principio-btn.expanded .principio-title { color: #1e293b; }\n' +
+    '.principio-content { display: none; margin-top: 0.75rem; }\n' +
+    '.principio-btn.expanded .principio-content { display: block; }\n' +
+    '.principio-desc { font-size: 0.75rem; color: #475569; line-height: 1.625; margin-bottom: 0.5rem; }\n' +
+    '.principio-exemplo {\n' +
+    '  border-radius: 0.5rem; padding: 0.5rem;\n' +
+    '  border: 1px solid var(--principio-border);\n' +
+    '  background-color: var(--principio-bg);\n' +
+    '}\n' +
+    '.exemplo-label { font-size: 0.75rem; font-weight: 600; color: var(--principio-color); }\n' +
+    '.exemplo-text { font-size: 0.75rem; color: #475569; margin-top: 0.125rem; }\n' +
+    '@media (min-width: 768px) { .text-3xl { font-size: 2.25rem; line-height: 2.5rem; } }';
+}
+
+function gerarJSLimpo() {
+  const dataStr = JSON.stringify(dados);
+  return 'const dados = ' + dataStr + ';\n\n' +
+    'function togglePrincipioClean(btn) { btn.classList.toggle("expanded"); }\n\n' +
+    'function atualizarSecao() {\n' +
+    '  const s = dados.secao;\n' +
+    '  var tag = document.getElementById("secao-tag");\n' +
+    '  var barra = document.getElementById("secao-barra");\n' +
+    '  var titulo = document.getElementById("secao-titulo");\n' +
+    '  var desc = document.getElementById("secao-descricao");\n' +
+    '  if (tag) { tag.textContent = s.tag; tag.style.color = s.tagCor; }\n' +
+    '  if (barra) barra.style.backgroundColor = s.tagCor;\n' +
+    '  if (titulo) titulo.textContent = s.titulo;\n' +
+    '  if (desc) desc.textContent = s.descricao;\n' +
+    '}\n\n' +
+    'atualizarSecao();';
+}
+
+function toggleInstrucoes() {
+  document.getElementById('modal-instr').classList.add('visivel');
+}
+
+function fecharInstrucoes() {
+  document.getElementById('modal-instr').classList.remove('visivel');
+}
+
 async function carregarDados() {
   try {
     const resp = await fetch(ARQUIVO_JSON + '?t=' + Date.now());
@@ -40,16 +231,6 @@ async function carregarDados() {
   }
   atualizarSecao();
   renderPrincipios();
-}
-
-function salvarArquivo() {
-  const blob = new Blob([JSON.stringify(dados, null, 2)], { type: 'application/json' });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement('a');
-  a.href = url;
-  a.download = ARQUIVO_JSON;
-  a.click();
-  URL.revokeObjectURL(url);
 }
 
 function gerarCorAutomatica() {
