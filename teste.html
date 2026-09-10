@@ -69,7 +69,7 @@
 
     <div class="page-container" id="pageContainer">
         <!-- HERO INSTITUCIONAL -->
-        <header class="page-hero">
+        <header class="page-hero" data-ap-section="hero">
             <div class="hero-content">
                 <p class="hero-eyebrow">Universidade Tecnológica Federal do Paraná</p>
                 <h1 class="hero-title">Portfólio de Processos de Estágio</h1>
@@ -82,7 +82,7 @@
         </header>
 
         <!-- CONTEXTUALIZAÇÃO: ESTÁGIO -->
-        <div class="section-box" id="contextBox">
+        <div class="section-box" id="contextBox" data-ap-section="contextBox">
             <div class="section-header" onclick="toggleSection('contextContent', 'contextToggle')">
                 <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="15.5" width="6" height="4.5" rx="1"></rect><rect x="15" y="15.5" width="6" height="4.5" rx="1"></rect><rect x="9" y="4" width="6" height="4.5" rx="1"></rect><path d="M12 8.5V13"></path><path d="M6 15.5v-2h12v2"></path><path d="M10 9.25H6.5"></path><path d="M14 9.25h3.5"></path></svg> Contextualização e Hierarquia de Processo</span>
                 <span id="contextToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Contextualização">[−] Ocultar</span>
@@ -241,6 +241,17 @@
                                     <span data-editable="true">(Disponibilização, Seleção, Contratação, Vigência, Encerramento)</span>
                                 </div>
                             </div>
+                            <div class="cv-branch-filhos-realizacao">
+                                <div class="cv-filhos-inner">
+                                    <div class="cv-mp-pipeline">
+                                        <div class="cv-mp-chevron cv-mp-disp"><span contenteditable="false" data-editable="true">Disponibilização</span></div>
+                                        <div class="cv-mp-chevron cv-mp-contrat"><span contenteditable="false" data-editable="true">Contratação</span></div>
+                                        <div class="cv-mp-chevron cv-mp-vig"><span contenteditable="false" data-editable="true">Vigência</span></div>
+                                        <div class="cv-mp-chevron cv-mp-enc"><span contenteditable="false" data-editable="true">Encerramento</span></div>
+                                    </div>
+                                    <div class="cv-mp-bar"><span contenteditable="false" data-editable="true">Gestão do Estágio</span></div>
+                                </div>
+                            </div>
                             <div class="cv-branch-resultados">
                                 <div class="cadeia-card-resultados">
                                     <div class="cadeia-card-titulo">Resultados</div>
@@ -261,7 +272,7 @@
         </div>
 
         <!-- SEÇÃO 3: MACRO PROCESSO -->
-        <div class="section-box" id="sec3Box">
+        <div class="section-box" id="sec3Box" data-ap-section="sec3Box">
             <div class="section-header" onclick="toggleSection('sec3Content', 'sec3Toggle')">
                 <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="7" height="7" rx="1"></rect><rect x="14" y="5" width="7" height="7" rx="1"></rect><rect x="3" y="16" width="7" height="4" rx="1"></rect><rect x="14" y="16" width="7" height="4" rx="1"></rect><path d="M10 8.5h4"></path><path d="M10 18h4"></path></svg> Macro Processo</span>
                 <span id="sec3Toggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Seção 3">[−] Ocultar</span>
@@ -407,7 +418,7 @@
         </div>
 
         <!-- SEÇÃO: SUPORTE TECNOLÓGICO -->
-        <div class="section-box" id="suporteBox">
+        <div class="section-box" id="suporteBox" data-ap-section="suporteBox">
             <div class="section-header" onclick="toggleSection('suporteContent', 'suporteToggle')">
                 <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.75z"></path></svg> Suporte Tecnológico</span>
                 <span id="suporteToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Suporte Tecnológico">[−] Ocultar</span>
@@ -423,43 +434,45 @@
                     </div>
 
                     <!-- DUPLICATA VISUAL DO MACRO PROCESSO (SEÇÃO 3) -->
-                    <div class="dup-block" style="margin-top: 20px;">
-                        <h3 class="dup-title">Macro Processo (Estágio Externo)</h3>
+                    <h3 class="dup-title" contenteditable="false" data-editable="true" data-field="dup_titulo">Macro Processo (Estágio Externo)</h3>
+                    <div class="dup-callout">
+                        <span class="dup-callout-label" contenteditable="false" data-editable="true" data-field="dup_cor_label">Novo Sistema de Estágio: Escopo do Sistema</span>
                         <div class="dup-map">
                             <div class="dup-side">
-                                <svg class="dup-side-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                                    stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-                                    <path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"></path>
-                                    <circle cx="9" cy="7" r="4"></circle>
-                                    <path d="M22 21v-2a4 4 0 0 0-3-3.87"></path>
-                                    <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
-                                </svg>
-                                <h2 class="dup-side-title">Estágio Externo</h2>
+                                <img src="Imagem%20(2).png" alt="Estágio Externo" class="dup-side-emoji" draggable="false">
                             </div>
                             <div class="dup-flow">
                                 <div class="dup-pipeline">
                                     <div class="dup-chevron dup-disponibilizacao">
-                                        <span class="dup-step-title">Disponibilização</span>
-                                        <span class="dup-step-desc">(UCE, Oferta, Homologação)</span>
+                                        <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_disp_titulo">Disponibilização</span>
+                                        <span class="dup-step-desc" contenteditable="false" data-editable="true" data-field="dup_disp_desc">(UCE, Oferta, Homologação)</span>
                                     </div>
                                     <div class="dup-chevron dup-contratacao">
-                                        <span class="dup-step-title">Contratação</span>
-                                        <span class="dup-step-desc">(PE, TCE, Estudante, IE, Obrigatório, Não Obrigatório)</span>
+                                        <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_contrat_titulo">Contratação</span>
+                                        <span class="dup-step-desc" contenteditable="false" data-editable="true" data-field="dup_contrat_desc">(PE, TCE, Estudante, IE, Obrigatório, Não Obrigatório)</span>
                                     </div>
                                     <div class="dup-chevron dup-vigencia">
-                                        <span class="dup-step-title">Vigência</span>
-                                        <span class="dup-step-desc">(Visita orientador, renovação, TA, Relatório Parcial)</span>
+                                        <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_vig_titulo">Vigência</span>
+                                        <span class="dup-step-desc" contenteditable="false" data-editable="true" data-field="dup_vig_desc">(Visita orientador, renovação, TA, Relatório Parcial)</span>
                                     </div>
                                     <div class="dup-chevron dup-encerramento">
-                                        <span class="dup-step-title">Encerramento</span>
-                                        <span class="dup-step-desc">(Conclusão, Avaliação, Relatório Final, Registro Acadêmico, Certificado)</span>
+                                        <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_enc_titulo">Encerramento</span>
+                                        <span class="dup-step-desc" contenteditable="false" data-editable="true" data-field="dup_enc_desc">(Conclusão, Avaliação, Relatório Final, Registro Acadêmico, Certificado)</span>
                                     </div>
                                 </div>
                                 <div class="dup-bar">
-                                    <span class="dup-step-title">Gestão do Estágio</span>
-                                    <span class="dup-step-desc">(UTFPR como UCE, Gestão da UCE, Acesso Acompanhamento da realização do estágio, Indicadores)</span>
+                                    <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_gestao_titulo">Gestão do Estágio</span>
+                                    <span class="dup-step-desc" contenteditable="false" data-editable="true" data-field="dup_gestao_desc">(UTFPR como UCE, Gestão da UCE, Acesso Acompanhamento da realização do estágio, Indicadores)</span>
                                 </div>
                             </div>
+                        </div>
+                        <div class="dup-edit-bar" aria-label="Editar cores do Macro Processo">
+                            <label title="Cor do painel Estágio Externo">Estágio Externo <input type="color" value="#1e293b" data-dup-cor="side" onchange="mudarCorDup(this,'side')"></label>
+                            <label title="Cor Disponibilização">Disponibilização <input type="color" value="#737478" data-dup-cor="disp" onchange="mudarCorDup(this,'disp')"></label>
+                            <label title="Cor Contratação">Contratação <input type="color" value="#1bb193" data-dup-cor="contrat" onchange="mudarCorDup(this,'contrat')"></label>
+                            <label title="Cor Vigência">Vigência <input type="color" value="#5f3377" data-dup-cor="vig" onchange="mudarCorDup(this,'vig')"></label>
+                            <label title="Cor Encerramento">Encerramento <input type="color" value="#833075" data-dup-cor="enc" onchange="mudarCorDup(this,'enc')"></label>
+                            <label title="Cor Gestão do Estágio">Gestão <input type="color" value="#57585c" data-dup-cor="gestao" onchange="mudarCorDup(this,'gestao')"></label>
                         </div>
                     </div>
                     <!-- Controles e Filtros -->
@@ -483,7 +496,7 @@
         </div>
 
         <!-- SEÇÃO 1: ATORES -->
-        <div class="section-box" id="sec1Box">
+        <div class="section-box" id="sec1Box" data-ap-section="sec1Box">
             <div class="section-header" onclick="toggleSection('sec1Content', 'sec1Toggle')">
                 <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Atores e Jornada</span>
                 <span id="sec1Toggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Seção 1">[−] Ocultar</span>
@@ -672,7 +685,7 @@
         </div>
 
         <!-- SEÇÃO 1B: DOCUMENTOS DO ESTÁGIO -->
-        <div class="section-box" id="sec1bBox">
+        <div class="section-box" id="sec1bBox" data-ap-section="sec1bBox">
             <div class="section-header" onclick="toggleSection('sec1bContent', 'sec1bToggle')">
                 <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg> Documentos do Estágio</span>
                 <span id="sec1bToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Documentos">[−] Ocultar</span>
@@ -705,7 +718,7 @@
         </div>
 
         <!-- SEÇÃO 2: MAPEAMENTO INTERATIVO -->
-        <div class="section-box" id="sec2Box">
+        <div class="section-box" id="sec2Box" data-ap-section="sec2Box">
             <div class="section-header" onclick="toggleSection('sec2Content', 'sec2Toggle')">
                 <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg> Infográfico</span>
                 <span id="sec2Toggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Seção 2">[−] Ocultar</span>
@@ -790,6 +803,87 @@
         </div>
 
 
+    </div>
+
+    <!-- PAINEL "LAYOUT LIVRE" (estilo PowerPoint) — só aparece no modo edição -->
+    <div class="ap-palette" id="apPalette">
+        <span class="ap-palette-title">Layout Livre</span>
+        <span class="ap-group" title="Inserir formas, setas, texto e imagens">
+            <button class="ap-btn" onclick="apAdd('retangulo')" aria-label="Retângulo">▭</button>
+            <button class="ap-btn" onclick="apAdd('circulo')" aria-label="Círculo">◯</button>
+            <button class="ap-btn" onclick="apAdd('triangulo')" aria-label="Triângulo">△</button>
+            <button class="ap-btn" onclick="apAdd('losango')" aria-label="Losango">◇</button>
+            <button class="ap-btn" onclick="apAdd('linha')" aria-label="Linha">╱</button>
+            <button class="ap-btn" onclick="apAdd('seta')" aria-label="Seta">➜</button>
+            <button class="ap-btn" onclick="apAdd('texto')" aria-label="Caixa de texto">T</button>
+            <button class="ap-btn" onclick="apInserirImagem()" aria-label="Inserir imagem por URL">🖼</button>
+            <button class="ap-btn" onclick="apDefinirLink()" aria-label="Adicionar link ao selecionado">🔗</button>
+        </span>
+        <span class="ap-group" title="Ordem e organização">
+            <button class="ap-btn" onclick="apOrdem('tras')" aria-label="Enviar para trás">⬇</button>
+            <button class="ap-btn" onclick="apOrdem('frente')" aria-label="Trazer para frente">⬆</button>
+            <button class="ap-btn" onclick="apAlinhar('left')" aria-label="Alinhar esquerda">⭨</button>
+            <button class="ap-btn" onclick="apAlinhar('center')" aria-label="Alinhar centro">⭩</button>
+            <button class="ap-btn" onclick="apAlinhar('top')" aria-label="Alinhar topo">⭱</button>
+            <button class="ap-btn" onclick="apAlinhar('middle')" aria-label="Alinhar meio">⭰</button>
+            <button class="ap-btn" onclick="apDistribuir()" aria-label="Distribuir horizontalmente">⇆</button>
+        </span>
+        <span class="ap-group" title="Ações">
+            <button class="ap-btn" onclick="apDesfazer()" aria-label="Desfazer">↩</button>
+            <button class="ap-btn" onclick="apRefazer()" aria-label="Refazer">↪</button>
+            <button class="ap-btn" onclick="apDuplicar()" aria-label="Duplicar">📋</button>
+            <button class="ap-btn" onclick="apResetarFreeLayout()" aria-label="Resetar posição das seções" title="Restaurar posição original das seções">↺</button>
+            <button class="ap-btn danger" onclick="apExcluir()" aria-label="Excluir">🗑</button>
+        </span>
+    </div>
+
+    <!-- PROPRIEDADES DO ELEMENTO SELECIONADO (só no modo edição) -->
+    <div class="ap-props-panel" id="apPropsPanel">
+        <h4>Propriedades</h4>
+        <div id="apPropsNoSel">Clique em um elemento adicionado na página para editá-lo.</div>
+        <div class="ap-props-form" id="apPropsForm">
+            <label>Posição / Tamanho (px)
+                <span class="ap-row">
+                    <input type="number" id="apPX" title="X" oninput="apApplyProp()">
+                    <input type="number" id="apPY" title="Y" oninput="apApplyProp()">
+                    <input type="number" id="apPW" title="Largura" oninput="apApplyProp()">
+                    <input type="number" id="apPH" title="Altura" oninput="apApplyProp()">
+                    <input type="number" id="apPRot" title="Rotação (°)" step="1" oninput="apApplyProp()">
+                </span>
+            </label>
+            <label>Aparência
+                <span class="ap-row">
+                    <input type="color" id="apPFill" title="Cor de fundo" oninput="apApplyProp()">
+                    <input type="color" id="apPStroke" title="Cor da borda" oninput="apApplyProp()">
+                    <input type="number" id="apPStrokeW" title="Borda (px)" min="0" max="30" oninput="apApplyProp()">
+                    <input type="number" id="apPRai" title="Raio dos cantos" min="0" max="100" oninput="apApplyProp()">
+                </span>
+            </label>
+            <label>Opacidade <input type="range" id="apPOp" min="0" max="1" step="0.05" oninput="apApplyProp()"></label>
+            <label class="ap-only-text">Texto
+                <textarea id="apPTexto" rows="2" oninput="apApplyProp()"></textarea>
+                <span class="ap-row">
+                    <input type="number" id="apPFontS" title="Tamanho da fonte" min="8" max="120" style="width:62px" oninput="apApplyProp()">
+                    <input type="color" id="apPTextC" title="Cor do texto" oninput="apApplyProp()">
+                    <select id="apPFontF" onchange="apApplyProp()">
+                        <option value="Open Sans, sans-serif">Open Sans</option>
+                        <option value="Arial, sans-serif">Arial</option>
+                        <option value="Georgia, serif">Georgia</option>
+                        <option value="Courier New, monospace">Courier New</option>
+                    </select>
+                    <select id="apPAlign" onchange="apApplyProp()">
+                        <option value="left">Esquerda</option>
+                        <option value="center">Centro</option>
+                        <option value="right">Direita</option>
+                    </select>
+                    <button type="button" class="ap-btn" onclick="apFormato('negrito')" title="Negrito"><b>B</b></button>
+                    <button type="button" class="ap-btn" onclick="apFormato('italico')" title="Itálico"><i>I</i></button>
+                    <button type="button" class="ap-btn" onclick="apFormato('sublinhado')" title="Sublinhado"><u>U</u></button>
+                </span>
+            </label>
+            <label class="ap-only-img">Imagem (URL) <input type="text" id="apPImg" onchange="apApplyProp()" placeholder="https://..."></label>
+            <label>Link (URL) <input type="text" id="apPLink" onchange="apApplyProp()" placeholder="https://... ou #ancora"></label>
+        </div>
     </div>
 
     <div class="jornada-lightbox" id="jornadaLightbox">

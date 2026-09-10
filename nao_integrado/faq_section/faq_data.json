@@ -1,0 +1,118 @@
+{
+    "secao": {
+        "tag": "D\u00fabvidas Frequentes",
+        "tagCor": "#F6891F",
+        "titulo": "Perguntas Frequentes sobre LGPD",
+        "descricao": "Respostas para as d\u00favidas mais comuns da comunidade acad\u00e2mica sobre prote\u00e7\u00e3o de dados pessoais e a LGPD."
+    },
+    "cards": [
+        {
+            "id": 1,
+            "pergunta": "O que \u00e9 a LGPD e por que se aplica \u00e0 universidade?",
+            "resposta": "A Lei Geral de Prote\u00e7\u00e3o de Dados Pessoais (Lei n\u00ba 13.709/2018) \u00e9 a legisla\u00e7\u00e3o brasileira que regula o tratamento de dados pessoais. Aplica-se \u00e0 universidade porque ela trata dados de milhares de titulares — estudantes, professores, funcion\u00e1rios e terceiros — para finalidades educacionais, administrativas e de pesquisa. O descumprimento pode resultar em san\u00e7\u00f5es administrativas, multas e danos reputacionais.",
+            "categoria": "Geral"
+        },
+        {
+            "id": 2,
+            "pergunta": "Quais s\u00e3o meus direitos como titular de dados na universidade?",
+            "resposta": "Conforme o Art. 18 da LGPD, voc\u00ea tem direito a: confirmar a exist\u00eancia de tratamento dos seus dados; acessar seus dados; corrigir dados incompletos ou inexatos; solicitar anonimiza\u00e7\u00e3o, bloqueio ou elimina\u00e7\u00e3o de dados desnecess\u00e1rios; portabilidade dos dados para outro fornecedor; eliminar dados tratados com consentimento; obter informa\u00e7\u00f5es sobre compartilhamento de dados; n\u00e3o fornecer consentimento e conhecer as conseg\u00fancias; e revogar o consentimento a qualquer momento. O prazo de resposta da universidade \u00e9 de 15 dias \u00fateis (Art. 19).",
+            "categoria": "Direitos"
+        },
+        {
+            "id": 3,
+            "pergunta": "A universidade pode compartilhar meus dados com empresas externas?",
+            "resposta": "Sim, mas com restri\u00e7\u00f5es. A universidade pode compartilhar dados com: \u00f3rg\u00e3os governamentais (obriga\u00e7\u00e3o legal), institui\u00e7\u00f5es parceiras (interc\u00e2mbio), \u00f3rg\u00e3os de fomento (CNPq, CAPES), prestadores de servi\u00e7os (operadores contratados) e autoridades judiciais (por ordem). Qualquer compartilhamento deve ter base legal v\u00e1lida (Art. 7\u00ba ou 11) e estar descrito no Aviso de Privacidade. Compartilhamento com finalidade comercial ou publicit\u00e1ria \u00e9 vedado.",
+            "categoria": "Compartilhamento"
+        },
+        {
+            "id": 4,
+            "pergunta": "Como posso solicitar acesso aos meus dados pessoais?",
+            "resposta": "Utilize o formul\u00e1rio de contato do DPO dispon\u00edvel neste portal, selecione 'Acesso aos dados' e descreva sua solicita\u00e7\u00e3o. Ouvir\u00e1 tamb\u00e9m enviar e-mail para dpo@universidade.edu.br com seu nome, CPF e descri\u00e7\u00e3o do pedido. A universidade tem 15 dias \u00fateis para responder (Art. 19 da LGPD). O acesso \u00e9 gratuito e pode ser fornecido em formato eletr\u00f4nico ou impresso.",
+            "categoria": "Direitos"
+        },
+        {
+            "id": 5,
+            "pergunta": "Posso pedir para a universidade apagar meus dados?",
+            "resposta": "Sim, em alguns casos. O direito \u00e0 elimina\u00e7\u00e3o aplica-se quando: os dados foram tratados com consentimento e voc\u00ea revogou-o; quando os dados s\u00e3o excessivos ou desnecess\u00e1rios para a finalidade; quando o tratamento n\u00e3o est\u00e1 em conformidade com a LGPD; ou quando os dados n\u00e3o mais s\u00e3o necess\u00e1rios. Por\u00e9m, dados necess\u00e1rios para cumprimento de obriga\u00e7\u00e3o legal (registros acad\u00eamicos, hist\u00f3ricos) n\u00e3o podem ser eliminados. Nesses casos, a universidade pode anonimizar os dados.",
+            "categoria": "Direitos"
+        },
+        {
+            "id": 6,
+            "pergunta": "A universidade usa meus dados para pesquisa cient\u00edfica?",
+            "resposta": "A universidade pode tratar dados pessoais para pesquisa cient\u00edfica com base legal espec\u00edfica (Art. 11, II, c para dados sens\u00edveis; Art. 7\u00ba, IX para leg\u00edtimo interesse). Quando poss\u00edvel, os dados s\u00e3o anonimizados para proteger a identidade dos titulares. Pesquisadores que utilizam dados pessoais devem submeter o projeto ao Comit\u00ea de \u00c9tica em Pesquisa e seguir as diretrizes de anonimiza\u00e7\u00e3o do IBICT. O titular pode se opor ao tratamento se n\u00e3o estiver em conformidade.",
+            "categoria": "Pesquisa"
+        },
+        {
+            "id": 7,
+            "pergunta": "O que \u00e9 consentimento e quando a universidade precisa dele?",
+            "resposta": "Consentimento \u00e9 a manifesta\u00e7\u00e3o livre, informada e inequ\u00edvoca do titular concordando com o tratamento de seus dados. A universidade precisa de consentimento quando n\u00e3o h\u00e1 outra base legal aplic\u00e1vel (ex.: cadastro em sistemas de aprendizagem, inscri\u00e7\u00e3o em eventos, uso de plataformas externas). Por\u00e9m, para muitas finalidades a universidade utiliza outras bases legais: execu\u00e7\u00e3o de contrato (matr\u00edcula), obriga\u00e7\u00e3o legal (registros do MEC/INEP), pol\u00edticas p\u00fablicas (a\u00e7\u00f5es afirmativas) e leg\u00edtimo interesse (seguran\u00e7a).",
+            "categoria": "Consentimento"
+        },
+        {
+            "id": 8,
+            "pergunta": "Meus dados est\u00e3o seguros? A universidade sofre ataques cibern\u00e9ticos?",
+            "resposta": "A LGPD exige que a universidade adote medidas t\u00e9cnicas e administrativas para proteger os dados (Art. 46). Isso inclui: criptografia de dados em tr\u00e2nsito e em repouso, controle de acesso baseado em fun\u00e7\u00f5es (RBAC), monitoramento cont\u00ednuo, treinamento peri\u00f3dico de colaboradores e plano de resposta a incidentes. Em caso de incidente de seguran\u00e7a, a universidade deve comunicar \u00e0 ANPD e aos titulares afetados em prazo razo\u00e1vel.",
+            "categoria": "Seguran\u00e7a"
+        },
+        {
+            "id": 9,
+            "pergunta": "Como sou pesquisador, o que preciso saber sobre LGPD na minha pesquisa?",
+            "resposta": "Pesquisadores devem: (1) identificar a base legal para tratamento (consentimento via TCLE ou pesquisa cient\u00edfica Art. 11, II, c); (2) garantir anonimiza\u00e7\u00e3o quando poss\u00edvel; (3) submeter o projeto ao Comit\u00ea de \u00c9tica; (4) definir prazo de reten\u00e7\u00e3o dos dados; (5) registrar o tratamento no Invent\u00e1rio de Dados; (6) verificar que publica\u00e7\u00f5es n\u00e3o contenham dados identific\u00e1veis; (7) utilizar acordos de compartilhamento com co-pesquisadores; e (8) armazenar dados em ambientes seguros com acesso restrito. Consulte o DPO para orienta\u00e7\u00f5es espec\u00edficas.",
+            "categoria": "Pesquisa"
+        },
+        {
+            "id": 10,
+            "pergunta": "O que \u00e9 um TCLE e como devo elabor\u00e1-lo para minha pesquisa?",
+            "resposta": "TCLE (Termo de Consentimento Livre e Esclarecido) \u00e9 o documento que informa ao participante da pesquisa sobre seus objetivos, procedimentos, riscos, benef\u00edcios e direitos. Deve conter: identifica\u00e7\u00e3o dos pesquisadores; objetivos claros; procedimentos de coleta e tratamento de dados; riscos e benef\u00edcios; garantia de anonimato/confidencialidade; direito de recusa e retirada a qualquer momento; contato do DPO e do Comit\u00ea de \u00c9tica; forma de armazenamento e prazo de reten\u00e7\u00e3o. O TCLE deve ser elaborado em linguagem acess\u00edvel e submetido ao CEP antes da coleta.",
+            "categoria": "Pesquisa"
+        },
+        {
+            "id": 11,
+            "pergunta": "Sou t\u00e9cnico-administrativo. Quais cuidados devo ter com os dados?",
+            "resposta": "Como t\u00e9cnico-administrativo, voc\u00ea deve: (1) acessar dados apenas quando necess\u00e1rio para suas fun\u00e7\u00f5es (princ\u00edpio da necessidade); (2) n\u00e3o compartilhar dados com colegas que n\u00e3o tenham necessidade de acesso; (3) utilizar senhas fortes e n\u00e3o compartilh\u00e1-las; (4) n\u00e3o enviar dados pessoais por e-mail n\u00e3o criptografado; (5) descartar documentos f\u00edsicos com dados pessoais em trituradora; (6) reportar imediatamente qualquer incidente de seguran\u00e7a; (7) participar dos treinamentos obrigat\u00f3rios de LGPD; e (8) respeitar os prazos de reten\u00e7\u00e3o estabelecidos na tabela de temporalidade da universidade.",
+            "categoria": "T\u00e9cnicos"
+        },
+        {
+            "id": 12,
+            "pergunta": "Sou terceirizado. A LGPD se aplica a mim?",
+            "resposta": "Sim. Como terceirizado que tem acesso a dados pessoais da universidade, voc\u00ea \u00e9 considerado um operador (ou subcontratado) e deve seguir as mesmas regras de prote\u00e7\u00e3o de dados. Seu contrato deve conter cl\u00e1usulas espec\u00edficas de prote\u00e7\u00e3o de dados (Art. 37). Voc\u00ea deve: receber treinamento em LGPD; ter acesso limitado apenas aos dados necess\u00e1rios para suas atividades; reportar incidentes imediatamente ao contratante; e devolver ou destruir dados ao t\u00e9rmino do contrato. O descumprimento pode resultar em rescis\u00e3o contratual e san\u00e7\u00f5es.",
+            "categoria": "Terceirizados"
+        },
+        {
+            "id": 13,
+            "pergunta": "A universidade pode multar os alunos por uso indevido de dados?",
+            "resposta": "A universidade n\u00e3o pode aplicar multas diretamente por uso indevido de dados pessoais. Por\u00e9m, pode aplicar san\u00e7\u00f5es disciplinares conforme seu regimento interno. Al\u00e9m disso, o uso indevido de dados pessoais por qualquer pessoa pode configurar infra\u00e7\u00e3o \u00e0 LGPD, com san\u00e7\u00f5es aplic\u00e1veis pela ANPD (advert\u00eancias, multas de at\u00e9 2% do faturamento, limitadas a R$50 milh\u00f5es por infra\u00e7\u00e3o, Art. 52). Em casos graves, pode configurar crime (Lei 13.709/2018, Art. 73).",
+            "categoria": "San\u00e7\u00f5es"
+        },
+        {
+            "id": 14,
+            "pergunta": "O que acontece se meus dados forem vazados pela universidade?",
+            "resposta": "Em caso de incidente de seguran\u00e7a, a universidade deve: (1) adotar medidas imediatas para conter o dano; (2) comunicar a ANPD em prazo razo\u00e1vel; (3) comunicar os titulares afetados sobre o incidente, riscos e medidas recomendadas; (4) investigar a causa e adotar medidas preventivas. Os titulares t\u00eam direito a repara\u00e7\u00e3o por danos materiais ou morais (Art. 42 e 43). Voc\u00ea tamb\u00e9m pode apresentar reclama\u00e7\u00e3o \u00e0 ANPD ou buscar judicialmente a repara\u00e7\u00e3o de danos.",
+            "categoria": "Incidentes"
+        },
+        {
+            "id": 15,
+            "pergunta": "Posso revogar meu consentimento a qualquer momento?",
+            "resposta": "Sim. O titular pode revogar o consentimento a qualquer momento, conforme Art. 8\u00ba, \u00a75\u00ba da LGPD. A revoga\u00e7\u00e3o \u00e9 gratuita e deve ser facilitada. A universidade deve atender a solicita\u00e7\u00e3o e interromper o tratamento baseado no consentimento revogado. Por\u00e9m, a revoga\u00e7\u00e3o n\u00e3o afeta a licitude do tratamento realizado anteriormente, nem o tratamento que possui outra base legal (obriga\u00e7\u00e3o legal, contrato, pol\u00edticas p\u00fablicas). Para revogar, utilize o formul\u00e1rio do DPO ou envie e-mail.",
+            "categoria": "Consentimento"
+        },
+        {
+            "id": 16,
+            "pergunta": "Como os cookies do site da universidade funcionam em rela\u00e7\u00e3o \u00e0 LGPD?",
+            "resposta": "Cookies que coletam dados pessoais devem ter base legal para o tratamento. Cookies essenciais (funcionamento do site) n\u00e3o precisam de consentimento. Cookies de an\u00e1lise e marketing precisam de consentimento pr\u00e9vio, informado e expl\u00edcito. A universidade deve fornecer pol\u00edtica de cookies clara, com op\u00e7\u00e3o de aceitar/recusar por categoria, e garantir que dados coletados por cookies sejam tratados conforme a LGPD. Voc\u00ea pode gerenciar cookies nas configura\u00e7\u00f5es do seu navegador a qualquer momento.",
+            "categoria": "Geral"
+        },
+        {
+            "id": 17,
+            "pergunta": "A universidade faz uso de dados para intelig\u00eancia artificial?",
+            "resposta": "A LGPD e o Marco Civil da Internet exigem transpar\u00eancia no uso de IA com dados pessoais. A universidade pode usar IA para fins educacionais (recomenda\u00e7\u00e3o de conte\u00fado, an\u00e1lise de desempenho), mas deve: informar os titulares sobre o uso; garantir que o tratamento tenha base legal; adotar medidas contra discrimina\u00e7\u00e3o algor\u00edtmica; permitir que o titular conteste decis\u00f5es automatizadas; e garantir a explicabilidade das decis\u00f5es. Decis\u00f5es automatizadas que afetam significativamente o titular podem ser revistas por solicita\u00e7\u00e3o.",
+            "categoria": "Tecnologia"
+        },
+        {
+            "id": 18,
+            "pergunta": "Qual \u00e9 o prazo para a universidade responder minha solicita\u00e3o?",
+            "resposta": "Conforme o Art. 19 da LGPD, o controlador (universidade) deve responder às solicita\u00e7\u00f5es do titular imediatamente ou, em caso de impossibilidade, de forma clara e precisa, dentro de 15 dias \u00fateis contados da data da solicita\u00e7\u00e3o. Esse prazo pode ser prorrogado em casos excepcionalmente complexos, desde que justificado ao titular. O prazo conta a partir do recebimento da solicita\u00e7\u00e3o, independentemente do canal utilizado (formul\u00e1rio, e-mail, presencial).",
+            "categoria": "Direitos"
+        }
+    ]
+}

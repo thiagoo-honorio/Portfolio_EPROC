@@ -94,10 +94,17 @@
                 btn.classList.add('btn-custom-success');
                 btn.innerText = 'Concluir Edição';
                 indicator.classList.add('active');
+                apSelecionados = [];
+                apRender();
             } else {
                 btn.classList.remove('btn-custom-success');
                 btn.innerText = 'Editar';
                 indicator.classList.remove('active');
+                selecionarNode(null);
+                apCommitTexto();
+                apTextoEditando = null;
+                apSelecionados = [];
+                apRender();
             }
             aplicarEstadoEditavel();
         }
@@ -179,6 +186,46 @@
                 const desc = item.querySelector('.actor-description');
                 if (desc) desc.style.backgroundColor = corParaFundo(cor, 0.15);
             }
+        }
+
+        /* ================================================
+           SUPORTE — MACRO PROCESSO: CORES DO BLOCO
+           ("Novo Sistema de Estágio: Escopo do Sistema")
+        ================================================ */
+        const DUP_SELETORES = {
+            side: '.dup-side',
+            disp: '.dup-disponibilizacao',
+            contrat: '.dup-contratacao',
+            vig: '.dup-vigencia',
+            enc: '.dup-encerramento',
+            gestao: '.dup-bar'
+        };
+        let dupCores = { side: '#1e293b', disp: '#737478', contrat: '#1bb193', vig: '#5f3377', enc: '#833075', gestao: '#57585c' };
+
+        function mudarCorDup(input, tipo) {
+            const alvo = document.querySelector('.dup-map ' + DUP_SELETORES[tipo]);
+            if (!alvo) return;
+            const cor = input.value;
+            dupCores[tipo] = cor;
+            if (tipo === 'side') alvo.style.background = cor;
+            else alvo.style.backgroundColor = cor;
+            agendarHistorico();
+        }
+
+        function aplicarCoresDup(cores) {
+            if (cores && typeof cores === 'object') dupCores = Object.assign({}, dupCores, cores);
+            if (!document.querySelector('.dup-map')) return;
+            document.querySelectorAll('.dup-edit-bar input[type="color"]').forEach(input => {
+                const tipo = input.getAttribute('data-dup-cor');
+                if (tipo && dupCores[tipo] != null) input.value = dupCores[tipo];
+            });
+            Object.keys(DUP_SELETORES).forEach(tipo => {
+                const alvo = document.querySelector('.dup-map ' + DUP_SELETORES[tipo]);
+                if (!alvo) return;
+                const cor = dupCores[tipo];
+                if (tipo === 'side') alvo.style.background = cor;
+                else alvo.style.backgroundColor = cor;
+            });
         }
 
         function removerEtapa(btn) {
@@ -382,7 +429,7 @@
                 el.style.cssText = `left:${node.x}px;top:${node.y}px;width:${node.w}px;height:${node.h}px;background-color:${node.bg};color:${node.color};`;
                 el.innerHTML = `<div class="map-node-title">${escaparHTML(node.title)}</div>${node.sub ? `<div class="map-node-sub">${escaparHTML(node.sub)}</div>` : ''}<div class="resize-handle"></div>`;
                 el.addEventListener('mousedown', (e) => iniciarDragNode(e, node));
-                el.addEventListener('click', (e) => { e.stopPropagation(); modoConexao ? processarConexao(node.id) : selecionarNode(node.id, false); });
+                el.addEventListener('click', (e) => { e.stopPropagation(); if (!editMode) return; modoConexao ? processarConexao(node.id) : selecionarNode(node.id, false); });
                 el.querySelector('.resize-handle').addEventListener('mousedown', (e) => iniciarResizeNode(e, node));
                 container.appendChild(el);
             });
@@ -446,7 +493,7 @@
                 if (tipo !== 'inversa') line.setAttribute('marker-end', 'url(#arrow)');
                 if (tipo !== 'direta') line.setAttribute('marker-start', 'url(#arrowReversa)');
                 line.dataset.de = conn.de; line.dataset.para = conn.para;
-                line.onclick = (e) => { e.stopPropagation(); if (confirm('Deseja excluir esta conexão?')) { salvarHistorico(); const idx = state.conexoes.indexOf(conn); if (idx > -1) state.conexoes.splice(idx, 1); renderizarConexoes();} };
+                line.onclick = (e) => { e.stopPropagation(); if (!editMode) return; if (confirm('Deseja excluir esta conexão?')) { salvarHistorico(); const idx = state.conexoes.indexOf(conn); if (idx > -1) state.conexoes.splice(idx, 1); renderizarConexoes();} };
                 svg.appendChild(line);
             });
         }
@@ -512,6 +559,531 @@
             state.conexoes = state.conexoes.filter(c => c.de !== nodeSelecionadoId && c.para !== nodeSelecionadoId);
             nodeSelecionadoId = null; selecionarNode(null); renderizarMapa();
 
+        }
+
+        /* ================================================
+           ELEMENTOS DE LAYOUT LIVRE (estilo PowerPoint)
+           Camada sobre a própria página: formas, setas, texto,
+           imagens e links adicionados no modo edição. Durante a
+           edição há alças, paleta de ferramentas e propriedades;
+           para os visitantes viram conteúdo fixo na página (os
+           links continuam clicáveis). O estilo da página não muda
+           — apenas estes elementos são somados aos conteúdos.
+        ================================================ */
+        const AP_PALETA_CORES = ['#2563eb', '#16a34a', '#dc2626', '#f59e0b', '#7c3aed', '#0ea5e9', '#334155', '#ffffff'];
+        let apSelecionados = [];
+        let apArrasto = null;
+        let apTextoEditando = null;
+        let apLastClick = null;
+        let apListenersProntos = false;
+
+        function apLayer() { return document.getElementById('apLayer'); }
+
+        function garantirApLayer() {
+            let layer = apLayer();
+            if (!layer) {
+                layer = document.createElement('div');
+                layer.id = 'apLayer';
+                layer.className = 'ap-layer';
+                const container = document.getElementById('pageContainer');
+                if (container) container.appendChild(layer);
+            }
+            if (!apListenersProntos) {
+                apListenersProntos = true;
+                apInstalarListeners(layer);
+            }
+            return layer;
+        }
+
+        function apDados() {
+            if (!Array.isArray(state.apresentacao)) state.apresentacao = [];
+            return state.apresentacao;
+        }
+        function apBuscar(id) { return apDados().find(el => el.id === id); }
+
+        function apNovo(tipo, x, y) {
+            const layer = garantirApLayer();
+            if (x == null || y == null) {
+                if (apLastClick) { x = apLastClick.x - 75; y = apLastClick.y - 45; }
+                else { const r = layer.getBoundingClientRect(); x = (window.scrollX + window.innerWidth / 2 - r.left) - 80; y = (window.scrollY + window.innerHeight * 0.4 - r.top) - 50; }
+            }
+            const cor = AP_PALETA_CORES[apDados().length % AP_PALETA_CORES.length];
+            const base = { id: gerarId('ape'), tipo, x: Math.round(x), y: Math.round(y), w: 150, h: 90, rot: 0, opacidade: 1, link: '' };
+            switch (tipo) {
+                case 'retangulo': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, raio: 10, w: 160, h: 100 };
+                case 'circulo': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, raio: 50, w: 120, h: 120 };
+                case 'triangulo': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 120, h: 110 };
+                case 'losango': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 130, h: 100 };
+                case 'linha': return { ...base, stroke: '#1e293b', strokeWidth: 3, w: 200, h: 10 };
+                case 'seta': return { ...base, stroke: '#dc2626', strokeWidth: 3, w: 200, h: 12 };
+                case 'texto': return { ...base, texto: 'Digite seu texto aqui', fontSize: 20, color: '#0f172a', fontFamily: 'Open Sans, sans-serif', negrito: false, italico: false, sublinhado: false, alinhamento: 'left', w: 240, h: 90, fill: 'transparent', stroke: 'transparent', strokeWidth: 0 };
+                case 'imagem': return { ...base, imagem: '', w: 180, h: 120, strokeWidth: 0 };
+                default: return base;
+            }
+        }
+
+        function apAdd(tipo, x, y) {
+            apSelecionados = [];
+            const novo = apNovo(tipo, x, y);
+            apDados().push(novo);
+            apSelecionados = [novo.id];
+            salvarHistorico();
+            apRender();
+        }
+
+        function apInserirImagem() {
+            if (!apSelecionados.length) { apAdd('imagem'); return; }
+            const el = apBuscar(apSelecionados[apSelecionados.length - 1]);
+            if (!el) { apAdd('imagem'); return; }
+            const url = prompt('URL da imagem:', el.imagem || 'https://');
+            if (url == null) return;
+            el.imagem = url.trim();
+            salvarHistorico(); apRender();
+        }
+
+        function apDefinirLink() {
+            if (!apSelecionados.length) { toast('Selecione um elemento para adicionar link.', 'info'); return; }
+            const el = apBuscar(apSelecionados[0]);
+            if (!el) return;
+            const url = prompt('URL do link (ou #ancora):', el.link || 'https://');
+            if (url == null) return;
+            apSelecionados.forEach(id => { const e = apBuscar(id); if (e) e.link = url.trim(); });
+            salvarHistorico(); apRender();
+        }
+
+        function apCriarDOM(el) {
+            const div = document.createElement('div');
+            div.className = 'ap-el-page';
+            if (el.link) div.className += ' ap-link';
+            div.dataset.id = el.id;
+            div.style.cssText = `left:${el.x}px;top:${el.y}px;width:${el.w}px;height:${el.h}px;transform:rotate(${el.rot || 0}deg);opacity:${el.opacidade == null ? 1 : el.opacidade};`;
+
+            if (el.tipo === 'texto') {
+                const t = document.createElement('div');
+                t.className = 'ap-el-text';
+                t.textContent = el.texto || '';
+                t.style.fontFamily = el.fontFamily || 'Open Sans, sans-serif';
+                t.style.fontSize = (el.fontSize || 20) + 'px';
+                t.style.color = el.color || '#0f172a';
+                t.style.fontWeight = el.negrito ? '700' : '400';
+                t.style.fontStyle = el.italico ? 'italic' : 'normal';
+                t.style.textDecoration = el.sublinhado ? 'underline' : 'none';
+                t.style.textAlign = el.alinhamento || 'left';
+                t.style.background = (el.fill && el.fill !== 'transparent') ? el.fill : 'transparent';
+                if (editMode && apTextoEditando === el.id) t.contentEditable = 'true';
+                div.appendChild(t);
+                return div;
+            }
+            if (el.tipo === 'imagem') {
+                const img = document.createElement('img');
+                img.className = 'ap-el-img';
+                img.alt = '';
+                img.draggable = false;
+                if (el.imagem) img.src = el.imagem;
+                img.onerror = () => { img.style.opacity = '0.15'; };
+                div.appendChild(img);
+                return div;
+            }
+            if (el.tipo === 'retangulo' || el.tipo === 'circulo') {
+                const shape = document.createElement('div');
+                shape.style.cssText = 'position:absolute;inset:0;';
+                shape.style.background = (el.fill && el.fill !== 'transparent') ? el.fill : 'transparent';
+                shape.style.border = (el.stroke && el.stroke !== 'transparent') ? `${el.strokeWidth || 1}px solid ${el.stroke}` : 'none';
+                shape.style.borderRadius = el.tipo === 'circulo' ? '50%' : (el.raio || 0) + 'px';
+                div.appendChild(shape);
+                return div;
+            }
+            if (el.tipo === 'triangulo' || el.tipo === 'losango') {
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('class', 'ap-el-svg');
+                svg.setAttribute('viewBox', '0 0 100 100');
+                svg.setAttribute('preserveAspectRatio', 'none');
+                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
+                poly.setAttribute('points', el.tipo === 'triangulo' ? '50,3 97,97 3,97' : '50,3 97,50 50,97 3,50');
+                poly.setAttribute('fill', (el.fill && el.fill !== 'transparent') ? el.fill : 'transparent');
+                poly.setAttribute('stroke', (el.stroke && el.stroke !== 'transparent') ? el.stroke : 'none');
+                poly.setAttribute('stroke-width', el.strokeWidth || 1);
+                svg.appendChild(poly);
+                div.appendChild(svg);
+                return div;
+            }
+            if (el.tipo === 'linha' || el.tipo === 'seta') {
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('class', 'ap-el-svg');
+                svg.setAttribute('viewBox', '0 0 100 100');
+                svg.setAttribute('preserveAspectRatio', 'none');
+                const cor = el.stroke || (el.tipo === 'seta' ? '#dc2626' : '#1e293b');
+                const larg = el.strokeWidth || 3;
+                if (el.tipo === 'seta') {
+                    const mid = 'mapeid_' + el.id;
+                    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
+                    defs.setAttribute('id', mid);
+                    defs.setAttribute('viewBox', '0 0 10 10');
+                    defs.setAttribute('refX', '8'); defs.setAttribute('refY', '5');
+                    defs.setAttribute('markerWidth', '6'); defs.setAttribute('markerHeight', '6');
+                    defs.setAttribute('orient', 'auto-start-reverse');
+                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                    path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
+                    path.setAttribute('fill', cor);
+                    defs.appendChild(path);
+                    svg.appendChild(defs);
+                    const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    ln.setAttribute('x1', '2'); ln.setAttribute('y1', '50');
+                    ln.setAttribute('x2', '94'); ln.setAttribute('y2', '50');
+                    ln.setAttribute('stroke', cor); ln.setAttribute('stroke-width', larg);
+                    ln.setAttribute('marker-end', 'url(#' + mid + ')');
+                    svg.appendChild(ln);
+                } else {
+                    const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+                    ln.setAttribute('x1', '2'); ln.setAttribute('y1', '50');
+                    ln.setAttribute('x2', '98'); ln.setAttribute('y2', '50');
+                    ln.setAttribute('stroke', cor); ln.setAttribute('stroke-width', larg);
+                    svg.appendChild(ln);
+                }
+                div.appendChild(svg);
+                return div;
+            }
+            return div;
+        }
+
+        function apRender() {
+            const layer = garantirApLayer();
+            apCommitTexto();
+            layer.querySelectorAll('.ap-el-page, .ap-sel-box').forEach(el => el.remove());
+            apDados().forEach(el => layer.appendChild(apCriarDOM(el)));
+            apAtualizarSelecao();
+            apAtualizarProps();
+        }
+
+        function apBBox(ids) {
+            let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
+            ids.forEach(id => {
+                const el = apBuscar(id);
+                if (!el) return;
+                x1 = Math.min(x1, el.x); y1 = Math.min(y1, el.y);
+                x2 = Math.max(x2, el.x + el.w); y2 = Math.max(y2, el.y + el.h);
+            });
+            if (x1 === Infinity) return null;
+            return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
+        }
+
+        function apSelecionar(id, multi) {
+            if (!editMode) return;
+            if (multi) {
+                if (apSelecionados.includes(id)) apSelecionados = apSelecionados.filter(s => s !== id);
+                else apSelecionados.push(id);
+            } else {
+                apSelecionados = id ? [id] : [];
+            }
+            apAtualizarSelecao();
+            apAtualizarProps();
+        }
+
+        function apAtualizarSelecao() {
+            const layer = apLayer(); if (!layer) return;
+            layer.querySelectorAll('.ap-sel-box').forEach(el => el.remove());
+            if (!editMode || !apSelecionados.length) return;
+            const bbox = apBBox(apSelecionados);
+            if (!bbox) return;
+            const box = document.createElement('div');
+            box.className = 'ap-sel-box';
+            box.style.cssText = `left:${bbox.x - 5}px;top:${bbox.y - 5}px;width:${bbox.w + 10}px;height:${bbox.h + 10}px;`;
+            if (apSelecionados.length === 1) {
+                const el = apBuscar(apSelecionados[0]);
+                if (el && el.rot) {
+                    box.style.transform = `rotate(${el.rot}deg)`;
+                    box.style.transformOrigin = `${bbox.w / 2 + 5}px ${bbox.h / 2 + 5}px`;
+                }
+            }
+            layer.appendChild(box);
+            ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].forEach(dir => {
+                const h = document.createElement('div');
+                h.className = 'ap-sel-handle ap-handle-' + dir;
+                h.dataset.dir = dir;
+                h.addEventListener('mousedown', (e) => { e.stopPropagation(); e.preventDefault(); apIniciarResize(e, dir); });
+                box.appendChild(h);
+            });
+            if (apSelecionados.length === 1) {
+                const rot = document.createElement('div');
+                rot.className = 'ap-sel-rot';
+                rot.title = 'Rotacionar';
+                rot.addEventListener('mousedown', (e) => { e.stopPropagation(); e.preventDefault(); apIniciarRotacao(e); });
+                box.appendChild(rot);
+                const rl = document.createElement('div');
+                rl.className = 'ap-sel-rotline';
+                box.appendChild(rl);
+            }
+        }
+
+        function apAtualizarProps() {
+            const panel = document.getElementById('apPropsPanel');
+            if (!panel) return;
+            const noSel = document.getElementById('apPropsNoSel');
+            const form = document.getElementById('apPropsForm');
+            panel.classList.toggle('show', !!(editMode && apSelecionados.length));
+            if (noSel) noSel.style.display = apSelecionados.length ? 'none' : '';
+            if (form) form.style.display = apSelecionados.length === 1 ? 'flex' : 'none';
+            if (apSelecionados.length !== 1) return;
+            const el = apBuscar(apSelecionados[0]);
+            if (!el) return;
+            apSet('apPX', el.x); apSet('apPY', el.y); apSet('apPW', el.w); apSet('apPH', el.h); apSet('apPRot', el.rot || 0);
+            apSet('apPFill', apCor(el.fill)); apSet('apPStroke', apCor(el.stroke));
+            apSet('apPStrokeW', el.strokeWidth || 0); apSet('apPRai', el.raio || 0);
+            apSet('apPOp', el.opacidade == null ? 1 : el.opacidade);
+            apSet('apPTexto', el.texto || ''); apSet('apPFontS', el.fontSize || 20);
+            apSet('apPTextC', apCor(el.color)); apSet('apPFontF', el.fontFamily || 'Open Sans, sans-serif');
+            apSet('apPAlign', el.alinhamento || 'left'); apSet('apPImg', el.imagem || ''); apSet('apPLink', el.link || '');
+            const onlyTxt = document.querySelector('.ap-only-text');
+            const onlyImg = document.querySelector('.ap-only-img');
+            if (onlyTxt) onlyTxt.style.display = el.tipo === 'texto' ? 'flex' : 'none';
+            if (onlyImg) onlyImg.style.display = el.tipo === 'imagem' ? 'flex' : 'none';
+        }
+        function apSet(id, v) { const i = document.getElementById(id); if (i) i.value = v == null ? '' : v; }
+        function apCor(c) { return (c && c !== 'transparent') ? c : '#ffffff'; }
+
+        function apApplyProp() {
+            if (apSelecionados.length !== 1) return;
+            const el = apBuscar(apSelecionados[0]);
+            if (!el) return;
+            const num = (id, cur) => { const i = document.getElementById(id); const v = i ? parseFloat(i.value) : NaN; return isNaN(v) ? cur : v; };
+            el.x = num('apPX', el.x); el.y = num('apPY', el.y); el.w = num('apPW', el.w); el.h = num('apPH', el.h); el.rot = num('apPRot', el.rot || 0);
+            const bg = document.getElementById('apPFill'); if (bg) el.fill = bg.value;
+            const st = document.getElementById('apPStroke'); if (st) el.stroke = st.value;
+            el.strokeWidth = num('apPStrokeW', el.strokeWidth || 0);
+            el.raio = num('apPRai', el.raio || 0);
+            el.opacidade = num('apPOp', el.opacidade == null ? 1 : el.opacidade);
+            const txt = document.getElementById('apPTexto'); if (txt) el.texto = txt.value;
+            el.fontSize = num('apPFontS', el.fontSize || 20);
+            const tc = document.getElementById('apPTextC'); if (tc) el.color = tc.value;
+            const ff = document.getElementById('apPFontF'); if (ff) el.fontFamily = ff.value;
+            const al = document.getElementById('apPAlign'); if (al) el.alinhamento = al.value;
+            const im = document.getElementById('apPImg'); if (im) el.imagem = im.value.trim();
+            const lk = document.getElementById('apPLink'); if (lk) el.link = lk.value.trim();
+            agendarHistorico();
+            apRender();
+        }
+
+        function apFormato(tipo) {
+            if (!apSelecionados.length) return;
+            apSelecionados.forEach(id => { const el = apBuscar(id); if (el) el[tipo] = !el[tipo]; });
+            salvarHistorico(); apRender();
+        }
+
+        function apExcluir() {
+            if (!apSelecionados.length) return;
+            salvarHistorico();
+            const ids = [...apSelecionados];
+            state.apresentacao = apDados().filter(el => !ids.includes(el.id));
+            apSelecionados = [];
+            apRender();
+        }
+
+        function apDuplicar() {
+            if (!apSelecionados.length) return;
+            salvarHistorico();
+            const novos = [];
+            apSelecionados.forEach(id => {
+                const el = apBuscar(id);
+                if (!el) return;
+                const copia = JSON.parse(JSON.stringify(el));
+                copia.id = gerarId('ape'); copia.x = el.x + 24; copia.y = el.y + 24;
+                state.apresentacao.push(copia); novos.push(copia.id);
+            });
+            apSelecionados = novos;
+            apRender();
+        }
+
+        function apOrdem(dir) {
+            if (!apSelecionados.length) return;
+            salvarHistorico();
+            const ids = [...apSelecionados];
+            if (dir === 'frente') {
+                ids.sort((a, b) => state.apresentacao.findIndex(e => e.id === a) - state.apresentacao.findIndex(e => e.id === b));
+                ids.forEach(id => { const i = state.apresentacao.findIndex(e => e.id === id); const [el] = state.apresentacao.splice(i, 1); state.apresentacao.push(el); });
+            } else {
+                ids.sort((a, b) => state.apresentacao.findIndex(e => e.id === b) - state.apresentacao.findIndex(e => e.id === a));
+                ids.forEach(id => { const i = state.apresentacao.findIndex(e => e.id === id); const [el] = state.apresentacao.splice(i, 1); state.apresentacao.unshift(el); });
+            }
+            apRender();
+        }
+
+        function apAlinhar(modo) {
+            if (apSelecionados.length < 2) return;
+            salvarHistorico();
+            const bbox = apBBox(apSelecionados);
+            if (!bbox) return;
+            apSelecionados.forEach(id => {
+                const el = apBuscar(id); if (!el) return;
+                if (modo === 'left') el.x = bbox.x;
+                else if (modo === 'center') el.x = bbox.x + (bbox.w - el.w) / 2;
+                else if (modo === 'top') el.y = bbox.y;
+                else if (modo === 'middle') el.y = bbox.y + (bbox.h - el.h) / 2;
+            });
+            apRender();
+        }
+
+        function apDistribuir() {
+            if (apSelecionados.length < 3) { toast('Selecione pelo menos 3 elementos para distribuir.', 'info'); return; }
+            salvarHistorico();
+            const els = apSelecionados.map(id => apBuscar(id)).filter(Boolean);
+            els.sort((a, b) => a.x - b.x);
+            const total = (els[els.length - 1].x + els[els.length - 1].w) - els[0].x;
+            const soma = els.reduce((s, e) => s + e.w, 0);
+            const gap = (total - soma) / (els.length - 1);
+            let cursor = els[0].x;
+            els.forEach(el => { el.x = cursor; cursor += el.w + gap; });
+            apRender();
+        }
+
+        function apDesfazer() { desfazer(); apSelecionados = []; apRender(); }
+        function apRefazer() { refazer(); apSelecionados = []; apRender(); }
+
+        function apBindArrasto(e) {
+            const move = (ev) => { if (apArrasto && apArrasto.move) apArrasto.move(ev); };
+            const up = () => {
+                if (apArrasto && apArrasto.up) apArrasto.up();
+                apArrasto = null;
+                window.removeEventListener('mousemove', move);
+                window.removeEventListener('mouseup', up);
+            };
+            window.addEventListener('mousemove', move);
+            window.addEventListener('mouseup', up);
+            e.preventDefault();
+        }
+
+        function apIniciarMover(e, ids, inicio) {
+            const base = ids.map(id => { const el = apBuscar(id); return el ? { id, x: el.x, y: el.y } : null; }).filter(Boolean);
+            let mexeu = false;
+            apArrasto = {
+                move: (ev) => {
+                    const dx = ev.clientX - inicio.x, dy = ev.clientY - inicio.y;
+                    base.forEach(p => { const el = apBuscar(p.id); if (el) { el.x = p.x + dx; el.y = p.y + dy; } });
+                    mexeu = true;
+                    apRender();
+                },
+                up: () => { if (mexeu) salvarHistorico(); }
+            };
+            apBindArrasto(e);
+        }
+
+        function apIniciarResize(e, dir) {
+            const ids = [...apSelecionados];
+            const caixa = apBBox(ids);
+            if (!caixa) return;
+            const start = { x: e.clientX, y: e.clientY };
+            let mexeu = false;
+            apArrasto = {
+                move: (ev) => {
+                    const dx = ev.clientX - start.x, dy = ev.clientY - start.y;
+                    let x = caixa.x, y = caixa.y, w = caixa.w, h = caixa.h;
+                    if (dir.includes('e')) w = Math.max(20, caixa.w + dx);
+                    if (dir.includes('s')) h = Math.max(20, caixa.h + dy);
+                    if (dir.includes('w')) { const nw = Math.max(20, caixa.w - dx); x = caixa.x + (caixa.w - nw); w = nw; }
+                    if (dir.includes('n')) { const nh = Math.max(20, caixa.h - dy); y = caixa.y + (caixa.h - nh); h = nh; }
+                    if (ids.length === 1) {
+                        const el = apBuscar(ids[0]);
+                        if (el) { el.x = x; el.y = y; el.w = w; el.h = h; }
+                    } else {
+                        const sx = w / caixa.w, sy = h / caixa.h;
+                        const cx = caixa.x + caixa.w / 2, cy = caixa.y + caixa.h / 2;
+                        const ncx = x + w / 2, ncy = y + h / 2;
+                        ids.forEach(id => {
+                            const el = apBuscar(id); if (!el) return;
+                            const dxl = el.x + el.w / 2 - cx, dyl = el.y + el.h / 2 - cy;
+                            el.x = ncx + dxl * sx - (el.w * sx) / 2;
+                            el.y = ncy + dyl * sy - (el.h * sy) / 2;
+                            el.w = el.w * sx; el.h = el.h * sy;
+                        });
+                    }
+                    apRender();
+                },
+                up: () => { if (mexeu) salvarHistorico(); apRender(); }
+            };
+            apBindArrasto(e);
+        }
+
+        function apIniciarRotacao(e) {
+            const el = apBuscar(apSelecionados[0]);
+            if (!el) return;
+            const centro = { x: el.x + el.w / 2, y: el.y + el.h / 2 };
+            const start = { x: e.clientX, y: e.clientY };
+            const angIni = Math.atan2(start.y - centro.y + window.scrollY, start.x - centro.x + window.scrollX) * 180 / Math.PI;
+            let mexeu = false;
+            apArrasto = {
+                move: (ev) => {
+                    const ang = Math.atan2(ev.clientY - centro.y + window.scrollY, ev.clientX - centro.x + window.scrollX) * 180 / Math.PI;
+                    el.rot = (ang - angIni) % 360;
+                    mexeu = true;
+                    apRender();
+                },
+                up: () => { if (mexeu) salvarHistorico(); apRender(); }
+            };
+            apBindArrasto(e);
+        }
+
+        function apCommitTexto() {
+            const layer = apLayer(); if (!layer) return;
+            const t = layer.querySelector('.ap-el-text[contenteditable="true"]');
+            if (!t) return;
+            const elDom = t.closest('.ap-el-page');
+            const id = elDom && elDom.dataset.id;
+            const el = id && apBuscar(id);
+            if (el) el.texto = t.textContent;
+            t.contentEditable = 'false';
+            apTextoEditando = null;
+        }
+
+        function apInstalarListeners(layer) {
+            layer.addEventListener('mousedown', (e) => {
+                const txtLive = e.target.closest('.ap-el-text');
+                if (txtLive && txtLive.isContentEditable) return;
+                apCommitTexto();
+                if (e.target.closest('.ap-sel-handle, .ap-sel-rot')) return;
+                if (!editMode) return;
+                const elDom = e.target.closest('.ap-el-page');
+                if (elDom && elDom.dataset.id) {
+                    const id = elDom.dataset.id;
+                    apSelecionar(id, e.shiftKey);
+                    const inicio = { x: e.clientX, y: e.clientY };
+                    if (apSelecionados.includes(id)) apIniciarMover(e, apSelecionados, inicio);
+                } else {
+                    apSelecionar(null, false);
+                }
+            });
+            layer.addEventListener('dblclick', (e) => {
+                if (!editMode) return;
+                const layerR = layer.getBoundingClientRect();
+                const elDom = e.target.closest('.ap-el-page');
+                if (!elDom || !elDom.dataset.id) { apAdd('texto', Math.round(e.clientX - layerR.left - 80), Math.round(e.clientY - layerR.top - 20)); return; }
+                const el = apBuscar(elDom.dataset.id);
+                if (!el) return;
+                if (el.tipo !== 'texto') { apAdd('texto', Math.round(e.clientX - layerR.left - 80), Math.round(e.clientY - layerR.top - 20)); return; }
+                apTextoEditando = el.id;
+                apRender();
+                const t = layer.querySelector(`.ap-el-page[data-id="${el.id}"] .ap-el-text`);
+                if (t) {
+                    t.contentEditable = 'true';
+                    t.focus();
+                    const s = window.getSelection();
+                    if (s) s.selectAllChildren(t);
+                }
+            });
+            layer.addEventListener('click', (e) => {
+                const elDom = e.target.closest('.ap-el-page');
+                if (!elDom || !elDom.dataset.id) return;
+                const el = apBuscar(elDom.dataset.id);
+                if (!el || !el.link) return;
+                if (!editMode) { e.preventDefault(); window.open(el.link, '_blank'); }
+            });
+            layer.addEventListener('focusout', () => apCommitTexto());
+            const pc = document.getElementById('pageContainer');
+            if (pc) {
+                pc.addEventListener('click', (e) => {
+                    if (!editMode) return;
+                    const r = layer.getBoundingClientRect();
+                    apLastClick = { x: Math.round(e.clientX - r.left), y: Math.round(e.clientY - r.top) };
+                });
+            }
         }
 
         const ROTULOS_CONEXAO = {
@@ -596,6 +1168,7 @@
         }
 
         function iniciarDragNode(e, node) {
+            if (!editMode) return;
             if (e.target.classList.contains('resize-handle')) return;
             e.stopPropagation();
             let startX = e.clientX, startY = e.clientY, origX = node.x, origY = node.y;
@@ -616,6 +1189,7 @@
         }
 
         function iniciarResizeNode(e, node) {
+            if (!editMode) return;
             e.stopPropagation();
             let startX = e.clientX, startY = e.clientY, origW = node.w, origH = node.h;
             let moveu = false;
@@ -962,7 +1536,9 @@
                 atores: capturarAtores(forcarExpandido),
                 etapas: capturarEtapas(),
                 textos: capturarTextosEditaveis(),
-                secoes: capturarSecoes()
+                secoes: capturarSecoes(),
+                dupCores: dupCores,
+                apresentacao: Array.isArray(state.apresentacao) ? state.apresentacao : []
             };
         }
 
@@ -995,6 +1571,8 @@
             if (!mapa || !Array.isArray(mapa.nodes) || !Array.isArray(mapa.conexoes)) { alert('Os dados não são válidos.'); return false; }
             state = mapa;
             nodeSelecionadoId = null;
+            if (!Array.isArray(state.apresentacao)) state.apresentacao = [];
+            apSelecionados = [];
 
             if (Array.isArray(parsed.atores) && parsed.atores.length) {
                 document.getElementById('actorsList').innerHTML = parsed.atores.map(criarLinhaAtorHTML).join('');
@@ -1045,6 +1623,7 @@
             }
             if (parsed.textos) aplicarTextosEditaveis(parsed.textos);
             if (parsed.secoes) aplicarSecoes(parsed.secoes);
+            if (parsed.dupCores) aplicarCoresDup(parsed.dupCores);
 
             aplicarEstadoEditavel();
             vincularCliquesAtores();
@@ -1052,6 +1631,7 @@
             salvarHistorico();
             renderizarMapa();
             selecionarNode(null);
+            apRender();
             return true;
         }
 
@@ -1313,7 +1893,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
 
         // Limpa a UI de edição e expande todas as seções para gerar um arquivo "final" limpo
         function limparCloneParaExportacao(cloneDoc) {
-            cloneDoc.querySelectorAll('.edit-controls, .step-edit-controls, .edit-step-bar, .edit-actor-bar, .add-actor-btn, .add-btn, .append-btn, .edit-add, .toast-msg').forEach(el => el.remove());
+            cloneDoc.querySelectorAll('.edit-controls, .step-edit-controls, .edit-step-bar, .edit-actor-bar, .add-actor-btn, .add-btn, .append-btn, .edit-add, .toast-msg, .dup-edit-bar').forEach(el => el.remove());
             // Remove também a UI de edição do mapa e os filtros/navegação de edição,
             // que não devem aparecer no arquivo exportado (o PDF já os escondia; aqui no clone).
             ['#editorToolbar', '#propertiesPanel', '#searchContainer'].forEach(sel => {
@@ -1322,12 +1902,14 @@ const FALLBACK_IMAGENS_CDN_404 = {
             // Remove toda a interface de edição para que o usuário do arquivo exportado
             // não veja nem consiga ativar o modo Editar (botão da navbar, pilha lateral de
             // ações, toolbar flutuante e o input de arquivo de imagem).
-            ['#btnToggleEdit', '#globalActionsBar', '#editFloatToolbar', '#inputFileImagem'].forEach(sel => {
+            ['#btnToggleEdit', '#globalActionsBar', '#editFloatToolbar', '#inputFileImagem', '#apPalette', '#apPropsPanel'].forEach(sel => {
                 cloneDoc.querySelectorAll(sel).forEach(el => el.remove());
             });
             // Esconde o contêiner de ações da navbar (que abrigava o botão "Editar") mesmo
             // quando o seletor acima não bater (ex.: estruturas remotas/hospedadas).
             cloneDoc.querySelectorAll('.nav-actions').forEach(el => el.remove());
+            // Remove alças de seleção dos elementos de layout livre, se houver
+            cloneDoc.querySelectorAll('.ap-sel-box').forEach(el => el.remove());
             // Remove a classe 'editing' por segurança, garantindo que nenhum controle de
             // edição residual seja exibido no arquivo exportado.
             const cloneBody = cloneDoc.querySelector('body');
@@ -1691,6 +2273,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 const s = JSON.parse(tag.textContent);
                 const mapa = s && s.map ? s.map : s; // aceita formato novo (completo) e antigo (só o mapa)
                 if (mapa && Array.isArray(mapa.nodes) && Array.isArray(mapa.conexoes)) state = mapa;
+                if (!Array.isArray(state.apresentacao)) state.apresentacao = [];
             } catch (err) { console.warn('Estado embutido no HTML exportado é inválido:', err); }
         }
 
@@ -1706,6 +2289,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 if (!restaurouAutoSave) carregarEstadoExportado();
             }
             salvarHistorico(); renderizarMapa();
+            apRender();
             vincularCliquesAtores();
             instalarTogglesAtores();
             instalarTogglesEtapas();
@@ -1796,11 +2380,13 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); salvarEstadoLocal(); return; }
                 const alvo = e.target;
                 const digitando = alvo.isContentEditable || ['input', 'textarea', 'select'].includes((alvo.tagName || '').toLowerCase());
-                if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) refazer(); else desfazer(); return; }
-                if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); refazer(); return; }
+                if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) refazer(); else desfazer(); if (editMode) { apSelecionados = []; apRender(); } return; }
+                if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); refazer(); if (editMode) { apSelecionados = []; apRender(); } return; }
                 if (digitando) return;
+                if (editMode && k === 'delete' && apSelecionados.length) { apExcluir(); return; }
                 if (k === 'delete' && nodeSelecionadoId) excluirSelecionado();
                 else if (k === 'escape') {
+                    if (editMode && apSelecionados.length) { apSelecionados = []; apRender(); return; }
                     if (modoConexao) cancelarModoConexao();
                     const lb = document.getElementById('jornadaLightbox');
                     if (lb) lb.classList.remove('active');
@@ -2232,6 +2818,12 @@ const FALLBACK_IMAGENS_CDN_404 = {
             el(trunkX - 1, Math.min(estP.cy, topT), 3, botT - Math.min(estP.cy, topT));
             el(trunkX - 1, valP.cy - 1, valP.left - trunkX + 3, 3);
             el(trunkX - 1, relP.cy - 1, relP.left - trunkX + 3, 3);
+            // 3) Realização -> Disponibilização, Contratação, Vigência, Encerramento e Gestão
+            const filhos = branch.querySelector('.cv-branch-filhos-realizacao');
+            if (filhos) {
+                const filhosP = pos(filhos);
+                el(relP.cx - 1, relP.bottom, 3, filhosP.top - relP.bottom);
+            }
         }
 
         function iniciarArvore() {
@@ -2247,5 +2839,12 @@ const FALLBACK_IMAGENS_CDN_404 = {
             document.addEventListener('DOMContentLoaded', iniciarArvore, { once: true });
         } else {
             iniciarArvore();
+        }
+
+        function iniciarCoresDup() { aplicarCoresDup(); }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', iniciarCoresDup, { once: true });
+        } else {
+            iniciarCoresDup();
         }
     

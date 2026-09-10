@@ -50,6 +50,7 @@ body {
     display: flex;
     flex-direction: column;
     gap: 25px;
+    position: relative;
 }
 
 /* ===== MENU DE NAVEGAÇÃO =====
@@ -906,6 +907,195 @@ body.editing .nav-actions {
     right: -5px; bottom: -5px;
     cursor: se-resize;
     border-radius: 2px;
+}
+
+body:not(.editing) #editorToolbar,
+body:not(.editing) #propertiesPanel { display: none; }
+body:not(.editing) .editor-workspace { grid-template-columns: 1fr; }
+body:not(.editing) .map-node { cursor: default; }
+body:not(.editing) .resize-handle { display: none; }
+
+/* ------------------------------------------------------------
+   LAYOUT LIVRE SOBRE A PÁGINA (estilo PowerPoint)
+   Camada de formas/setas/texto/imagens/links adicionados no modo
+   de edição. A página mantém o design; os elementos são
+   sobrepostos na posição escolhida e ficam salvos para visitantes.
+------------------------------------------------------------ */
+.ap-layer {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    z-index: 400;
+}
+.ap-el-page {
+    position: absolute;
+    transform-origin: center center;
+    box-sizing: border-box;
+    user-select: none;
+    pointer-events: auto;
+    cursor: move;
+}
+body:not(.editing) .ap-el-page { cursor: default; }
+.ap-el-page.ap-link { cursor: pointer; }
+.ap-el-svg { display: block; width: 100%; height: 100%; }
+.ap-el-img { width: 100%; height: 100%; object-fit: contain; }
+.ap-el-text {
+    position: absolute;
+    inset: 0;
+    overflow: hidden;
+    white-space: pre-wrap;
+    word-break: break-word;
+    line-height: 1.35;
+    outline: none;
+}
+.ap-el-text[contenteditable="true"] { cursor: text; }
+
+/* Caixa de seleção e alças */
+.ap-sel-box {
+    position: absolute;
+    border: 1.5px solid #2563eb;
+    pointer-events: none;
+    box-sizing: border-box;
+    z-index: 5;
+}
+.ap-sel-handle {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background: #fff;
+    border: 1.5px solid #2563eb;
+    border-radius: 2px;
+    pointer-events: auto;
+    z-index: 6;
+}
+.ap-sel-handle.ap-handle-nw { left: -6px; top: -6px; cursor: nwse-resize; }
+.ap-sel-handle.ap-handle-n  { left: 50%; top: -6px; margin-left: -5px; cursor: ns-resize; }
+.ap-sel-handle.ap-handle-ne { right: -6px; top: -6px; cursor: nesw-resize; }
+.ap-sel-handle.ap-handle-e  { right: -6px; top: 50%; margin-top: -5px; cursor: ew-resize; }
+.ap-sel-handle.ap-handle-se { right: -6px; bottom: -6px; cursor: nwse-resize; }
+.ap-sel-handle.ap-handle-s  { left: 50%; bottom: -6px; margin-left: -5px; cursor: ns-resize; }
+.ap-sel-handle.ap-handle-sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
+.ap-sel-handle.ap-handle-w  { left: -6px; top: 50%; margin-top: -5px; cursor: ew-resize; }
+.ap-sel-rot {
+    position: absolute;
+    left: 50%;
+    top: -28px;
+    margin-left: -6px;
+    width: 12px;
+    height: 12px;
+    background: #2563eb;
+    border: 2px solid #fff;
+    border-radius: 50%;
+    pointer-events: auto;
+    cursor: grab;
+    z-index: 6;
+}
+.ap-sel-rotline {
+    position: absolute;
+    left: 50%;
+    top: -26px;
+    width: 1px;
+    height: 20px;
+    background: #2563eb;
+    pointer-events: none;
+}
+
+/* Paleta flutuante e painel de propriedades (só no modo edição) */
+.ap-palette {
+    position: fixed;
+    left: 50%;
+    bottom: 14px;
+    transform: translateX(-50%);
+    z-index: 9000;
+    max-width: 96vw;
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    background: #0f172a;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
+}
+body.editing .ap-palette { display: flex; flex-wrap: wrap; justify-content: center; }
+.ap-palette-title { font-weight: 700; font-size: 0.8rem; color: #94a3b8; margin-right: 4px; }
+.ap-group {
+    display: inline-flex;
+    gap: 4px;
+    align-items: center;
+    padding: 4px;
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 8px;
+}
+.ap-btn {
+    min-width: 30px;
+    padding: 4px 7px;
+    font-size: 0.85rem;
+    line-height: 1;
+    color: #e2e8f0;
+    background: transparent;
+    border: 1px solid #334155;
+    border-radius: 6px;
+    cursor: pointer;
+}
+.ap-btn:hover { background: #1e293b; color: #fff; }
+.ap-btn.danger:hover { background: #dc2626; }
+.ap-btn strong, .ap-btn b, .ap-btn i, .ap-btn u { font-size: 1rem; }
+
+.ap-props-panel {
+    position: fixed;
+    right: 12px;
+    top: 84px;
+    bottom: 70px;
+    width: 280px;
+    z-index: 9000;
+    display: none;
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+    background: #ffffff;
+    border: 1px solid #cbd5e1;
+    border-radius: 12px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
+    font-size: 0.8rem;
+    overflow-y: auto;
+}
+body.editing .ap-props-panel.show { display: flex; }
+.ap-props-panel h4 { margin: 0 0 2px; font-size: 0.85rem; color: #0f172a; }
+.ap-props-panel label {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    font-weight: 600;
+    color: #334155;
+}
+.ap-props-panel input[type="text"],
+.ap-props-panel input[type="number"],
+.ap-props-panel input[type="range"],
+.ap-props-panel textarea,
+.ap-props-panel select {
+    font: inherit;
+    padding: 4px 6px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    width: 100%;
+    box-sizing: border-box;
+}
+.ap-props-panel input[type="color"] {
+    width: 44px;
+    height: 28px;
+    padding: 0;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #fff;
+}
+.ap-row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
+.ap-row input[type="number"] { width: 62px; }
+#apPropsForm { display: none; flex-direction: column; gap: 10px; }
+.ap-only-img, .ap-only-text { display: none; }
+
+@media (max-width: 700px) {
+    .ap-props-panel { width: 240px; right: 8px; top: 64px; bottom: 160px; }
+    .ap-palette { bottom: 8px; }
 }
 
 .properties-panel {
@@ -2755,7 +2945,7 @@ body:not(.editing) [data-editable] a::before {
     position: relative;
     display: grid;
     grid-template-columns: repeat(6, 1fr);
-    grid-template-rows: auto auto auto;
+    grid-template-rows: auto auto auto auto;
     gap: 26px 14px;
     align-items: center;
 }
@@ -2845,6 +3035,78 @@ body:not(.editing) [data-editable] a::before {
     width: 100%;
 }
 
+/* ------ NÍVEL 3: etapas do macro processo sob a Realização (chega de Realização) ------ */
+.cv-branch-filhos-realizacao {
+    grid-column: 4 / 7;
+    grid-row: 4 / 5;
+    display: flex;
+    justify-content: center;
+    position: relative;
+    z-index: 1;
+    padding-top: 4px;
+}
+
+.cv-filhos-inner {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+    width: max-content;
+    max-width: 100%;
+}
+
+.cv-mp-pipeline {
+    display: flex;
+    align-items: stretch;
+    flex-wrap: nowrap;
+}
+
+.cv-mp-chevron,
+.cv-mp-bar {
+    color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    font-weight: 700;
+    font-size: 0.75rem;
+    line-height: 1.2;
+    min-height: 42px;
+    padding: 8px 12px 8px 20px;
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%, 14px 50%);
+}
+
+.cv-mp-chevron {
+    margin-left: -8px;
+}
+
+.cv-mp-chevron:first-child {
+    padding-left: 14px;
+    margin-left: 0;
+}
+
+.cv-mp-chevron:first-child,
+.cv-mp-bar {
+    clip-path: polygon(0 0, calc(100% - 14px) 0, 100% 50%, calc(100% - 14px) 100%, 0 100%);
+}
+
+.cv-mp-chevron span,
+.cv-mp-bar span {
+    max-width: 110px;
+}
+
+.cv-mp-disp { background-color: #737478; }
+.cv-mp-contrat { background-color: #1bb193; }
+.cv-mp-vig { background-color: #5f3377; }
+.cv-mp-enc { background-color: #833075; }
+.cv-mp-bar {
+    background-color: #57585c;
+    margin-left: 0;
+    padding-left: 18px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
 body.editing .cv-step strong,
 body.editing .cv-step span {
     cursor: text;
@@ -2893,6 +3155,31 @@ body.editing .cv-step.bg-gray-chevron span {
         justify-self: stretch;
         max-width: none;
     }
+    .cv-branch-filhos-realizacao {
+        grid-column: auto;
+        grid-row: auto;
+        justify-content: stretch;
+    }
+    .cv-filhos-inner {
+        width: 100%;
+    }
+    .cv-mp-pipeline {
+        flex-wrap: wrap;
+        width: 100%;
+    }
+    .cv-mp-chevron {
+        clip-path: none;
+        border-radius: 8px;
+        margin-left: 0;
+        padding: 10px 14px;
+        flex: 1 1 45%;
+    }
+    .cv-mp-bar {
+        clip-path: none;
+        border-radius: 8px;
+        padding: 10px 14px;
+        width: 100%;
+    }
     .cv-tree-lines {
         display: none;
     }
@@ -2926,6 +3213,8 @@ body.editing .cv-step.bg-gray-chevron span {
 .dup-side {
     width: 220px;
     min-width: 220px;
+    position: relative;
+    overflow: hidden;
     background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
     color: #ffffff;
     border-radius: 10px;
@@ -2949,6 +3238,15 @@ body.editing .cv-step.bg-gray-chevron span {
     margin: 0;
     line-height: 1.3;
     letter-spacing: -0.02em;
+}
+.dup-side-emoji {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: contain;
+    object-position: center;
+    display: block;
 }
 .dup-flow {
     flex: 1;
@@ -3050,6 +3348,80 @@ body.editing .cv-step.bg-gray-chevron span {
 }
 
 /* ============================================ */
+/* NOVO SISTEMA DE ESTÁGIO — DESTAQUE NA SUPORTE */
+/* ============================================ */
+.dup-callout {
+    position: relative;
+    margin: 0 0 20px;
+    padding: 20px 18px 18px;
+    background: linear-gradient(180deg, rgba(246, 137, 31, 0.08), rgba(246, 137, 31, 0.02));
+    border: 2px dashed #f6891f;
+    border-radius: 14px;
+    box-shadow: 0 6px 22px rgba(246, 137, 31, 0.28), inset 0 0 0 1px rgba(246, 137, 31, 0.06);
+}
+.dup-callout-label {
+    position: absolute;
+    top: -14px;
+    left: 18px;
+    z-index: 5;
+    background: #f6891f;
+    color: #ffffff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.4px;
+    padding: 5px 14px;
+    border-radius: 999px;
+    box-shadow: 0 3px 10px rgba(246, 137, 31, 0.45);
+    white-space: nowrap;
+    max-width: calc(100% - 24px);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dup-edit-bar {
+    display: none;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    align-items: center;
+    margin-top: 16px;
+    padding: 10px 14px;
+    background: #fff7ed;
+    border: 1px solid #fed7aa;
+    border-radius: 10px;
+}
+body.editing .dup-edit-bar {
+    display: flex;
+}
+.dup-edit-bar label {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: #7c2d12;
+    white-space: nowrap;
+}
+.dup-edit-bar input[type="color"] {
+    width: 28px;
+    height: 26px;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 0;
+    background: none;
+    cursor: pointer;
+}
+@media (max-width: 576px) {
+    .dup-callout {
+        padding: 20px 14px 14px;
+    }
+    .dup-callout-label {
+        font-size: 0.68rem;
+        padding: 4px 10px;
+        left: 10px;
+        top: -12px;
+    }
+}
+
+/* ============================================ */
 /* SEÇÃO 3: MACRO PROCESSO EM ESTILO ATOR       */
 /* ============================================ */
 .etapas-atores-list {
@@ -3120,4 +3492,22 @@ body.editing .etapa-ator.arrastando {
     .etapa-ator .actor-description {
         text-align: left;
     }
+}
+
+/* ================================================
+   FREE LAYOUT — modo edição livre (seções arrastáveis)
+   ================================================ */
+body.editing .page-container [data-ap-section] {
+    position: relative;
+    z-index: 10;
+    transition: box-shadow 0.15s;
+}
+body.editing .page-container [data-ap-section]:hover {
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.45), 0 4px 20px rgba(0,0,0,0.10);
+}
+body.editing .page-container [data-ap-section].ap-dragging {
+    box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.7), 0 12px 40px rgba(0,0,0,0.18);
+    z-index: 500;
+    opacity: 0.92;
+    transition: none;
 }
