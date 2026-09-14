@@ -82,6 +82,8 @@
                 item.draggable = editMode;
             });
             try { instalarPreviewsEtapas(); } catch (err) { console.error('Prévias das etapas:', err); }
+            aprimorarControlesEdicao();
+            instalarControlesCadeia();
         }
 
         function toggleEditMode() {
@@ -96,6 +98,9 @@
                 indicator.classList.add('active');
                 apSelecionados = [];
                 apRender();
+                apZoomarCanvasDir();
+                apInstalarEdicaoImagens();
+                if (secHistorico.length === 0) secSalvarHistorico();
             } else {
                 btn.classList.remove('btn-custom-success');
                 btn.innerText = 'Editar';
@@ -104,9 +109,541 @@
                 apCommitTexto();
                 apTextoEditando = null;
                 apSelecionados = [];
+                apDesenho = null;
+                apImgDeselecionar();
+                apZoom = 1;
+                apAplicarZoom();
                 apRender();
             }
             aplicarEstadoEditavel();
+            if (editMode) { instalarSelecaoSecao(); if (secaoAtual) preencherPropsSecao(secaoAtual); }
+            else { selecionarSecao(null); selecionarCaixaTexto(null, null); }
+        }
+
+        /* ================================================
+           PAINEL DE ESTILOS POR SEÇÃO (modo edição)
+        ================================================ */
+        let secaoAtual = null;
+        let secaoListenerPronto = false;
+
+        function instalarSelecaoSecao() {
+            if (secaoListenerPronto) return;
+            secaoListenerPronto = true;
+            document.addEventListener('click', (e) => {
+                if (!editMode) return;
+                if (e.target && e.target.closest && e.target.closest('.ap-layer')) return;
+                if (e.target && e.target.closest && e.target.closest('#sectionPropsPanel')) return;
+                const sec = e.target && e.target.closest ? e.target.closest('[data-ap-section]') : null;
+                if (sec) {
+                    selecionarSecao(sec);
+                    selecionarCaixaTexto(e.target, sec);
+                } else {
+                    selecionarSecao(null);
+                    selecionarCaixaTexto(null, null);
+                }
+            }, true);
+        }
+
+        let secaoCaixaAtual = null;
+
+        function selecionarCaixaTexto(alvo, sec) {
+            document.querySelectorAll('.sec-caixa-ativa').forEach(c => c.classList.remove('sec-caixa-ativa'));
+            secaoCaixaAtual = null;
+            if (!sec || !alvo || !alvo.closest) { atualizarPainelCaixa(); return; }
+            const caixa = alvo.closest('[data-editable="true"]');
+            if (!caixa || !sec.contains(caixa)) { atualizarPainelCaixa(); return; }
+            secaoCaixaAtual = caixa;
+            caixa.classList.add('sec-caixa-ativa');
+            atualizarPainelCaixa();
+        }
+
+        function obterFontSizeCaixa() {
+            if (!secaoCaixaAtual) return 0;
+            return parseFloat(secaoCaixaAtual.style.fontSize) || parseFloat(getComputedStyle(secaoCaixaAtual).fontSize) || 16;
+        }
+
+        function atualizarPainelCaixa() {
+            const bloco = document.getElementById('secpCaixaBlock');
+            if (!bloco) return;
+            if (!secaoCaixaAtual) { bloco.style.display = 'none'; return; }
+            bloco.style.display = '';
+            const nome = document.getElementById('secpCaixaNome');
+            const valEl = document.getElementById('secpCaixaFontSize');
+            if (nome) {
+                const campo = secaoCaixaAtual.getAttribute('data-field');
+                const texto = (secaoCaixaAtual.innerText || '').replace(/\s+/g, ' ').trim();
+                nome.textContent = (campo ? campo.toUpperCase() + ': ' : '') + (texto ? texto.slice(0, 40) : '(sem texto)');
+            }
+            if (valEl) valEl.textContent = Math.round(obterFontSizeCaixa()) + 'px';
+        }
+
+        function ajustarTamanhoTextoCaixa(delta) {
+            if (!secaoCaixaAtual) { toast('Clique em um texto dentro da seção primeiro.', 'info'); return; }
+            const atual = obterFontSizeCaixa();
+            const novo = Math.max(8, Math.min(99, atual + delta));
+            secaoCaixaAtual.style.fontSize = novo + 'px';
+            atualizarPainelCaixa();
+            secAgendarHistorico();
+        }
+
+        function resetarTamanhoTextoCaixa() {
+            if (!secaoCaixaAtual) return;
+            secaoCaixaAtual.style.removeProperty('font-size');
+            atualizarPainelCaixa();
+            secAgendarHistorico();
+        }
+
+        function selecionarSecao(el) {
+            if (!editMode && el) { secaoAtual = null; return; }
+            document.querySelectorAll('[data-ap-section].sec-ativo').forEach(s => s.classList.remove('sec-ativo'));
+            if (!el) {
+                secaoAtual = null;
+                document.body.classList.remove('sec-props-aberto');
+                const p = document.getElementById('sectionPropsPanel');
+                if (p) { p.classList.remove('show'); p.style.top = ''; }
+                return;
+            }
+            el.classList.add('sec-ativo');
+            secaoAtual = el;
+            document.body.classList.add('sec-props-aberto');
+            preencherPropsSecao(el);
+            const p = document.getElementById('sectionPropsPanel');
+            if (p) p.classList.add('show');
+        }
+
+        function tituloSecaoTexto(el) {
+            const t = el.querySelector('.section-title-text');
+            if (t) {
+                const soTexto = Array.from(t.childNodes).filter(n => n.nodeType === 3).map(n => n.nodeValue).join('');
+                return soTexto.trim();
+            }
+            const h = el.querySelector('h1, h2, h3');
+            return h ? h.innerText.trim() : '';
+        }
+
+        function definirTituloSecao(el, valor) {
+            const t = el.querySelector('.section-title-text');
+            if (t) {
+                const svg = t.querySelector('svg');
+                t.innerHTML = '';
+                if (svg) t.appendChild(svg);
+                if (valor) t.appendChild(document.createTextNode(' ' + valor));
+                return;
+            }
+            const h = el.querySelector('h1, h2, h3');
+            if (h) h.textContent = valor;
+        }
+
+        function preencherPropsSecao(el) {
+            const set = (id, v) => { const i = document.getElementById(id); if (i) i.value = v == null ? '' : v; };
+            set('secpTitulo', tituloSecaoTexto(el));
+            const cs = getComputedStyle(el);
+            set('secpBg', rgbToHex(cs.backgroundColor));
+            set('secpText', rgbToHex(cs.color));
+            set('secpFont', el.style.fontFamily || '');
+            const fs = parseFloat(el.style.fontSize) || parseFloat(cs.fontSize) || 16;
+            set('secpFontSize', Math.round(Math.min(Math.max(fs, 13), 22)));
+            const pdTxt = el.style.padding || cs.padding || '0px';
+            const pd = parseFloat(pdTxt) || 0;
+            set('secpPadding', Math.round(Math.min(Math.max(pd, 0), 60)));
+            const ahTxt = el.style.minHeight || cs.minHeight || '0px';
+            const ah = parseFloat(ahTxt) || 0;
+            set('secpHeight', Math.round(Math.min(Math.max(ah, 0), 800)));
+            const form = document.getElementById('sectionPropsForm');
+            const nosel = document.getElementById('sectionPropsNoSel');
+            if (form) form.classList.add('show');
+            if (nosel) nosel.style.display = 'none';
+            const cvmp = document.getElementById('secpCvMpBlock');
+            if (cvmp) {
+                const temCadeia = el.querySelector('.cv-branch-filhos-realizacao') !== null;
+                cvmp.style.display = temCadeia ? '' : 'none';
+                if (temCadeia) {
+                    Object.keys(CV_MP_SELETORES).forEach(tipo => {
+                        const input = cvmp.querySelector('input[data-cv-cor="' + tipo + '"]');
+                        if (input && cvMpCores[tipo] != null) input.value = cvMpCores[tipo];
+                    });
+                }
+            }
+            if (window.innerWidth <= 700) {
+                const p = document.getElementById('sectionPropsPanel');
+                const stack = document.getElementById('globalActionsBar');
+                if (p && stack) p.style.top = (stack.getBoundingClientRect().bottom + 12) + 'px';
+            }
+        }
+
+        function aplicarEstiloSecao() {
+            if (!secaoAtual) return;
+            const el = secaoAtual;
+            const v = (id) => { const i = document.getElementById(id); return i ? i.value : ''; };
+            const t = v('secpTitulo').trim();
+            if (t) definirTituloSecao(el, t);
+            const bg = v('secpBg');
+            if (bg) el.style.background = bg; else el.style.removeProperty('background');
+            el.style.color = v('secpText');
+            el.style.fontFamily = v('secpFont');
+            const fs = parseFloat(v('secpFontSize'));
+            if (!isNaN(fs)) el.style.fontSize = fs + 'px';
+            const pd = parseFloat(v('secpPadding'));
+            if (!isNaN(pd)) el.style.padding = pd + 'px';
+            const ah = parseFloat(v('secpHeight'));
+            if (!isNaN(ah) && ah > 0) el.style.minHeight = ah + 'px'; else if (!isNaN(ah) && ah <= 0) el.style.removeProperty('minHeight');
+            agendarHistorico();
+            secAgendarHistorico();
+        }
+
+        function resetarAlturaSecao() {
+            if (!secaoAtual) return;
+            secaoAtual.style.removeProperty('minHeight');
+            const i = document.getElementById('secpHeight');
+            if (i) i.value = '0';
+            agendarHistorico();
+            secAgendarHistorico();
+        }
+
+        function resetarCorFundoSecao() {
+            if (!secaoAtual) return;
+            secaoAtual.style.removeProperty('background');
+            const i = document.getElementById('secpBg');
+            if (i) i.value = rgbToHex(getComputedStyle(secaoAtual).backgroundColor);
+            agendarHistorico();
+            secAgendarHistorico();
+        }
+
+        function resetarEstiloSecao() {
+            if (!secaoAtual) return;
+            ['background', 'color', 'fontFamily', 'fontSize', 'padding', 'minHeight'].forEach(p => secaoAtual.style.removeProperty(p));
+            preencherPropsSecao(secaoAtual);
+            agendarHistorico();
+            secAgendarHistorico();
+        }
+
+        function moverSecao(dir) {
+            if (!secaoAtual) return;
+            const parent = secaoAtual.parentNode;
+            if (!parent) return;
+            const filhos = Array.from(parent.children).filter(c => c.nodeType === 1 && c.hasAttribute('data-ap-section'));
+            const idx = filhos.indexOf(secaoAtual);
+            const novo = idx + dir;
+            if (idx < 0 || novo < 0 || novo >= filhos.length) return;
+            const ref = dir < 0 ? filhos[novo] : filhos[novo].nextSibling;
+            parent.insertBefore(secaoAtual, ref);
+            agendarHistorico();
+            secAgendarHistorico();
+        }
+
+        function duplicarSecao() {
+            if (!secaoAtual) return;
+            const base = secaoAtual.id || '';
+            const copia = secaoAtual.cloneNode(true);
+            const novoId = gerarId('secBox');
+            copia.id = novoId;
+            if (base) copia.querySelectorAll('[id]').forEach(el => {
+                if (el.id && (el.id === base || el.id.indexOf(base) === 0)) el.id = novoId + el.id.slice(base.length);
+            });
+            copia.classList.remove('sec-ativo');
+            if (secaoAtual.parentNode.nextSibling) secaoAtual.parentNode.insertBefore(copia, secaoAtual.nextSibling);
+            else secaoAtual.parentNode.appendChild(copia);
+            selecionarSecao(copia);
+            agendarHistorico();
+            secAgendarHistorico();
+        }
+
+        function capturarEstilosSecoes() {
+            const out = {};
+            document.querySelectorAll('[data-ap-section]').forEach(sec => {
+                const st = {};
+                ['background', 'color', 'fontFamily', 'fontSize', 'padding', 'minHeight'].forEach(p => {
+                    const v = sec.style[p];
+                    if (v) st[p] = v;
+                });
+                const t = tituloSecaoTexto(sec);
+                if (t) st.titulo = t;
+                const caixas = Array.from(sec.querySelectorAll('[data-editable="true"]')).map(c => {
+                    const fs = parseFloat(c.style.fontSize);
+                    return fs && !isNaN(fs) ? Math.round(fs) : 0;
+                });
+                if (caixas.some(v => v)) st.caixas = caixas;
+                if (Object.keys(st).length) out[sec.id || sec.className] = st;
+            });
+            return out;
+        }
+
+        function aplicarEstilosSecoes(mapa) {
+            if (!mapa || typeof mapa !== 'object') return;
+            Object.keys(mapa).forEach(id => {
+                const sec = document.getElementById(id);
+                if (!sec) return;
+                const st = mapa[id];
+                if (!st || typeof st !== 'object') return;
+                if (st.background) sec.style.background = st.background;
+                if (st.color) sec.style.color = st.color;
+                if (st.fontFamily) sec.style.fontFamily = st.fontFamily;
+                if (st.fontSize) sec.style.fontSize = st.fontSize;
+                if (st.padding) sec.style.padding = st.padding;
+                if (st.minHeight) sec.style.minHeight = st.minHeight;
+                if (st.titulo) definirTituloSecao(sec, st.titulo);
+                if (Array.isArray(st.caixas)) {
+                    sec.querySelectorAll('[data-editable="true"]').forEach((c, i) => {
+                        const fs = st.caixas[i];
+                        if (fs && !isNaN(fs)) c.style.fontSize = fs + 'px';
+                    });
+                }
+            });
+        }
+
+        /* ---- Histórico próprio de estilos/edições por seção ---- */
+        const secHistLimite = 50;
+        let secHistorico = [];
+        let secHistoricoIndex = -1;
+        let secHistoricoTimer = null;
+
+        function secCapturar() {
+            const secs = {}, ordem = [];
+            document.querySelectorAll('#pageContainer [data-ap-section]').forEach(s => {
+                if (s.id) { secs[s.id] = s.outerHTML; ordem.push(s.id); }
+            });
+            return { secs, ordem };
+        }
+
+        function secSalvarHistorico() {
+            if (secHistoricoIndex < secHistorico.length - 1) secHistorico = secHistorico.slice(0, secHistoricoIndex + 1);
+            secHistorico.push(secCapturar());
+            secHistoricoIndex++;
+            if (secHistorico.length > secHistLimite) {
+                secHistorico.splice(0, secHistorico.length - secHistLimite);
+                secHistoricoIndex = secHistorico.length - 1;
+            }
+        }
+
+        function secAgendarHistorico() {
+            clearTimeout(secHistoricoTimer);
+            secHistoricoTimer = setTimeout(secSalvarHistorico, 400);
+        }
+
+        function secRestaurar(snapshot) {
+            const pc = document.getElementById('pageContainer');
+            if (!pc || !snapshot || !snapshot.secs || !Array.isArray(snapshot.ordem)) return;
+            document.querySelectorAll('#pageContainer [data-ap-section]').forEach(s => s.remove());
+            const tmp = document.createElement('template');
+            const ref = document.getElementById('apLayer');
+            snapshot.ordem.forEach(id => {
+                const html = snapshot.secs[id];
+                if (!html) return;
+                tmp.innerHTML = html;
+                const novo = tmp.content.firstElementChild;
+                if (novo) {
+                    tmp.content.removeChild(novo);
+                    if (ref) pc.insertBefore(novo, ref); else pc.appendChild(novo);
+                }
+            });
+            aplicarEstadoEditavel();
+            try { instalarTogglesAtores(); } catch (err) { console.error('Toggles de atores:', err); }
+            secaoCaixaAtual = null;
+            atualizarPainelCaixa();
+            if (secaoAtual && secaoAtual.id && document.getElementById(secaoAtual.id)) selecionarSecao(document.getElementById(secaoAtual.id));
+        }
+
+        function desfazerSecao() {
+            if (secHistoricoIndex < 0) { toast('Nada para desfazer nas seções.', 'info'); return; }
+            if (secHistoricoIndex > 0) {
+                secHistoricoIndex--;
+                secRestaurar(secHistorico[secHistoricoIndex]);
+                agendarAutoSave();
+            }
+        }
+
+        function refazerSecao() {
+            if (secHistoricoIndex >= secHistorico.length - 1) { toast('Nada para refazer nas seções.', 'info'); return; }
+            secHistoricoIndex++;
+            secRestaurar(secHistorico[secHistoricoIndex]);
+            agendarAutoSave();
+        }
+
+        let secApagarConfirmado = false;
+        function apagarSecao() {
+            if (!secaoAtual) return;
+            if (!secApagarConfirmado) {
+                secApagarConfirmado = true;
+                toast('Clique novamente em "Apagar" para confirmar a exclusão da seção.', 'aviso', null, 4000);
+                setTimeout(() => { secApagarConfirmado = false; }, 4000);
+                return;
+            }
+            secApagarConfirmado = false;
+            secSalvarHistorico();
+            const alvo = secaoAtual;
+            selecionarSecao(null);
+            alvo.remove();
+            secSalvarHistorico();
+            agendarAutoSave();
+            toast('Seção apagada. Use "↩ Desfazer" no painel para restaurar.');
+        }
+
+        /* ================================================
+           GESTÃO DE CONTEÚDO: ATORES, ETAPAS E CADEIA
+        ================================================ */
+        function aprimorarControlesEdicao() {
+            document.querySelectorAll('#actorsList .actor-row .edit-controls').forEach(ctr => {
+                if (ctr.dataset.extAtor) return;
+                ctr.dataset.extAtor = '1';
+                ctr.insertAdjacentHTML('beforeend',
+                    '<button class="edit-ctrl-btn" title="Duplicar ator" onclick="duplicarAtor(this)">⧉</button>' +
+                    '<button class="edit-ctrl-btn" title="Mover para cima" onclick="moverAtor(this,-1)">↑</button>' +
+                    '<button class="edit-ctrl-btn" title="Mover para baixo" onclick="moverAtor(this,1)">↓</button>');
+            });
+            document.querySelectorAll('#etapasList3 .etapa-ator .edit-controls').forEach(ctr => {
+                if (ctr.dataset.extEtapa) return;
+                ctr.dataset.extEtapa = '1';
+                if (!ctr.closest('.etapa-gestao')) {
+                    ctr.insertAdjacentHTML('beforeend', '<button class="edit-ctrl-btn" title="Duplicar etapa" onclick="duplicarEtapa(this)">⧉</button>');
+                }
+                ctr.insertAdjacentHTML('beforeend',
+                    '<button class="edit-ctrl-btn" title="Mover para cima" onclick="moverEtapa(this,-1)">↑</button>' +
+                    '<button class="edit-ctrl-btn" title="Mover para baixo" onclick="moverEtapa(this,1)">↓</button>');
+            });
+        }
+
+        function duplicarAtor(btn) {
+            const row = btn.closest('.actor-row');
+            if (!row) return;
+            const key = gerarId('ator');
+            const card = row.querySelector('.actor-card');
+            const desc = row.querySelector('.actor-description');
+            const cs = card ? getComputedStyle(card) : null;
+            const html = criarLinhaAtorHTML({
+                key: key,
+                cardHTML: card ? card.innerHTML : 'Novo Ator',
+                cardBorder: cs ? rgbToHex(cs.borderColor) : '#2563eb',
+                cardColor: cs ? rgbToHex(cs.color) : '#2563eb',
+                bg: rgbToHex(getComputedStyle(desc).backgroundColor),
+                descHTML: desc && desc.querySelector('div') ? desc.querySelector('div').innerHTML : 'Descrição do novo ator...'
+            });
+            row.insertAdjacentHTML('afterend', html);
+            aplicarEstadoEditavel();
+            instalarTogglesAtores();
+            atualizarSelectAtores();
+        }
+
+        function moverAtor(btn, dir) {
+            const row = btn.closest('.actor-row');
+            if (!row) return;
+            const parent = row.parentNode;
+            const irmãos = Array.from(parent.children).filter(c => c.matches('.actor-row'));
+            const idx = irmãos.indexOf(row);
+            const novo = idx + dir;
+            if (idx < 0 || novo < 0 || novo >= irmãos.length) return;
+            if (dir < 0) parent.insertBefore(row, irmãos[novo]);
+            else parent.insertBefore(irmãos[novo], row);
+            agendarHistorico();
+        }
+
+        function duplicarEtapa(btn) {
+            const item = btn.closest('.etapa-ator');
+            if (!item) return;
+            if (item.dataset.step === 'gestao') return;
+            const card = item.querySelector('.actor-card');
+            const descDiv = item.querySelector('.actor-description > div');
+            const html = criarEtapaHTML({
+                stepKey: gerarId('step'),
+                cor: item.dataset.color || '#6366f1',
+                titulo: card ? card.innerText.trim() : 'Nova Etapa',
+                desc: descDiv ? obterDescricaoPura(descDiv) : '',
+                img: item.getAttribute('data-img') || ''
+            });
+            item.insertAdjacentHTML('afterend', html);
+            aplicarEstadoEditavel();
+            instalarTogglesEtapas();
+        }
+
+        function moverEtapa(btn, dir) {
+            const item = btn.closest('.etapa-ator');
+            if (!item) return;
+            const parent = item.parentNode;
+            const irmãos = Array.from(parent.children).filter(c => c.matches('.etapa-ator'));
+            const idx = irmãos.indexOf(item);
+            const novo = idx + dir;
+            if (idx < 0 || novo < 0 || novo >= irmãos.length) return;
+            if (dir < 0) parent.insertBefore(item, irmãos[novo]);
+            else parent.insertBefore(irmãos[novo], item);
+            agendarHistorico();
+        }
+
+        function instalarControlesCadeia() {
+            document.querySelectorAll('.cadeia-row').forEach(row => {
+                if (row.dataset.cadeiaCtrl) return;
+                row.dataset.cadeiaCtrl = '1';
+                const bar = document.createElement('div');
+                bar.className = 'cadeia-row-edit';
+                bar.innerHTML =
+                    '<button class="edit-ctrl-btn" title="Mover para cima" onclick="moverLinhaCadeia(this,-1)">↑</button>' +
+                    '<button class="edit-ctrl-btn" title="Mover para baixo" onclick="moverLinhaCadeia(this,1)">↓</button>' +
+                    '<button class="edit-ctrl-btn delete" title="Remover linha" onclick="removerLinhaCadeia(this)">✕</button>';
+                row.appendChild(bar);
+            });
+        }
+
+        function removerLinhaCadeia(btn) {
+            const row = btn.closest('.cadeia-row');
+            if (!row) return;
+            if (!confirm('Remover esta linha da cadeia de valor?')) return;
+            row.remove();
+            agendarHistorico();
+        }
+
+        function moverLinhaCadeia(btn, dir) {
+            const row = btn.closest('.cadeia-row');
+            if (!row) return;
+            const parent = row.parentNode;
+            const irmãos = Array.from(parent.children).filter(c => c.matches('.cadeia-row'));
+            const idx = irmãos.indexOf(row);
+            const novo = idx + dir;
+            if (idx < 0 || novo < 0 || novo >= irmãos.length) return;
+            if (dir < 0) parent.insertBefore(row, irmãos[novo]);
+            else parent.insertBefore(irmãos[novo], row);
+            agendarHistorico();
+        }
+
+        /* ================================================
+           NOVAS ESTRUTURAS: CORES/REMOÇÃO DOS CHEVRONS
+           DO MACROPROCESSO SOB A REALIZAÇÃO (cv-mp)
+        ================================================ */
+        const CV_MP_SELETORES = {
+            disp: '.cv-mp-disp',
+            contrat: '.cv-mp-contrat',
+            vig: '.cv-mp-vig',
+            enc: '.cv-mp-enc',
+            gestao: '.cv-mp-bar'
+        };
+        let cvMpCores = { disp: '#737478', contrat: '#1bb193', vig: '#5f3377', enc: '#833075', gestao: '#57585c' };
+
+        function mudarCorCvMp(input, tipo) {
+            const alvo = document.querySelector('.cv-branch-filhos-realizacao ' + CV_MP_SELETORES[tipo]);
+            if (!alvo) return;
+            cvMpCores[tipo] = input.value;
+            alvo.style.backgroundColor = input.value;
+            agendarHistorico();
+            secAgendarHistorico();
+        }
+
+        function aplicarCoresCvMp(cores) {
+            if (cores && typeof cores === 'object') cvMpCores = Object.assign({}, cvMpCores, cores);
+            document.querySelectorAll('#secpCvMpBlock input[type="color"]').forEach(input => {
+                const tipo = input.getAttribute('data-cv-cor') || input.id.replace('secpCvMp', '').toLowerCase();
+                if (cvMpCores[tipo] != null) input.value = cvMpCores[tipo];
+            });
+            Object.keys(CV_MP_SELETORES).forEach(tipo => {
+                const alvo = document.querySelector('.cv-branch-filhos-realizacao ' + CV_MP_SELETORES[tipo]);
+                if (alvo) alvo.style.backgroundColor = cvMpCores[tipo];
+            });
+        }
+
+        function removerCvMp(btn, tipo) {
+            if (!confirm('Remover este tópico do macroprocesso?')) return;
+            const chip = document.querySelector('.cv-branch-filhos-realizacao ' + CV_MP_SELETORES[tipo]);
+            if (chip) chip.remove();
+            const linha = btn.closest('.secp-cvmp-row');
+            if (linha) linha.remove();
+            agendarHistorico();
+            secAgendarHistorico();
         }
 
         function mudarCorAtor(actorKey, tipo, cor) {
@@ -119,6 +656,7 @@
                 row.querySelector('.actor-description').style.backgroundColor = cor;
             }
             agendarHistorico();
+            secAgendarHistorico();
 
         }
 
@@ -189,7 +727,7 @@
         }
 
         /* ================================================
-           SUPORTE — MACRO PROCESSO: CORES DO BLOCO
+           SUPORTE — MACROPROCESSO: CORES DO BLOCO
            ("Novo Sistema de Estágio: Escopo do Sistema")
         ================================================ */
         const DUP_SELETORES = {
@@ -229,12 +767,12 @@
         }
 
         function removerEtapa(btn) {
-            if (!confirm('Remover esta etapa?')) return;
             const item = btn.closest('.etapa-ator');
             if (!item) return;
-            if (item.dataset.step === 'gestao') return;
+            if (item.dataset.step === 'gestao') { toast('A etapa de gestão não pode ser removida.', 'info'); return; }
+            if (!confirm('Remover esta etapa?')) return;
             item.remove();
-            salvarHistorico();
+            agendarHistorico();
         }
 
         function adicionarEtapa() {
@@ -576,6 +1114,12 @@
         let apTextoEditando = null;
         let apLastClick = null;
         let apListenersProntos = false;
+        let apZoom = 1;
+        let apDesenho = null;
+        let apClipboard = [];
+        let apImg = null;
+        const TIPOS_FORMAS = ['retangulo', 'circulo', 'triangulo', 'losango', 'hexagono', 'estrela', 'balao', 'chevron', 'card'];
+        const TIPOS_COM_TEXTO = ['texto', 'retangulo', 'circulo', 'triangulo', 'losango', 'hexagono', 'estrela', 'balao', 'chevron', 'card'];
 
         function apLayer() { return document.getElementById('apLayer'); }
 
@@ -605,7 +1149,7 @@
             const layer = garantirApLayer();
             if (x == null || y == null) {
                 if (apLastClick) { x = apLastClick.x - 75; y = apLastClick.y - 45; }
-                else { const r = layer.getBoundingClientRect(); x = (window.scrollX + window.innerWidth / 2 - r.left) - 80; y = (window.scrollY + window.innerHeight * 0.4 - r.top) - 50; }
+                else { const r = layer.getBoundingClientRect(); x = (r.width / apZoom) / 2 - 80; y = (r.height / apZoom) * 0.4 - 50; }
             }
             const cor = AP_PALETA_CORES[apDados().length % AP_PALETA_CORES.length];
             const base = { id: gerarId('ape'), tipo, x: Math.round(x), y: Math.round(y), w: 150, h: 90, rot: 0, opacidade: 1, link: '' };
@@ -614,6 +1158,11 @@
                 case 'circulo': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, raio: 50, w: 120, h: 120 };
                 case 'triangulo': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 120, h: 110 };
                 case 'losango': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 130, h: 100 };
+                case 'hexagono': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 140, h: 120 };
+                case 'estrela': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 150, h: 140 };
+                case 'balao': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 200, h: 130, raio: 18 };
+                case 'chevron': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 170, h: 110 };
+                case 'card': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, raio: 12, w: 170, h: 120, cabecario: true };
                 case 'linha': return { ...base, stroke: '#1e293b', strokeWidth: 3, w: 200, h: 10 };
                 case 'seta': return { ...base, stroke: '#dc2626', strokeWidth: 3, w: 200, h: 12 };
                 case 'texto': return { ...base, texto: 'Digite seu texto aqui', fontSize: 20, color: '#0f172a', fontFamily: 'Open Sans, sans-serif', negrito: false, italico: false, sublinhado: false, alinhamento: 'left', w: 240, h: 90, fill: 'transparent', stroke: 'transparent', strokeWidth: 0 };
@@ -684,6 +1233,7 @@
                 div.appendChild(img);
                 return div;
             }
+            const formaSvg = { triangulo: '50,3 97,97 3,97', losango: '50,3 97,50 50,97 3,50', hexagono: '50,2 93,25 93,75 50,98 7,75 7,25', estrela: '50,5 61,37 95,38 68,62 78,95 50,72 22,95 32,62 5,38 39,37', chevron: '8,50 35,8 92,8 65,50 92,92 35,92' };
             if (el.tipo === 'retangulo' || el.tipo === 'circulo') {
                 const shape = document.createElement('div');
                 shape.style.cssText = 'position:absolute;inset:0;';
@@ -691,23 +1241,42 @@
                 shape.style.border = (el.stroke && el.stroke !== 'transparent') ? `${el.strokeWidth || 1}px solid ${el.stroke}` : 'none';
                 shape.style.borderRadius = el.tipo === 'circulo' ? '50%' : (el.raio || 0) + 'px';
                 div.appendChild(shape);
-                return div;
-            }
-            if (el.tipo === 'triangulo' || el.tipo === 'losango') {
+            } else if (el.tipo === 'card') {
+                const shape = document.createElement('div');
+                shape.style.cssText = 'position:absolute;inset:0;overflow:hidden;';
+                shape.style.background = (el.fill && el.fill !== 'transparent') ? el.fill : 'transparent';
+                shape.style.border = (el.stroke && el.stroke !== 'transparent') ? `${el.strokeWidth || 1}px solid ${el.stroke}` : 'none';
+                shape.style.borderRadius = (el.raio || 12) + 'px';
+                const cab = document.createElement('div');
+                cab.style.cssText = 'height:34%;background:rgba(255,255,255,0.18);';
+                shape.appendChild(cab);
+                div.appendChild(shape);
+            } else if (['triangulo', 'losango', 'hexagono', 'estrela', 'chevron'].includes(el.tipo)) {
                 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 svg.setAttribute('class', 'ap-el-svg');
                 svg.setAttribute('viewBox', '0 0 100 100');
                 svg.setAttribute('preserveAspectRatio', 'none');
                 const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-                poly.setAttribute('points', el.tipo === 'triangulo' ? '50,3 97,97 3,97' : '50,3 97,50 50,97 3,50');
+                poly.setAttribute('points', formaSvg[el.tipo]);
                 poly.setAttribute('fill', (el.fill && el.fill !== 'transparent') ? el.fill : 'transparent');
                 poly.setAttribute('stroke', (el.stroke && el.stroke !== 'transparent') ? el.stroke : 'none');
                 poly.setAttribute('stroke-width', el.strokeWidth || 1);
                 svg.appendChild(poly);
                 div.appendChild(svg);
-                return div;
-            }
-            if (el.tipo === 'linha' || el.tipo === 'seta') {
+            } else if (el.tipo === 'balao') {
+                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+                svg.setAttribute('class', 'ap-el-svg');
+                svg.setAttribute('viewBox', '0 0 100 100');
+                svg.setAttribute('preserveAspectRatio', 'none');
+                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+                path.setAttribute('d', 'M18,6 H82 C90,6 94,12 94,22 V62 C94,72 90,79 82,79 H50 L30,96 L33,79 C18,75 6,67 6,54 V22 C6,12 10,6 18,6 Z');
+                path.setAttribute('fill', (el.fill && el.fill !== 'transparent') ? el.fill : 'transparent');
+                path.setAttribute('stroke', (el.stroke && el.stroke !== 'transparent') ? el.stroke : 'none');
+                path.setAttribute('stroke-width', el.strokeWidth || 1);
+                path.setAttribute('stroke-linejoin', 'round');
+                svg.appendChild(path);
+                div.appendChild(svg);
+            } else if (el.tipo === 'linha' || el.tipo === 'seta') {
                 const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
                 svg.setAttribute('class', 'ap-el-svg');
                 svg.setAttribute('viewBox', '0 0 100 100');
@@ -741,7 +1310,20 @@
                     svg.appendChild(ln);
                 }
                 div.appendChild(svg);
-                return div;
+            }
+            if (TIPOS_COM_TEXTO.includes(el.tipo) && el.tipo !== 'texto' && (el.texto || apTextoEditando === el.id)) {
+                const t = document.createElement('div');
+                t.className = 'ap-el-text ap-el-text-shape';
+                t.textContent = el.texto || '';
+                t.style.fontFamily = el.fontFamily || 'Open Sans, sans-serif';
+                t.style.fontSize = (el.fontSize || 16) + 'px';
+                t.style.color = el.color || '#ffffff';
+                t.style.fontWeight = el.negrito ? '700' : '400';
+                t.style.fontStyle = el.italico ? 'italic' : 'normal';
+                t.style.textDecoration = el.sublinhado ? 'underline' : 'none';
+                t.style.textAlign = el.alinhamento || 'center';
+                if (editMode && apTextoEditando === el.id) t.contentEditable = 'true';
+                div.appendChild(t);
             }
             return div;
         }
@@ -835,7 +1417,7 @@
             apSet('apPAlign', el.alinhamento || 'left'); apSet('apPImg', el.imagem || ''); apSet('apPLink', el.link || '');
             const onlyTxt = document.querySelector('.ap-only-text');
             const onlyImg = document.querySelector('.ap-only-img');
-            if (onlyTxt) onlyTxt.style.display = el.tipo === 'texto' ? 'flex' : 'none';
+            if (onlyTxt) onlyTxt.style.display = (el.tipo !== 'imagem' && el.tipo !== 'linha' && el.tipo !== 'seta') ? 'flex' : 'none';
             if (onlyImg) onlyImg.style.display = el.tipo === 'imagem' ? 'flex' : 'none';
         }
         function apSet(id, v) { const i = document.getElementById(id); if (i) i.value = v == null ? '' : v; }
@@ -890,6 +1472,91 @@
                 state.apresentacao.push(copia); novos.push(copia.id);
             });
             apSelecionados = novos;
+            apRender();
+        }
+
+        function apResetarFreeLayout() {
+            if (!apDados().length) { toast('Não há elementos no Layout Livre para resetar.', 'info'); return; }
+            if (!confirm('Remover todos os elementos do Layout Livre?')) return;
+            salvarHistorico();
+            state.apresentacao = [];
+            apSelecionados = [];
+            apRender();
+            toast('Layout Livre resetado.');
+        }
+
+        function apExcluirTodos() { apResetarFreeLayout(); }
+
+        /* ---- Zoom (varredor do "canvas") ---- */
+        function apAplicarZoom() {
+            const pc = document.getElementById('pageContainer');
+            if (!pc) return;
+            pc.style.zoom = apZoom;
+            const label = document.getElementById('apZoomLabel');
+            if (label) label.textContent = Math.round(apZoom * 100) + '%';
+        }
+        function apZoomMais() { apZoom = Math.min(3, +(apZoom + 0.25).toFixed(2)); apAplicarZoom(); }
+        function apZoomMenos() { apZoom = Math.max(0.4, +(apZoom - 0.25).toFixed(2)); apAplicarZoom(); }
+        function apZoomReset() { apZoom = 1; apAplicarZoom(); }
+        let apZoomCanvasListener = false;
+        function apZoomarCanvasDir() {
+            if (apZoomCanvasListener) return;
+            apZoomCanvasListener = true;
+            const pc = document.getElementById('pageContainer');
+            if (!pc) return;
+            pc.addEventListener('wheel', (e) => {
+                if (!editMode || !e.ctrlKey) return;
+                e.preventDefault();
+                if (e.deltaY < 0) apZoomMais(); else apZoomMenos();
+            }, { passive: false });
+        }
+
+        /* ---- Modo desenho: arrastar para criar linha/seta ---- */
+        function apIniciarDesenho(tipo) {
+            if (!editMode) { toast('Entre no modo edição primeiro.', 'info'); return; }
+            apDesenho = (apDesenho === tipo) ? null : tipo;
+            document.querySelectorAll('.ap-btn[data-ap-shape]').forEach(b => b.classList.remove('active'));
+            if (apDesenho) {
+                const btn = document.querySelector(`.ap-btn[data-ap-shape="${apDesenho}"]`);
+                if (btn) btn.classList.add('active');
+                toast('Arraste na página para desenhar a ' + (apDesenho === 'seta' ? 'seta' : 'linha') + '.', 'info');
+            }
+        }
+
+        /* ---- Copiar / colar / selecionar tudo ---- */
+        function apCopiar() {
+            if (!apSelecionados.length) return;
+            apClipboard = apSelecionados.map(id => {
+                const el = apBuscar(id);
+                return el ? JSON.parse(JSON.stringify(el)) : null;
+            }).filter(Boolean);
+            toast(apClipboard.length + ' elemento(s) copiado(s).', 'info');
+        }
+        function apColar() {
+            if (!apClipboard.length) return;
+            salvarHistorico();
+            const novos = [];
+            apClipboard.forEach(copia => {
+                const novo = JSON.parse(JSON.stringify(copia));
+                novo.id = gerarId('ape'); novo.x += 30; novo.y += 30;
+                state.apresentacao.push(novo); novos.push(novo.id);
+            });
+            apSelecionados = novos;
+            apRender();
+            toast(novos.length + ' elemento(s) colado(s).');
+        }
+        function apSelecionarTodos() {
+            if (!apDados().length) return;
+            apSelecionados = apDados().map(el => el.id);
+            apAtualizarSelecao();
+            apAtualizarProps();
+        }
+
+        /* ---- Nudge (setas do teclado) ---- */
+        function apNudge(dx, dy) {
+            if (!apSelecionados.length) return;
+            salvarHistorico();
+            apSelecionados.forEach(id => { const el = apBuscar(id); if (el) { el.x += dx; el.y += dy; } });
             apRender();
         }
 
@@ -952,11 +1619,12 @@
         }
 
         function apIniciarMover(e, ids, inicio) {
+            const layer = apLayer(); const r = layer ? layer.getBoundingClientRect() : null;
             const base = ids.map(id => { const el = apBuscar(id); return el ? { id, x: el.x, y: el.y } : null; }).filter(Boolean);
             let mexeu = false;
             apArrasto = {
                 move: (ev) => {
-                    const dx = ev.clientX - inicio.x, dy = ev.clientY - inicio.y;
+                    const dx = (ev.clientX - inicio.x) / apZoom, dy = (ev.clientY - inicio.y) / apZoom;
                     base.forEach(p => { const el = apBuscar(p.id); if (el) { el.x = p.x + dx; el.y = p.y + dy; } });
                     mexeu = true;
                     apRender();
@@ -974,7 +1642,7 @@
             let mexeu = false;
             apArrasto = {
                 move: (ev) => {
-                    const dx = ev.clientX - start.x, dy = ev.clientY - start.y;
+                    const dx = (ev.clientX - start.x) / apZoom, dy = (ev.clientY - start.y) / apZoom;
                     let x = caixa.x, y = caixa.y, w = caixa.w, h = caixa.h;
                     if (dir.includes('e')) w = Math.max(20, caixa.w + dx);
                     if (dir.includes('s')) h = Math.max(20, caixa.h + dy);
@@ -1005,13 +1673,13 @@
         function apIniciarRotacao(e) {
             const el = apBuscar(apSelecionados[0]);
             if (!el) return;
-            const centro = { x: el.x + el.w / 2, y: el.y + el.h / 2 };
-            const start = { x: e.clientX, y: e.clientY };
-            const angIni = Math.atan2(start.y - centro.y + window.scrollY, start.x - centro.x + window.scrollX) * 180 / Math.PI;
+            const layer = apLayer(); const r = layer ? layer.getBoundingClientRect() : { left: 0, top: 0 };
+            const centro = { x: r.left + el.x * apZoom + (el.w * apZoom) / 2, y: r.top + el.y * apZoom + (el.h * apZoom) / 2 };
+            const angIni = Math.atan2(e.clientY - centro.y, e.clientX - centro.x) * 180 / Math.PI;
             let mexeu = false;
             apArrasto = {
                 move: (ev) => {
-                    const ang = Math.atan2(ev.clientY - centro.y + window.scrollY, ev.clientX - centro.x + window.scrollX) * 180 / Math.PI;
+                    const ang = Math.atan2(ev.clientY - centro.y, ev.clientX - centro.x) * 180 / Math.PI;
                     el.rot = (ang - angIni) % 360;
                     mexeu = true;
                     apRender();
@@ -1019,6 +1687,271 @@
                 up: () => { if (mexeu) salvarHistorico(); apRender(); }
             };
             apBindArrasto(e);
+        }
+
+        function apIniciarDesenhar(e, tipo) {
+            const layer = apLayer();
+            const r = layer.getBoundingClientRect();
+            const x = (e.clientX - r.left) / apZoom, y = (e.clientY - r.top) / apZoom;
+            const novo = apNovo(tipo, x, y);
+            novo.w = 4; novo.h = 4;
+            apDados().push(novo);
+            apSelecionados = [novo.id];
+            let mexeu = false;
+            apArrasto = {
+                move: (ev) => {
+                    const dx = (ev.clientX - e.clientX) / apZoom, dy = (ev.clientY - e.clientY) / apZoom;
+                    const w = Math.max(16, Math.abs(dx)), h = Math.max(16, Math.abs(dy));
+                    if (w > 16 || h > 16) mexeu = true;
+                    novo.w = w; novo.h = h;
+                    novo.x = Math.min(x, x + dx);
+                    novo.y = Math.min(y, y + dy);
+                    if (tipo === 'linha' || tipo === 'seta') {
+                        novo.rot = Math.atan2(dy, dx) * 180 / Math.PI;
+                        novo.w = Math.max(20, Math.sqrt(dx * dx + dy * dy));
+                        novo.h = 10;
+                    } else {
+                        novo.rot = 0;
+                    }
+                    apRender();
+                },
+                up: () => {
+                    if (!mexeu) {
+                        const padrao = apNovo(tipo, 0, 0);
+                        novo.w = padrao.w; novo.h = padrao.h;
+                        novo.x = x - novo.w / 2; novo.y = y - novo.h / 2;
+                        apRender();
+                    }
+                    apDesenho = null;
+                    document.querySelectorAll('.ap-btn[data-ap-shape]').forEach(b => b.classList.remove('active'));
+                    salvarHistorico();
+                    apRender();
+                }
+            };
+            apBindArrasto(e);
+        }
+
+        function apIniciarLasso(e) {
+            const layer = apLayer();
+            const r = layer.getBoundingClientRect();
+            const x0 = (e.clientX - r.left) / apZoom, y0 = (e.clientY - r.top) / apZoom;
+            apSelecionar(null, false);
+            const lasso = document.createElement('div');
+            lasso.className = 'ap-lasso';
+            layer.appendChild(lasso);
+            let fimX = x0, fimY = y0;
+            const atualizar = () => {
+                lasso.style.cssText = `left:${Math.min(x0, fimX)}px;top:${Math.min(y0, fimY)}px;width:${Math.abs(fimX - x0)}px;height:${Math.abs(fimY - y0)}px;`;
+            };
+            apArrasto = {
+                move: (ev) => {
+                    fimX = (ev.clientX - r.left) / apZoom; fimY = (ev.clientY - r.top) / apZoom;
+                    atualizar();
+                },
+                up: () => {
+                    if (Math.abs(fimX - x0) < 4 && Math.abs(fimY - y0) < 4) { lasso.remove(); return; }
+                    const esq = Math.min(x0, fimX), topo = Math.min(y0, fimY);
+                    const dir = Math.max(x0, fimX), base = Math.max(y0, fimY);
+                    const ids = apDados().filter(el =>
+                        el.x < dir && el.x + el.w > esq && el.y < base && el.y + el.h > topo
+                    ).map(el => el.id);
+                    apSelecionados = ids;
+                    if (ids.length) apRender();
+                    lasso.remove();
+                }
+            };
+            apBindArrasto(e);
+        }
+
+        /* ================================================
+           FASE 3 — Editar imagens existentes do conteúdo
+           Redimensionar com alças, mover arrastando, e
+           controlar via mini toolbar flutuante.
+        ================================================ */
+        let apImgEdit = null;
+
+        function apImgChave(img) {
+            if (!img._apImgChave) {
+                const idx = Array.from(document.querySelectorAll('#pageContainer img')).filter(i => i.closest('#apLayer') === null && i !== document.querySelector('.jornada-lightbox-img')).indexOf(img);
+                const src = img.src || '';
+                const sufixo = src.startsWith('data:') ? '' : (src.split('/').pop() || '').slice(0, 40);
+                img._apImgChave = 'img' + idx + (sufixo ? '_' + sufixo : '');
+            }
+            return img._apImgChave;
+        }
+
+        function apImgSelecionar(img) {
+            apImgDeselecionar();
+            const pc = document.getElementById('pageContainer');
+            const pcR = pc.getBoundingClientRect();
+            const imgR = img.getBoundingClientRect();
+            const op = img.offsetParent || pc;
+            const opR = op.getBoundingClientRect();
+            const relX = (imgR.left - opR.left) / apZoom;
+            const relY = (imgR.top - opR.top) / apZoom;
+            const relW = imgR.width / apZoom;
+            const relH = imgR.height / apZoom;
+            apImgEdit = {
+                img, op,
+                chave: apImgChave(img),
+                origW: img.naturalWidth || img.width,
+                origH: img.naturalHeight || img.height,
+                curW: parseFloat(img.style.width) || img.offsetWidth,
+                curH: parseFloat(img.style.height) || img.offsetHeight,
+                startClientX: 0, startClientY: 0,
+                startW: 0, startH: 0,
+                startTx: parseFloat(img.dataset.apTx || 0),
+                startTy: parseFloat(img.dataset.apTy || 0),
+            };
+            const overlay = document.createElement('div');
+            overlay.className = 'ap-img-overlay';
+            pc.appendChild(overlay);
+            apImgEdit.overlay = overlay;
+            const tb = document.createElement('div');
+            tb.className = 'ap-img-toolbar';
+            tb.innerHTML = '<button class="ap-btn" onclick="apImgResizeRel(-0.1)" title="Diminuir">−L</button>' +
+                '<button class="ap-btn" onclick="apImgResizeRel(0.1)" title="Aumentar">+L</button>' +
+                '<button class="ap-btn" onclick="apImgResizeAspect(-0.1)" title="Encolher proporcional">−%</button>' +
+                '<button class="ap-btn" onclick="apImgResizeAspect(0.1)" title="Ampliar proporcional">+%</button>' +
+                '<button class="ap-btn" onclick="apImgResetar()" title="Restaurar tamanho original">↺</button>' +
+                '<button class="ap-btn danger" onclick="apImgDeselecionar()" title="Fechar">✕</button>';
+            overlay.appendChild(tb);
+            ['nw', 'ne', 'se', 'sw'].forEach(dir => {
+                const h = document.createElement('div');
+                h.className = 'ap-sel-handle ap-handle-' + dir;
+                h.dataset.dir = dir;
+                h.addEventListener('mousedown', (e) => { e.stopPropagation(); e.preventDefault(); apImgResizeHandle(e, dir); });
+                overlay.appendChild(h);
+            });
+            apImgAtualizarOverlay();
+            apImgLigarMover();
+        }
+
+        function apImgLigarMover() {
+            if (!apImgEdit) return;
+            const img = apImgEdit.img;
+            img.style.cursor = 'move';
+            const bindMove = (e) => {
+                if (e.button !== 0) return;
+                e.preventDefault(); e.stopPropagation();
+                const iniX = e.clientX, iniY = e.clientY;
+                const iniTx = apImgEdit.startTx, iniTy = apImgEdit.startTy;
+                const moveF = (ev) => {
+                    const dx = (ev.clientX - iniX) / apZoom, dy = (ev.clientY - iniY) / apZoom;
+                    apImgEdit.img.dataset.apTx = iniTx + dx;
+                    apImgEdit.img.dataset.apTy = iniTy + dy;
+                    apImgEdit.img.style.transform = `translate(${iniTx + dx}px, ${iniTy + dy}px)`;
+                    apImgAtualizarOverlay();
+                };
+                const upF = () => {
+                    window.removeEventListener('mousemove', moveF);
+                    window.removeEventListener('mouseup', upF);
+                };
+                window.addEventListener('mousemove', moveF);
+                window.addEventListener('mouseup', upF);
+            };
+            img.addEventListener('mousedown', bindMove);
+            if (!apImgEdit._unbindMove) apImgEdit._unbindMove = () => img.removeEventListener('mousedown', bindMove);
+        }
+
+        function apImgAtualizarOverlay() {
+            if (!apImgEdit || !apImgEdit.overlay) return;
+            const imgR = apImgEdit.img.getBoundingClientRect();
+            const pc = document.getElementById('pageContainer');
+            const pcR = pc.getBoundingClientRect();
+            const ov = apImgEdit.overlay;
+            ov.style.position = 'absolute';
+            ov.style.left = ((imgR.left - pcR.left) / apZoom) + 'px';
+            ov.style.top = ((imgR.top - pcR.top) / apZoom) + 'px';
+            ov.style.width = (imgR.width / apZoom) + 'px';
+            ov.style.height = (imgR.height / apZoom) + 'px';
+        }
+
+        function apImgDeselecionar() {
+            if (apImgEdit && apImgEdit.overlay) apImgEdit.overlay.remove();
+            if (apImgEdit && apImgEdit._unbindMove) apImgEdit._unbindMove();
+            apImgEdit = null;
+        }
+
+        function apImgResizeRel(delta) {
+            if (!apImgEdit) return;
+            const img = apImgEdit.img;
+            const ow = parseFloat(img.style.width) || img.offsetWidth;
+            const nw = Math.max(40, ow + ow * delta);
+            img.style.width = nw + 'px';
+            if (delta > 0) img.style.height = 'auto'; else img.style.height = 'auto';
+            apImgAtualizarOverlay();
+        }
+
+        function apImgResizeAspect(delta) {
+            if (!apImgEdit) return;
+            const img = apImgEdit.img;
+            const ow = parseFloat(img.style.width) || img.offsetWidth;
+            const oh = parseFloat(img.style.height) || img.offsetHeight;
+            const ratio = oh / ow;
+            const nw = Math.max(40, ow + ow * delta);
+            img.style.width = nw + 'px';
+            img.style.height = (nw * ratio) + 'px';
+            apImgAtualizarOverlay();
+        }
+
+        function apImgResetar() {
+            if (!apImgEdit) return;
+            const img = apImgEdit.img;
+            img.style.removeProperty('width');
+            img.style.removeProperty('height');
+            img.style.removeProperty('transform');
+            delete img.dataset.apTx;
+            delete img.dataset.apTy;
+            apImgAtualizarOverlay();
+        }
+
+        function apImgResizeHandle(e, dir) {
+            if (!apImgEdit) return;
+            const img = apImgEdit.img;
+            const ow = parseFloat(img.style.width) || img.offsetWidth;
+            const oh = parseFloat(img.style.height) || img.offsetHeight;
+            const iniX = e.clientX, iniY = e.clientY;
+            const moveF = (ev) => {
+                const dx = (ev.clientX - iniX) / apZoom, dy = (ev.clientY - iniY) / apZoom;
+                let nw = ow, nh = oh;
+                if (dir === 'se' || dir === 'ne') nw = Math.max(40, ow + dx);
+                if (dir === 'sw' || dir === 'nw') nw = Math.max(40, ow - dx);
+                if (dir === 'se' || dir === 'sw') nh = Math.max(30, oh + dy);
+                if (dir === 'ne' || dir === 'nw') nh = Math.max(30, oh - dy);
+                if (e.shiftKey) { const ratio = oh / ow; nh = nw * ratio; }
+                img.style.width = nw + 'px';
+                img.style.height = nh + 'px';
+                apImgAtualizarOverlay();
+            };
+            const upF = () => {
+                window.removeEventListener('mousemove', moveF);
+                window.removeEventListener('mouseup', upF);
+            };
+            window.addEventListener('mousemove', moveF);
+            window.addEventListener('mouseup', upF);
+        }
+
+        let apImgListenerPronto = false;
+        function apInstalarEdicaoImagens() {
+            if (apImgListenerPronto) return;
+            apImgListenerPronto = true;
+            document.addEventListener('click', (e) => {
+                if (!editMode) { apImgDeselecionar(); return; }
+                const t = e.target;
+                if (!t || t.tagName !== 'IMG') return;
+                if (t.closest('.ap-layer')) return;
+                if (t.closest('.ap-img-overlay')) return;
+                if (t.closest('.jornada-lightbox') || t.closest('.footer')) return;
+                e.preventDefault();
+                e.stopPropagation();
+                e.stopImmediatePropagation();
+                apImgSelecionar(t);
+            }, true);
+        }
+
+        function apDesinstalarEdicaoImagens() {
+            apImgDeselecionar();
         }
 
         function apCommitTexto() {
@@ -1046,21 +1979,34 @@
                     apSelecionar(id, e.shiftKey);
                     const inicio = { x: e.clientX, y: e.clientY };
                     if (apSelecionados.includes(id)) apIniciarMover(e, apSelecionados, inicio);
+                } else if (apDesenho) {
+                    apIniciarDesenhar(e, apDesenho);
                 } else {
-                    apSelecionar(null, false);
+                    apIniciarLasso(e);
                 }
             });
             layer.addEventListener('dblclick', (e) => {
                 if (!editMode) return;
                 const layerR = layer.getBoundingClientRect();
+                const px = (e.clientX - layerR.left) / apZoom, py = (e.clientY - layerR.top) / apZoom;
                 const elDom = e.target.closest('.ap-el-page');
-                if (!elDom || !elDom.dataset.id) { apAdd('texto', Math.round(e.clientX - layerR.left - 80), Math.round(e.clientY - layerR.top - 20)); return; }
+                if (!elDom || !elDom.dataset.id) { apAdd('texto', Math.round(px - 80), Math.round(py - 20)); return; }
                 const el = apBuscar(elDom.dataset.id);
                 if (!el) return;
-                if (el.tipo !== 'texto') { apAdd('texto', Math.round(e.clientX - layerR.left - 80), Math.round(e.clientY - layerR.top - 20)); return; }
+                if (!TIPOS_COM_TEXTO.includes(el.tipo)) { apAdd('texto', Math.round(px - 80), Math.round(py - 20)); return; }
+                if (el.tipo !== 'texto' && el.texto == null) {
+                    el.texto = '';
+                    el.fill = el.fill || '#1e293b';
+                    el.color = el.color || '#ffffff';
+                    el.fontSize = el.fontSize || 16;
+                    el.alinhamento = el.alinhamento || 'center';
+                }
                 apTextoEditando = el.id;
                 apRender();
-                const t = layer.querySelector(`.ap-el-page[data-id="${el.id}"] .ap-el-text`);
+                let t = layer.querySelector(`.ap-el-page[data-id="${el.id}"] .ap-el-text`);
+                if (!t && el.tipo === 'texto') {
+                    t = layer.querySelector(`.ap-el-page[data-id="${el.id}"] .ap-el-text`);
+                }
                 if (t) {
                     t.contentEditable = 'true';
                     t.focus();
@@ -1081,7 +2027,7 @@
                 pc.addEventListener('click', (e) => {
                     if (!editMode) return;
                     const r = layer.getBoundingClientRect();
-                    apLastClick = { x: Math.round(e.clientX - r.left), y: Math.round(e.clientY - r.top) };
+                    apLastClick = { x: Math.round((e.clientX - r.left) / apZoom), y: Math.round((e.clientY - r.top) / apZoom) };
                 });
             }
         }
@@ -1092,7 +2038,7 @@
             dupla: 'Dupla (ida e volta)'
         };
         const IDS_BOTOES_CONEXAO = {
-            direta: ['btnConnectDireta', 'btnConnect'],
+            direta: ['btnConnectDireta'],
             inversa: ['btnConnectInversa'],
             dupla: ['btnConnectDupla']
         };
@@ -1375,7 +2321,7 @@
                     cardHTML: card ? card.innerHTML : '',
                     cardBorder: cs ? rgbToHex(cs.borderColor) : '#0070c0',
                     cardColor: cs ? rgbToHex(cs.color) : '#0070c0',
-                    bg: rgbToHex(getComputedStyle(row.querySelector('.actor-description')).backgroundColor),
+                    bg: rgbToHex(row.querySelector('.actor-description') ? getComputedStyle(row.querySelector('.actor-description')).backgroundColor : '#ffffff'),
                     descHTML: descDiv ? descDiv.innerHTML : '',
                     expandido: !!(forcarExpandido || row.classList.contains('expandido'))
                 };
@@ -1527,9 +2473,38 @@
         /* ================================================
            ESTADO COMPLETO (COLETAR / APLICAR)
         ================================================ */
+        function capturarImgEdits() {
+            const edts = {};
+            document.querySelectorAll('#pageContainer img').forEach(img => {
+                if (img.closest('.ap-layer')) return;
+                if (!img.style.width && !img.dataset.apTx) return;
+                const chave = apImgChave(img);
+                edts[chave] = {
+                    w: img.style.width || null,
+                    h: img.style.height || null,
+                    tx: img.dataset.apTx || '0',
+                    ty: img.dataset.apTy || '0'
+                };
+            });
+            return edts;
+        }
+
+        function aplicarImgEdits(edts) {
+            if (!edts || typeof edts !== 'object') return;
+            document.querySelectorAll('#pageContainer img').forEach(img => {
+                if (img.closest('.ap-layer')) return;
+                const chave = apImgChave(img);
+                if (!edts[chave]) return;
+                const d = edts[chave];
+                if (d.w) img.style.width = d.w;
+                if (d.h) img.style.height = d.h;
+                if (d.tx || d.ty) { img.dataset.apTx = d.tx || '0'; img.dataset.apTy = d.ty || '0'; img.style.transform = `translate(${parseFloat(d.tx) || 0}px, ${parseFloat(d.ty) || 0}px)`; }
+            });
+        }
+
         function coletarEstadoCompleto(forcarExpandido) {
             return {
-                versao: 3,
+                versao: 4,
                 salvoEm: new Date().toISOString(),
                 map: state,
                 editMode: editMode,
@@ -1537,8 +2512,11 @@
                 etapas: capturarEtapas(),
                 textos: capturarTextosEditaveis(),
                 secoes: capturarSecoes(),
+                estiloSecoes: capturarEstilosSecoes(),
                 dupCores: dupCores,
-                apresentacao: Array.isArray(state.apresentacao) ? state.apresentacao : []
+                cvMpCores: cvMpCores,
+                apresentacao: Array.isArray(state.apresentacao) ? state.apresentacao : [],
+                imgEdits: capturarImgEdits()
             };
         }
 
@@ -1578,6 +2556,7 @@
                 document.getElementById('actorsList').innerHTML = parsed.atores.map(criarLinhaAtorHTML).join('');
                 instalarTogglesAtores();
             }
+            if (parsed.imgEdits) aplicarImgEdits(parsed.imgEdits);
             if (parsed.etapas && Array.isArray(parsed.etapas.itens) && parsed.etapas.itens.length) {
                 // Deduplica por stepKey: estados salvos corrompidos podem conter etapas
                 // repetidas (ex.: acúmulo no autosave) e são corrigidos ao restaurar.
@@ -1590,7 +2569,7 @@
                     itensUnicos.push(it);
                 }
                 if (itensUnicos.length !== parsed.etapas.itens.length) {
-                    console.warn('Macro Processo: ' + (parsed.etapas.itens.length - itensUnicos.length) + ' etapa(s) duplicada(s) removida(s) ao restaurar.');
+                    console.warn('MacroProcesso: ' + (parsed.etapas.itens.length - itensUnicos.length) + ' etapa(s) duplicada(s) removida(s) ao restaurar.');
                 }
                 // Remove as etapas antigas (mantém a barra de edição da lista)
                 const list = document.getElementById('etapasList3');
@@ -1624,6 +2603,8 @@
             if (parsed.textos) aplicarTextosEditaveis(parsed.textos);
             if (parsed.secoes) aplicarSecoes(parsed.secoes);
             if (parsed.dupCores) aplicarCoresDup(parsed.dupCores);
+            if (parsed.estiloSecoes) aplicarEstilosSecoes(parsed.estiloSecoes);
+            if (parsed.cvMpCores) aplicarCoresCvMp(parsed.cvMpCores);
 
             aplicarEstadoEditavel();
             vincularCliquesAtores();
@@ -1893,7 +2874,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
 
         // Limpa a UI de edição e expande todas as seções para gerar um arquivo "final" limpo
         function limparCloneParaExportacao(cloneDoc) {
-            cloneDoc.querySelectorAll('.edit-controls, .step-edit-controls, .edit-step-bar, .edit-actor-bar, .add-actor-btn, .add-btn, .append-btn, .edit-add, .toast-msg, .dup-edit-bar').forEach(el => el.remove());
+            cloneDoc.querySelectorAll('.edit-controls, .step-edit-controls, .edit-step-bar, .edit-actor-bar, .add-actor-btn, .add-btn, .append-btn, .edit-add, .toast-msg, .dup-edit-bar, .cadeia-row-edit, .cv-mp-edit').forEach(el => el.remove());
             // Remove também a UI de edição do mapa e os filtros/navegação de edição,
             // que não devem aparecer no arquivo exportado (o PDF já os escondia; aqui no clone).
             ['#editorToolbar', '#propertiesPanel', '#searchContainer'].forEach(sel => {
@@ -1902,7 +2883,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
             // Remove toda a interface de edição para que o usuário do arquivo exportado
             // não veja nem consiga ativar o modo Editar (botão da navbar, pilha lateral de
             // ações, toolbar flutuante e o input de arquivo de imagem).
-            ['#btnToggleEdit', '#globalActionsBar', '#editFloatToolbar', '#inputFileImagem', '#apPalette', '#apPropsPanel'].forEach(sel => {
+            ['#btnToggleEdit', '#globalActionsBar', '#editFloatToolbar', '#inputFileImagem', '#apPalette', '#apPropsPanel', '#sectionPropsPanel'].forEach(sel => {
                 cloneDoc.querySelectorAll(sel).forEach(el => el.remove());
             });
             // Esconde o contêiner de ações da navbar (que abrigava o botão "Editar") mesmo
@@ -1910,10 +2891,14 @@ const FALLBACK_IMAGENS_CDN_404 = {
             cloneDoc.querySelectorAll('.nav-actions').forEach(el => el.remove());
             // Remove alças de seleção dos elementos de layout livre, se houver
             cloneDoc.querySelectorAll('.ap-sel-box').forEach(el => el.remove());
+            cloneDoc.querySelectorAll('.ap-img-overlay').forEach(el => el.remove());
             // Remove a classe 'editing' por segurança, garantindo que nenhum controle de
             // edição residual seja exibido no arquivo exportado.
             const cloneBody = cloneDoc.querySelector('body');
             if (cloneBody) cloneBody.classList.remove('editing');
+            // Garante que o zoom aplicado durante a edição não vaze para o arquivo exportado.
+            const clonePc = cloneDoc.querySelector('.page-container');
+            if (clonePc) clonePc.style.removeProperty('zoom');
             // Expande todas as seções colapsáveis no clone (equivalente ao que o PDF faz com
             // toggleSection/secsAd), para que o exportado exiba o conteúdo completo.
             // O clone é document.documentElement.cloneNode(true) (um Element, não um Document),
@@ -2076,6 +3061,11 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 if (/expandir/i.test(txt || '')) el.textContent = '[−] Ocultar';
                 return { el, txt };
             });
+            // Garante que o zoom e as alças de edição de imagem não apareçam no PDF
+            const pcEl = document.getElementById('pageContainer');
+            const zoomAntes = pcEl ? pcEl.style.zoom || '' : '';
+            const overlaysImgs = Array.from(document.querySelectorAll('.ap-img-overlay'));
+            if (pcEl) pcEl.style.removeProperty('zoom');
 
             resetarVisao(); selecionarNode(null);
             // Expande todos os atores para incluir as descrições completas no PDF
@@ -2088,6 +3078,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
             toast('Gerando PDF — isso pode levar alguns segundos...', 'info', null, 6000);
             const options = { margin: [10, 10, 10, 10], filename: 'processo_estagio_utfpr.pdf', image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true, logging: false }, jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }, pagebreak: { mode: ['avoid-all', 'css', 'legacy'] } };
             try {
+                overlaysImgs.forEach(o => o.style.display = 'none');
                 restaurarImagens = await embutirImagensNaPagina();
                 await html2pdf().set(options).from(document.getElementById('pageContainer')).save();
                 toast('PDF exportado com sucesso!');
@@ -2095,6 +3086,8 @@ const FALLBACK_IMAGENS_CDN_404 = {
             catch (err) { console.error('Erro ao gerar PDF:', err); toast('Ocorreu um erro ao gerar o PDF. Tente novamente.', 'erro'); }
             finally {
                 restaurarImagens();
+                overlaysImgs.forEach(o => o.style.display = '');
+                if (pcEl) pcEl.style.zoom = zoomAntes;
                 if (estavaEditing) document.body.classList.add('editing');
                 document.querySelectorAll('[data-editable="true"]').forEach((el, i) => el.contentEditable = (editableAntes[i] !== undefined ? editableAntes[i] : 'false'));
                 togglesAntes.forEach(t => t.el.textContent = t.txt);
@@ -2383,7 +3376,25 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) refazer(); else desfazer(); if (editMode) { apSelecionados = []; apRender(); } return; }
                 if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); refazer(); if (editMode) { apSelecionados = []; apRender(); } return; }
                 if (digitando) return;
+                if (editMode) {
+                    if ((e.ctrlKey || e.metaKey) && k === 'd') { e.preventDefault(); apDuplicar(); return; }
+                    if ((e.ctrlKey || e.metaKey) && k === 'c') { e.preventDefault(); apCopiar(); return; }
+                    if ((e.ctrlKey || e.metaKey) && k === 'v') { e.preventDefault(); apColar(); return; }
+                    if ((e.ctrlKey || e.metaKey) && k === 'a') { e.preventDefault(); apSelecionarTodos(); return; }
+                    if ((e.ctrlKey || e.metaKey) && (k === '=' || k === '+')) { e.preventDefault(); apZoomMais(); return; }
+                    if ((e.ctrlKey || e.metaKey) && (k === '-' || k === '_')) { e.preventDefault(); apZoomMenos(); return; }
+                    if ((e.ctrlKey || e.metaKey) && (k === '0')) { e.preventDefault(); apZoomReset(); return; }
+                    if (apSelecionados.length && ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
+                        e.preventDefault();
+                        const passo = e.shiftKey ? 10 : 1;
+                        const dx = k === 'arrowleft' ? -passo : (k === 'arrowright' ? passo : 0);
+                        const dy = k === 'arrowup' ? -passo : (k === 'arrowdown' ? passo : 0);
+                        apNudge(dx, dy);
+                        return;
+                    }
+                }
                 if (editMode && k === 'delete' && apSelecionados.length) { apExcluir(); return; }
+                if (editMode && k === 'escape' && apDesenho) { apDesenho = null; document.querySelectorAll('.ap-btn[data-ap-shape]').forEach(b => b.classList.remove('active')); apRender(); return; }
                 if (k === 'delete' && nodeSelecionadoId) excluirSelecionado();
                 else if (k === 'escape') {
                     if (editMode && apSelecionados.length) { apSelecionados = []; apRender(); return; }
@@ -2809,13 +3820,12 @@ const FALLBACK_IMAGENS_CDN_404 = {
             // 1) Vida Acadêmica -> Estágio (linha vertical reta)
             const esgCx = (estP.cx + vidaP.cx) / 2;
             el(esgCx - 1, vidaP.bottom, 3, estP.top - vidaP.bottom);
-            // 2) Estágio -> Validação e Realização (garfo: estação sai da direita do Estágio e desce para os irmãos abaixo)
+            // 2) Estágio -> Validação e Realização (garfo desce da base do Estágio, um pouco à esquerda)
             const esqFilho = Math.min(valP.left, relP.left);
-            const trunkX = (estP.right + esqFilho) / 2;
-            el(estP.right - 1, estP.cy - 1, trunkX - estP.right + 4, 3);
+            const trunkX = estP.cx - 6;
             const topT = Math.min(valP.cy, relP.cy);
             const botT = Math.max(valP.cy, relP.cy);
-            el(trunkX - 1, Math.min(estP.cy, topT), 3, botT - Math.min(estP.cy, topT));
+            el(trunkX - 1, estP.bottom, 3, botT - estP.bottom);
             el(trunkX - 1, valP.cy - 1, valP.left - trunkX + 3, 3);
             el(trunkX - 1, relP.cy - 1, relP.left - trunkX + 3, 3);
             // 3) Realização -> Disponibilização, Contratação, Vigência, Encerramento e Gestão
@@ -2842,9 +3852,12 @@ const FALLBACK_IMAGENS_CDN_404 = {
         }
 
         function iniciarCoresDup() { aplicarCoresDup(); }
+        function iniciarCoresCvMp() { aplicarCoresCvMp(); }
         if (document.readyState === 'loading') {
             document.addEventListener('DOMContentLoaded', iniciarCoresDup, { once: true });
+            document.addEventListener('DOMContentLoaded', iniciarCoresCvMp, { once: true });
         } else {
             iniciarCoresDup();
+            iniciarCoresCvMp();
         }
     

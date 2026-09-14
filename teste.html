@@ -34,7 +34,7 @@
             </button>
             <ul class="nav-menu" id="navMenu">
                 <li><a href="#contextBox" data-secao="contextBox">Contextualização</a></li>
-                <li><a href="#sec3Box" data-secao="sec3Box">Macro Processo</a></li>
+                <li><a href="#sec3Box" data-secao="sec3Box">Macroprocesso</a></li>
                 <li><a href="#suporteBox" data-secao="suporteBox">Suporte Tecnológico</a></li>
                 <li><a href="#sec1Box" data-secao="sec1Box">Atores</a></li>
                 <li><a href="#sec1bBox" data-secao="sec1bBox">Documentos</a></li>
@@ -73,7 +73,7 @@
             <div class="hero-content">
                 <p class="hero-eyebrow">Universidade Tecnológica Federal do Paraná</p>
                 <h1 class="hero-title">Portfólio de Processos de Estágio</h1>
-                <p class="hero-subtitle">Visão integrada dos atores, fluxos, documentos e mapeamento interativo do estágio externo e interno na UTFPR.</p>
+                <p class="hero-subtitle">Conheça o Portfólio de Processos de Estágio da UTFPR: a contextualização do processo, o macroprocesso do estágio externo (da disponibilização ao encerramento e à gestão), o suporte tecnológico com o SEI, os atores envolvidos, os documentos utilizados e o mapa interativo das etapas.</p>
                 <div class="hero-actions">
                     <a href="#contextBox" class="btn-custom btn-custom-success">Explorar Conteúdo</a>
                     <a href="#sec2Box" class="btn-custom btn-custom-success">Ver Mapa Interativo</a>
@@ -88,6 +88,8 @@
                 <span id="contextToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Contextualização">[−] Ocultar</span>
             </div>
             <div id="contextContent">
+                <!-- Campo de texto introdutório editável (modo edição) -->
+                <div class="context-intro" contenteditable="false" data-editable="true" data-field="context_intro"></div>
                 <div class="slide-body">
                     <!-- Coluna Esquerda: Diagrama de Imagem + Legenda -->
                     <div class="left-col">
@@ -169,20 +171,6 @@
                 </div>
                 <!-- Rodapé: Legenda + Processo Transversal lado a lado -->
                 <div class="context-footer">
-                    <div class="legend-box">
-                        <div class="legend-item">
-                            <span class="bullet-dot">•</span>
-                            <span contenteditable="false" data-editable="true">Estudante <strong>UTFPR</strong></span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="bullet-dot">•</span>
-                            <span contenteditable="false" data-editable="true">Estudante <strong>Outra IE</strong> – Ensino superior</span>
-                        </div>
-                        <div class="legend-item">
-                            <span class="bullet-dot">•</span>
-                            <span contenteditable="false" data-editable="true">Estudante <strong>Outra IE</strong> – Ensino médio</span>
-                        </div>
-                    </div>
                     <div class="transversal-box">
                         <h3 class="transversal-title" contenteditable="false" data-editable="true">Processo transversal (Ensino, Extensão e Gestão de Pessoas)</h3>
                         <div class="transversal-grid">
@@ -256,7 +244,6 @@
                                 <div class="cadeia-card-resultados">
                                     <div class="cadeia-card-titulo">Resultados</div>
                                     <div class="cadeia-card-imagens">
-                                        <img src="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_Processos_UTFPR@master/paineis_resultados.png" alt="Painel de Resultados 1" onclick="abrirImgCadeia(this.src)">
                                         <img src="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_Processos_UTFPR@master/paineis_resultados.png" alt="Painel de Resultados 2" onclick="abrirImgCadeia(this.src)">
                                     </div>
                                 </div>
@@ -271,10 +258,10 @@
             </div>
         </div>
 
-        <!-- SEÇÃO 3: MACRO PROCESSO -->
+        <!-- SEÇÃO 3: MACROPROCESSO -->
         <div class="section-box" id="sec3Box" data-ap-section="sec3Box">
             <div class="section-header" onclick="toggleSection('sec3Content', 'sec3Toggle')">
-                <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="7" height="7" rx="1"></rect><rect x="14" y="5" width="7" height="7" rx="1"></rect><rect x="3" y="16" width="7" height="4" rx="1"></rect><rect x="14" y="16" width="7" height="4" rx="1"></rect><path d="M10 8.5h4"></path><path d="M10 18h4"></path></svg> Macro Processo</span>
+                <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="7" height="7" rx="1"></rect><rect x="14" y="5" width="7" height="7" rx="1"></rect><rect x="3" y="16" width="7" height="4" rx="1"></rect><rect x="14" y="16" width="7" height="4" rx="1"></rect><path d="M10 8.5h4"></path><path d="M10 18h4"></path></svg> Macroprocesso</span>
                 <span id="sec3Toggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Seção 3">[−] Ocultar</span>
             </div>
             <div id="sec3Content">
@@ -427,21 +414,20 @@
                 <div class="sup-container">
                     <!-- Cabeçalho -->
                     <div class="sup-header">
-                        <img class="sup-logo-sei" src="https://portalsei.uffs.edu.br/++resource++resourceIMG/sei_logo.png" alt="Logo do Sistema Eletrônico de Informações (SEI)">
                         <div class="sup-header-title">
                             <p data-editable="true">Bases de Conhecimento &amp; Tipos de Processos no SEI</p>
                         </div>
                     </div>
 
-                    <!-- DUPLICATA VISUAL DO MACRO PROCESSO (SEÇÃO 3) -->
-                    <h3 class="dup-title" contenteditable="false" data-editable="true" data-field="dup_titulo">Macro Processo (Estágio Externo)</h3>
-                    <div class="dup-callout">
-                        <span class="dup-callout-label" contenteditable="false" data-editable="true" data-field="dup_cor_label">Novo Sistema de Estágio: Escopo do Sistema</span>
-                        <div class="dup-map">
+                    <!-- DUPLICATA VISUAL DO MACROPROCESSO (SEÇÃO 3) -->
+                    <h3 class="dup-title" contenteditable="false" data-editable="true" data-field="dup_titulo">Macroprocesso (Estágio Externo)</h3>
+                    <div class="dup-map">
                             <div class="dup-side">
                                 <img src="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_EPROC@master/Imagem%20(2).png" alt="Estágio Externo" class="dup-side-emoji" draggable="false">
                             </div>
-                            <div class="dup-flow">
+                            <div class="dup-callout">
+                        <span class="dup-callout-label" contenteditable="false" data-editable="true" data-field="dup_cor_label">Novo Sistema de Estágio: Escopo do Sistema</span>
+                        <div class="dup-flow">
                                 <div class="dup-pipeline">
                                     <div class="dup-chevron dup-disponibilizacao">
                                         <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_disp_titulo">Disponibilização</span>
@@ -465,8 +451,7 @@
                                     <span class="dup-step-desc" contenteditable="false" data-editable="true" data-field="dup_gestao_desc">(UTFPR como UCE, Gestão da UCE, Acesso Acompanhamento da realização do estágio, Indicadores)</span>
                                 </div>
                             </div>
-                        </div>
-                        <div class="dup-edit-bar" aria-label="Editar cores do Macro Processo">
+                        <div class="dup-edit-bar" aria-label="Editar cores do Macroprocesso">
                             <label title="Cor do painel Estágio Externo">Estágio Externo <input type="color" value="#1e293b" data-dup-cor="side" onchange="mudarCorDup(this,'side')"></label>
                             <label title="Cor Disponibilização">Disponibilização <input type="color" value="#737478" data-dup-cor="disp" onchange="mudarCorDup(this,'disp')"></label>
                             <label title="Cor Contratação">Contratação <input type="color" value="#1bb193" data-dup-cor="contrat" onchange="mudarCorDup(this,'contrat')"></label>
@@ -475,8 +460,10 @@
                             <label title="Cor Gestão do Estágio">Gestão <input type="color" value="#57585c" data-dup-cor="gestao" onchange="mudarCorDup(this,'gestao')"></label>
                         </div>
                     </div>
+                    </div>
                     <!-- Controles e Filtros -->
                     <div class="sup-controls" style="margin-top: 32px;">
+                        <img class="sup-logo-sei" src="https://portalsei.uffs.edu.br/++resource++resourceIMG/sei_logo.png" alt="Logo do Sistema Eletrônico de Informações (SEI)">
                         <div class="sup-search-bar">
                             <input type="text" id="searchInput" placeholder="Pesquisar por descrição, ID do SEI ou ID da Base de Conhecimento...">
                         </div>
@@ -809,15 +796,18 @@
     <div class="ap-palette" id="apPalette">
         <span class="ap-palette-title">Layout Livre</span>
         <span class="ap-group" title="Inserir formas, setas, texto e imagens">
-            <button class="ap-btn" onclick="apAdd('retangulo')" aria-label="Retângulo">▭</button>
-            <button class="ap-btn" onclick="apAdd('circulo')" aria-label="Círculo">◯</button>
-            <button class="ap-btn" onclick="apAdd('triangulo')" aria-label="Triângulo">△</button>
-            <button class="ap-btn" onclick="apAdd('losango')" aria-label="Losango">◇</button>
-            <button class="ap-btn" onclick="apAdd('linha')" aria-label="Linha">╱</button>
-            <button class="ap-btn" onclick="apAdd('seta')" aria-label="Seta">➜</button>
-            <button class="ap-btn" onclick="apAdd('texto')" aria-label="Caixa de texto">T</button>
-            <button class="ap-btn" onclick="apInserirImagem()" aria-label="Inserir imagem por URL">🖼</button>
-            <button class="ap-btn" onclick="apDefinirLink()" aria-label="Adicionar link ao selecionado">🔗</button>
+            <button class="ap-btn" data-ap-shape="retangulo" onclick="apAdd('retangulo')" aria-label="Retângulo">▭</button>
+            <button class="ap-btn" data-ap-shape="circulo" onclick="apAdd('circulo')" aria-label="Círculo">◯</button>
+            <button class="ap-btn" data-ap-shape="triangulo" onclick="apAdd('triangulo')" aria-label="Triângulo">△</button>
+            <button class="ap-btn" data-ap-shape="losango" onclick="apAdd('losango')" aria-label="Losango">◇</button>
+            <button class="ap-btn" data-ap-shape="hexagono" onclick="apAdd('hexagono')" aria-label="Hexágono">⬡</button>
+            <button class="ap-btn" data-ap-shape="estrela" onclick="apAdd('estrela')" aria-label="Estrela">★</button>
+            <button class="ap-btn" data-ap-shape="balao" onclick="apAdd('balao')" aria-label="Balão de fala">💬</button>
+            <button class="ap-btn" data-ap-shape="chevron" onclick="apAdd('chevron')" aria-label="Chevron (como na cadeia)">➤</button>
+            <button class="ap-btn" data-ap-shape="card" onclick="apAdd('card')" aria-label="Card (como etapas/atores)">▣</button>
+            <button class="ap-btn" data-ap-shape="linha" onclick="apIniciarDesenho('linha')" title="Arraste na página para desenhar" aria-label="Linha (arrastar)">╱</button>
+            <button class="ap-btn" data-ap-shape="seta" onclick="apIniciarDesenho('seta')" title="Arraste na página para desenhar" aria-label="Seta (arrastar)">➜</button>
+            <button class="ap-btn" data-ap-shape="texto" onclick="apAdd('texto')" aria-label="Caixa de texto">T</button>
         </span>
         <span class="ap-group" title="Ordem e organização">
             <button class="ap-btn" onclick="apOrdem('tras')" aria-label="Enviar para trás">⬇</button>
@@ -828,12 +818,20 @@
             <button class="ap-btn" onclick="apAlinhar('middle')" aria-label="Alinhar meio">⭰</button>
             <button class="ap-btn" onclick="apDistribuir()" aria-label="Distribuir horizontalmente">⇆</button>
         </span>
+        <span class="ap-group" title="Ampliar/reduzir a área de edição (PowerPoint)">Zoom
+            <button class="ap-btn" onclick="apZoomMenos()" aria-label="Reduzir zoom" title="Reduzir zoom">−</button>
+            <button class="ap-btn" onclick="apZoomReset()" aria-label="Zoom padrão" title="Zoom padrão (100%)"><span id="apZoomLabel">100%</span></button>
+            <button class="ap-btn" onclick="apZoomMais()" aria-label="Aumentar zoom" title="Aumentar zoom">+</button>
+        </span>
         <span class="ap-group" title="Ações">
             <button class="ap-btn" onclick="apDesfazer()" aria-label="Desfazer">↩</button>
             <button class="ap-btn" onclick="apRefazer()" aria-label="Refazer">↪</button>
             <button class="ap-btn" onclick="apDuplicar()" aria-label="Duplicar">📋</button>
+            <button class="ap-btn" onclick="apExcluir()" aria-label="Excluir">🗑</button>
+        </span>
+        <span class="ap-group" title="Ações">
             <button class="ap-btn" onclick="apResetarFreeLayout()" aria-label="Resetar posição das seções" title="Restaurar posição original das seções">↺</button>
-            <button class="ap-btn danger" onclick="apExcluir()" aria-label="Excluir">🗑</button>
+            <button class="ap-btn" onclick="apExcluirTodos()" aria-label="Excluir tudo" title="Remover todos os elementos do Layout Livre">✕</button>
         </span>
     </div>
 
@@ -886,6 +884,74 @@
         </div>
     </div>
 
+    <!-- PROPRIEDADES DA SEÇÃO (só no modo edição) -->
+    <div class="section-props-panel" id="sectionPropsPanel">
+        <h4 class="section-props-title">Estilos da Seção</h4>
+        <div class="section-props-nosel" id="sectionPropsNoSel">Clique em uma seção da página para editar título, cores, fonte e espaçamento.</div>
+        <div class="section-props-form" id="sectionPropsForm">
+            <label class="section-props-label">Título
+                <input type="text" id="secpTitulo" placeholder="Título da seção" onchange="aplicarEstiloSecao()">
+            </label>
+            <label class="section-props-label">Cor de fundo
+                <span class="section-props-row">
+                    <input type="color" id="secpBg" value="#ffffff" oninput="aplicarEstiloSecao()">
+                    <button type="button" class="edit-ctrl-btn" onclick="resetarCorFundoSecao()" title="Remover cor de fundo">✕</button>
+                </span>
+            </label>
+            <label class="section-props-label">Cor do texto
+                <input type="color" id="secpText" value="#1e293b" oninput="aplicarEstiloSecao()">
+            </label>
+            <label class="section-props-label">Fonte
+                <select id="secpFont" onchange="aplicarEstiloSecao()">
+                    <option value="">Padrão (Open Sans)</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="Courier New, monospace">Courier New</option>
+                    <option value="Comic Sans MS, Comic Sans, cursive">Comic Sans MS</option>
+                </select>
+            </label>
+            <label class="section-props-label">Tamanho do texto
+                <input type="range" id="secpFontSize" min="13" max="22" step="1" value="16" oninput="aplicarEstiloSecao()">
+            </label>
+            <div class="secp-caixa-block" id="secpCaixaBlock" style="display:none;">
+                <span class="secp-caixa-title">Tamanho do texto da caixa</span>
+                <span class="secp-caixa-nome" id="secpCaixaNome"></span>
+                <span class="section-props-row">
+                    <button type="button" class="edit-ctrl-btn" onclick="ajustarTamanhoTextoCaixa(-1)" title="Diminuir texto da caixa">A−</button>
+                    <span id="secpCaixaFontSize" class="secp-caixa-fontsize">16px</span>
+                    <button type="button" class="edit-ctrl-btn" onclick="ajustarTamanhoTextoCaixa(1)" title="Aumentar texto da caixa">A+</button>
+                    <button type="button" class="edit-ctrl-btn" onclick="resetarTamanhoTextoCaixa()" title="Restaurar tamanho original da caixa">↺</button>
+                </span>
+            </div>
+            <label class="section-props-label">Espaçamento interno
+                <input type="range" id="secpPadding" min="0" max="60" step="2" value="28" oninput="aplicarEstiloSecao()">
+            </label>
+            <label class="section-props-label">Altura da área
+                <span class="section-props-row">
+                    <input type="range" id="secpHeight" min="0" max="800" step="10" value="0" oninput="aplicarEstiloSecao()">
+                    <button type="button" class="edit-ctrl-btn" onclick="resetarAlturaSecao()" title="Usar altura automática">↺</button>
+                </span>
+            </label>
+            <div class="secp-cvmp-block" id="secpCvMpBlock">
+                <span class="secp-cvmp-title">Cores do Macroprocesso</span>
+                <span class="secp-cvmp-row"><input type="color" id="secpCvMpDisp" data-cv-cor="disp" value="#737478" oninput="mudarCorCvMp(this,'disp')" title="Cor do tópico"><span class="secp-cvmp-nome">Disponibilização</span><button type="button" class="secp-cvmp-del" onclick="removerCvMp(this,'disp')" title="Remover tópico">✕</button></span>
+                <span class="secp-cvmp-row"><input type="color" id="secpCvMpContrat" data-cv-cor="contrat" value="#1bb193" oninput="mudarCorCvMp(this,'contrat')" title="Cor do tópico"><span class="secp-cvmp-nome">Contratação</span><button type="button" class="secp-cvmp-del" onclick="removerCvMp(this,'contrat')" title="Remover tópico">✕</button></span>
+                <span class="secp-cvmp-row"><input type="color" id="secpCvMpVig" data-cv-cor="vig" value="#5f3377" oninput="mudarCorCvMp(this,'vig')" title="Cor do tópico"><span class="secp-cvmp-nome">Vigência</span><button type="button" class="secp-cvmp-del" onclick="removerCvMp(this,'vig')" title="Remover tópico">✕</button></span>
+                <span class="secp-cvmp-row"><input type="color" id="secpCvMpEnc" data-cv-cor="enc" value="#833075" oninput="mudarCorCvMp(this,'enc')" title="Cor do tópico"><span class="secp-cvmp-nome">Encerramento</span><button type="button" class="secp-cvmp-del" onclick="removerCvMp(this,'enc')" title="Remover tópico">✕</button></span>
+                <span class="secp-cvmp-row"><input type="color" id="secpCvMpGestao" data-cv-cor="gestao" value="#57585c" oninput="mudarCorCvMp(this,'gestao')" title="Cor do tópico"><span class="secp-cvmp-nome">Gestão do Estágio</span><button type="button" class="secp-cvmp-del" onclick="removerCvMp(this,'gestao')" title="Remover tópico">✕</button></span>
+            </div>
+            <div class="section-props-actions">
+                <button type="button" class="edit-ctrl-btn secp-btn" onclick="desfazerSecao()" title="Desfazer última alteração de estilo">↩ Desfazer</button>
+                <button type="button" class="edit-ctrl-btn secp-btn" onclick="refazerSecao()" title="Refazer última alteração de estilo">↪ Refazer</button>
+                <button type="button" class="edit-ctrl-btn secp-btn" onclick="moverSecao(-1)" title="Mover seção para cima">↑ Mover</button>
+                <button type="button" class="edit-ctrl-btn secp-btn" onclick="moverSecao(1)" title="Mover seção para baixo">↓ Mover</button>
+                <button type="button" class="edit-ctrl-btn secp-btn" onclick="duplicarSecao()" title="Duplicar seção">📋 Duplicar</button>
+                <button type="button" class="edit-ctrl-btn secp-btn" onclick="resetarEstiloSecao()" title="Limpar estilos aplicados">↺ Resetar</button>
+                <button type="button" class="edit-ctrl-btn secp-btn secp-btn-del" onclick="apagarSecao()" title="Apagar esta seção da página">🗑 Apagar</button>
+            </div>
+        </div>
+    </div>
+
     <div class="jornada-lightbox" id="jornadaLightbox">
         <div class="jornada-lightbox-content">
             <button class="jornada-lightbox-close" onclick="closeJornada(event)" aria-label="Fechar jornada do ator">&times;</button>
@@ -898,13 +964,13 @@
         <div class="footer-top">
             <div class="footer-col footer-brand-col">
                 <img src="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_Processos_UTFPR@master/Portfolio_Processos_UTFPR/logo_utfpr.png" alt="UTFPR" class="footer-logo">
-                <p class="footer-about">Universidade Tecnológica Federal do Paraná — Reitoria. Portfólio institucional dos processos que envolvem a gestão de estágios internos e externos.</p>
+                <p class="footer-about">Universidade Tecnológica Federal do Paraná Reitoria. Portfólio institucional dos processos que envolvem a gestão de estágios internos e externos.</p>
             </div>
             <div class="footer-col">
                 <h3 class="footer-heading">Navegação</h3>
                 <ul class="footer-list">
                     <li><a href="#contextBox">Contextualização</a></li>
-                    <li><a href="#sec3Box">Macro Processo</a></li>
+                    <li><a href="#sec3Box">Macroprocesso</a></li>
                     <li><a href="#suporteBox">Suporte Tecnológico</a></li>
                     <li><a href="#sec1Box">Atores e Jornada</a></li>
                     <li><a href="#sec1bBox">Documentos do Estágio</a></li>
