@@ -2334,14 +2334,6 @@ body.editing .edit-float-toolbar.active {
     background: var(--accent);
 }
 
-.link-url-visivel {
-    font-size: 0.75rem;
-    color: rgba(255, 255, 255, 0.6);
-    word-break: break-all;
-    display: block;
-    margin-top: 2px;
-}
-
 [data-editable] a {
     color: #2563eb;
     text-decoration: underline;

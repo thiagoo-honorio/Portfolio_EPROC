@@ -1196,8 +1196,16 @@
             if (!el) return;
             const url = prompt('URL do link (ou #ancora):', el.link || 'https://');
             if (url == null) return;
-            apSelecionados.forEach(id => { const e = apBuscar(id); if (e) e.link = url.trim(); });
-            salvarHistorico(); apRender();
+            const urlFinal = url.trim();
+            if (el.tipo === 'texto') {
+                const nome = prompt('Texto do link (o que aparecerá no lugar da URL):', el.texto || urlFinal);
+                if (nome === null) return;
+                const nomeFinal = (nome || el.texto || urlFinal).trim();
+                apSelecionados.forEach(id => { const e = apBuscar(id); if (e) { e.link = urlFinal; if (e.tipo === 'texto') e.texto = nomeFinal; } });
+            } else {
+                apSelecionados.forEach(id => { const e = apBuscar(id); if (e) e.link = urlFinal; });
+            }
+            salvarHistorico(); apRender(); apAtualizarProps();
         }
 
         function apCriarDOM(el) {
@@ -2274,27 +2282,29 @@
 
         function inserirLinkEditavel() {
             if (!alvoToolbarEl) return;
-            const url = prompt('Cole a URL do link:');
+            const sel = window.getSelection();
+            const textoSelecionado = sel && sel.toString ? sel.toString().replace(/\s+/g, ' ').trim() : '';
+            const url = prompt('Cole a URL do link:', 'https://');
             if (!url || !url.trim()) return;
             const urlFinal = url.trim();
-            const sel = window.getSelection();
-            const textoSelecionado = sel.toString().trim();
+            const nome = prompt('Texto do link (o que aparecerá no lugar da URL):', textoSelecionado || urlFinal);
+            if (nome === null) return;
+            const nomeFinal = (nome || textoSelecionado || urlFinal).trim();
             const a = document.createElement('a');
             a.href = urlFinal;
-            a.textContent = textoSelecionado || urlFinal;
+            a.textContent = nomeFinal;
             a.target = '_blank';
             a.rel = 'noopener noreferrer';
             a.style.cssText = 'color:#2563eb;text-decoration:underline;';
-            const spanUrl = document.createElement('span');
-            spanUrl.className = 'link-url-visivel';
-            spanUrl.textContent = ' (' + urlFinal + ')';
-            if (sel.rangeCount && textoSelecionado) {
+            if (sel && sel.rangeCount && textoSelecionado) {
                 sel.deleteFromDocument();
-                sel.getRangeAt(0).insertNode(a);
+                const r = sel.getRangeAt(0);
+                r.insertNode(a);
+                r.setStartAfter(a);
             } else {
                 alvoToolbarEl.appendChild(a);
             }
-            a.parentNode.insertBefore(spanUrl, a.nextSibling);
+            atualizarPainelCaixa();
         }
 
         function capturarTextosEditaveis() {
