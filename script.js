@@ -3678,6 +3678,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
         ];
 
         const CONTEXTO_SUPORTE_KEY = 'suporte_contextos';
+        const LINK_SUPORTE_KEY = 'suporte_links_editados';
 
         function carregarContextoSuporte(id) {
             try {
@@ -3691,6 +3692,21 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 const dados = JSON.parse(localStorage.getItem(CONTEXTO_SUPORTE_KEY) || '{}');
                 dados['' + id] = texto;
                 localStorage.setItem(CONTEXTO_SUPORTE_KEY, JSON.stringify(dados));
+            } catch (err) { /* silencioso */ }
+        }
+
+        function carregarLinkSuporte(id) {
+            try {
+                const dados = JSON.parse(localStorage.getItem(LINK_SUPORTE_KEY) || '{}');
+                return dados['' + id] || '';
+            } catch (err) { return ''; }
+        }
+
+        function salvarLinkSuporte(id, link) {
+            try {
+                const dados = JSON.parse(localStorage.getItem(LINK_SUPORTE_KEY) || '{}');
+                dados['' + id] = link;
+                localStorage.setItem(LINK_SUPORTE_KEY, JSON.stringify(dados));
             } catch (err) { /* silencioso */ }
         }
 
@@ -3711,6 +3727,20 @@ const FALLBACK_IMAGENS_CDN_404 = {
                     el.contentEditable = editMode ? 'true' : 'false';
                 });
             }
+
+            grid.addEventListener('click', (e) => {
+                const link = e.target.closest('.sup-btn-link');
+                if (!link) return;
+                if (!editMode) return;
+                e.preventDefault();
+                e.stopPropagation();
+                const id = link.getAttribute('data-id');
+                const atual = link.href;
+                const novo = prompt('Editar link (URL) deste processo:', atual);
+                if (novo === null) return;
+                link.href = novo;
+                if (id) salvarLinkSuporte(id, novo);
+            });
 
             function ligarCard(card, contextoId) {
                 const con = card.querySelector('.sup-card-contexto');
@@ -3754,7 +3784,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
                             </div>
                             <div class="sup-card-contexto sup-list-contexto" data-editable="true" data-contexto="${p.idAtual}" role="textbox" aria-multiline="true" data-placeholder="Escreva aqui o contexto explicativo deste processo/documento...">${carregarContextoSuporte(p.idAtual)}</div>
                             <div class="sup-list-footer">
-                                ${p.link ? `<a class="sup-btn-link" href="${p.link}" target="_blank" rel="noopener noreferrer">Abrir no SEI</a>` : ''}
+                                ${p.link ? `<a class="sup-btn-link" href="${carregarLinkSuporte(p.idAtual) || p.link}" data-id="${p.idAtual}" data-default-link="${p.link}" target="_blank" rel="noopener noreferrer">Abrir no SEI</a>` : ''}
                             </div>
                         </div>
                     `;
