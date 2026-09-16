@@ -2976,8 +2976,10 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 linkCss.replaceWith(styleEl);
             }
 
-            // JS: tenta embutir o script.js; se o navegador bloquear a leitura, mantém a referência externa
-            let jsEmbutido = false;
+            // JS: tenta embutir o script.js; se o navegador bloquear a leitura, mantém a referência externa.
+            // Quando o CSS/JS já são inline no próprio DOM (ex.: teste_unico.html), não há <script src="script.js">
+            // no clone e nada precisa ser lido — o JS já está embutido.
+            let jsEmbutido = !cloneDoc.querySelector('script[src="script.js"]');
             const jsTexto = await lerScriptApp();
             const scriptTag = cloneDoc.querySelector('script[src="script.js"]');
             if (jsTexto && scriptTag) scriptTag.remove();
