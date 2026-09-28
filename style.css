@@ -2583,6 +2583,13 @@ body:not(.editing) .context-intro:empty {
     flex-grow: 1;
 }
 
+.context-imagem {
+    width: 100%;
+    height: auto;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+}
+
 .section-subtitle {
     color: #f26a36;
     font-size: 1.15rem;
