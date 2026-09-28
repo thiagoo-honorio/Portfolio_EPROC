@@ -94,41 +94,6 @@ body {
     padding: 10px 20px;
 }
 
-.nav-brand {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    text-decoration: none;
-    color: #ffffff;
-}
-
-.nav-logo {
-    height: 44px;
-    width: auto;
-    flex-shrink: 0;
-}
-
-.nav-brand-text {
-    display: flex;
-    flex-direction: column;
-    line-height: 1.2;
-}
-
-.nav-brand-title {
-    font-size: 1.05rem;
-    font-weight: 800;
-    color: #ffffff;
-    letter-spacing: 0.02em;
-}
-
-.nav-brand-sub {
-    font-size: 0.72rem;
-    color: rgba(255, 255, 255, 0.85);
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    text-transform: uppercase;
-}
-
 .nav-menu {
     display: flex;
     align-items: center;
@@ -229,15 +194,6 @@ body {
     max-width: 760px;
 }
 
-.hero-eyebrow {
-    margin: 0 0 10px 0;
-    font-size: 0.8rem;
-    font-weight: 700;
-    letter-spacing: 0.14em;
-    text-transform: uppercase;
-    color: #ffffff;
-}
-
 .hero-title {
     margin: 0 0 14px 0;
     font-size: 2rem;
@@ -254,23 +210,8 @@ body {
     max-width: 640px;
 }
 
-.hero-actions {
-    display: flex;
-    gap: 12px;
-    flex-wrap: wrap;
-}
-
-.hero-btn-outline {
-    background: rgba(255, 255, 255, 0.12);
-    border: 1px solid rgba(255, 255, 255, 0.6);
-    color: #ffffff;
-}
-.hero-btn-outline:hover {
-    background: rgba(255, 255, 255, 0.22);
-    color: #ffffff;
-}
-
 /* Ajusta âncoras para compensar o menu fixo (2 linhas: links + botões) */
+#hierarquiaBox,
 #contextBox,
 #sec3Box,
 #sec1Box,
@@ -320,6 +261,7 @@ body {
         font-size: 1.5rem;
     }
 
+    #hierarquiaBox,
     #contextBox,
     #sec3Box,
     #sec1Box,
@@ -1107,6 +1049,27 @@ body.editing .ap-palette { display: flex; flex-wrap: wrap; justify-content: cent
     overflow-y: auto;
 }
 body.editing .ap-props-panel.show { display: flex; }
+
+/* ===== TÍTULO DA SEÇÃO EDITÁVEL =====
+   No modo de edição o texto do título (fora o ícone) fica editável e
+   sincroniza com os links do menu. */
+body.editing .section-title-text .sec-titulo-edit {
+    cursor: text;
+    border-radius: 4px;
+    padding: 1px 4px;
+    margin: -1px -4px;
+    border-bottom: 1.5px dashed #94a3b8;
+    display: inline-block;
+    min-width: 12px;
+}
+body.editing .section-title-text .sec-titulo-edit:hover {
+    background: rgba(37, 99, 235, 0.08);
+}
+body.editing .section-title-text .sec-titulo-edit:focus {
+    outline: 2px solid #2563eb;
+    outline-offset: 1px;
+    background: rgba(37, 99, 235, 0.08);
+}
 .ap-props-panel h4 { margin: 0 0 2px; font-size: 0.85rem; color: #0f172a; }
 .ap-props-panel label {
     display: flex;
@@ -2409,6 +2372,10 @@ body:not(.editing) [data-editable] a:not(.jornada-link)::before {
     gap: 25px;
 }
 
+/* Caixa de texto introdutória de cada seção.
+   Fora do modo de edição, se estiver vazia some; se tiver texto, aparece
+   como texto normal. No modo de edição ganha borda tracejada e placeholder. */
+.sec-intro,
 .context-intro {
     min-height: 24px;
     padding: 10px 14px;
@@ -2418,15 +2385,18 @@ body:not(.editing) [data-editable] a:not(.jornada-link)::before {
     line-height: 1.6;
     font-size: 1rem;
 }
+body.editing .sec-intro,
 body.editing .context-intro {
     border-color: #cbd5e1;
     background: rgba(37, 99, 235, 0.04);
 }
+.sec-intro:empty::before,
 .context-intro:empty::before {
-    content: 'Escreva aqui o texto de contextualização...';
+    content: attr(data-placeholder);
     color: #94a3b8;
     font-style: italic;
 }
+body:not(.editing) .sec-intro:empty,
 body:not(.editing) .context-intro:empty {
     display: none;
 }
@@ -2510,14 +2480,6 @@ body:not(.editing) .context-intro:empty {
     flex: 0 0 auto;
 }
 
-.context-footer {
-    display: flex;
-    gap: 16px;
-    margin-top: 16px;
-    padding: 10px 20px;
-    align-items: stretch;
-}
-
 .legend-item {
     display: flex;
     align-items: center;
@@ -2599,7 +2561,6 @@ body:not(.editing) .context-intro:empty {
     border: 2px solid #8fb0db;
     border-radius: 16px;
     padding: 12px 16px 16px 16px;
-    flex: 1;
 }
 
 .transversal-title {
@@ -2617,16 +2578,29 @@ body:not(.editing) .context-intro:empty {
     align-items: stretch;
 }
 
+/* ENSINO e EXTENSÃO como botões destacados, em azul vivo (versão clara) */
 .pill-btn {
-    background-color: #badaf8;
-    color: #000;
+    background: linear-gradient(180deg, #5cb8f5 0%, #2a8fdb 55%, #1a6fc0 100%);
+    border: 1px solid rgba(255, 255, 255, 0.55);
+    box-shadow: 0 6px 18px rgba(26, 111, 192, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.35);
+    color: #ffffff;
     font-weight: bold;
-    font-size: 0.85rem;
+    font-size: 0.95rem;
+    letter-spacing: 1px;
     text-align: center;
-    padding: 14px 6px;
-    border-radius: 10px;
-    clip-path: polygon(0% 15%, 50% 0%, 100% 15%, 100% 100%, 0% 100%);
-    padding-top: 22px;
+    padding: 14px 10px;
+    border-radius: 12px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, filter 0.2s ease;
+}
+
+.pill-btn:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 12px 26px rgba(26, 111, 192, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.45);
+    filter: brightness(1.1) saturate(1.15);
 }
 
 .roof-btn {
@@ -2635,15 +2609,98 @@ body:not(.editing) .context-intro:empty {
     text-align: center;
     padding: 22px 6px 10px 6px;
     font-size: 0.8rem;
-    font-weight: 500;
+    font-weight: 600;
+    letter-spacing: 0.5px;
     clip-path: polygon(50% 0%, 100% 22%, 100% 100%, 0% 100%, 0% 22%);
+}
+
+/* Escopo do "Novo Sistema de Estágio" no topo da seção de Fluxos,
+   separando o resumo do sistema das etapas detalhadas abaixo. */
+.sec3-escopo {
+    margin-bottom: 34px;
+}
+
+/* Na seção Sistemas, o .dup-map mostra o painel da imagem de Estágio Externo à
+   esquerda e, à direita, uma cópia do ramo Realização com as chevrons do
+   macroprocesso. A cópia reutiliza as classes .cv-mp-* (chevrons e cores) e a
+   classe .cv-branch-filhos-realizacao, para o painel de cores (CV_MP_SELETORES)
+   e o modo de edição continuarem funcionando sem mexer no script.js. */
+.dup-map .cv-branch-filhos-realizacao.sup-cvmp-copy {
+    flex: 1;
+    min-width: 0;
+    transform: none;
+    padding-top: 0;
+}
+.dup-map .sup-cvmp-copy .cv-filhos-inner {
+    width: 100%;
+}
+.dup-map .sup-cvmp-copy .cv-step.sup-cvmp-rel {
+    min-height: 56px;
+    padding: 12px 16px;
+    text-align: center;
+    border-radius: 10px;
+    clip-path: none;
+    box-shadow: 0 4px 10px rgba(46, 120, 162, 0.25);
+    width: 100%;
+}
+.sup-cvmp-copy .sup-cvmp-connector {
+    width: 3px;
+    height: 22px;
+    background: #3b82c4;
+    border-radius: 3px;
+    align-self: center;
+}
+.sup-cvmp-copy .cv-mp-pipeline {
+    width: 100%;
+}
+.dup-map .sup-cvmp-copy .cv-mp-chevron {
+    flex: 1 1 120px;
+    min-width: 0;
+}
+
+/* Processo transversal: à esquerda da ramificação (cols 1-4, linha 3), largo o bastante
+   para os quatro itens ficarem em uma linha só. */
+.cv-transversal {
+    grid-column: 1 / 5;
+    grid-row: 3 / 4;
+    align-self: center;
+    margin-top: 0;
+    padding: 12px 14px 14px 14px;
+    border-radius: 14px;
+}
+
+.cv-transversal .transversal-title {
+    font-size: 0.85rem;
+    line-height: 1.35;
+    margin-bottom: 9px;
+}
+
+/* 4 colunas: ENSINO | EXTENSÃO | GESTÃO DE PESSOAS | ADMINISTRAÇÃO */
+.cv-transversal .transversal-grid {
+    grid-template-columns: repeat(4, 1fr);
+    gap: 8px;
+}
+
+.cv-transversal .pill-btn {
+    font-size: 0.85rem;
+    letter-spacing: 0.5px;
+    padding: 12px 6px;
+    border-radius: 10px;
+}
+
+.cv-transversal .roof-btn {
+    font-size: 0.75rem;
+    letter-spacing: 0.3px;
+    padding: 18px 6px 9px 6px;
 }
 
 @media (max-width: 768px) {
     .slide-body { flex-direction: column; }
     .left-col { width: 100%; }
     .transversal-grid { grid-template-columns: 1fr 1fr; }
-    .context-footer { flex-direction: column; }
+    /* específico o bastante para vencer a regra de 4 colunas da .cv-transversal acima */
+    .cv-transversal { grid-column: 1 / 7; }
+    .cv-transversal .transversal-grid { grid-template-columns: 1fr 1fr; }
 }
 
 /* RODAPE */
@@ -2720,19 +2777,6 @@ body:not(.editing) .context-intro:empty {
     color: rgba(255, 255, 255, 0.85);
     line-height: 1.6;
 }
-.footer-bottom {
-    border-top: 1px solid rgba(255, 255, 255, 0.14);
-    padding: 16px 28px;
-    max-width: 1200px;
-    margin: 0 auto;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    flex-wrap: wrap;
-    gap: 10px;
-    font-size: 0.78rem;
-    color: rgba(255, 255, 255, 0.72);
-}
 .footer-credits {
     opacity: 0.85;
 }
@@ -2784,13 +2828,22 @@ body:not(.editing) .context-intro:empty {
 
 .sup-header {
     display: flex;
-    justify-content: space-between;
+    justify-content: flex-start;
     align-items: center;
+    margin-top: 44px;
     margin-bottom: 25px;
     padding-bottom: 20px;
     border-bottom: 2px solid #f1f5f9;
     flex-wrap: wrap;
     gap: 15px;
+}
+
+/* Logo do SEI + título lado a lado */
+.sup-header-brand {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    flex-wrap: wrap;
 }
 
 .sup-header-title p {
@@ -2807,9 +2860,8 @@ body:not(.editing) .context-intro:empty {
     object-fit: contain;
 }
 
-.sup-controls .sup-logo-sei {
-    align-self: flex-start;
-    margin: 0 0 12px;
+.sup-header .sup-logo-sei {
+    height: 46px;
 }
 
 .sup-controls {
@@ -2817,27 +2869,6 @@ body:not(.editing) .context-intro:empty {
     flex-direction: column;
     gap: 15px;
     margin-bottom: 25px;
-}
-
-.sup-search-bar {
-    width: 100%;
-}
-
-.sup-search-bar input {
-    width: 100%;
-    padding: 12px 16px;
-    border: 1px solid #cbd5e1;
-    border-radius: 8px;
-    font-size: 0.95rem;
-    outline: none;
-    transition: border-color 0.2s, box-shadow 0.2s;
-    box-sizing: border-box;
-    font-family: inherit;
-}
-
-.sup-search-bar input:focus {
-    border-color: #116a70;
-    box-shadow: 0 0 0 3px rgba(17, 106, 112, 0.15);
 }
 
 .sup-filters {
@@ -2940,16 +2971,6 @@ body:not(.editing) .context-intro:empty {
 .sup-tag-obrigatorio { background-color: #dcfce7; color: #15803d; }
 .sup-tag-graduacao { background-color: #f3e8ff; color: #7e22ce; }
 
-.sup-sei-badge {
-    font-size: 0.8rem;
-    background: #004085;
-    color: #ffffff;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-family: monospace;
-    font-weight: bold;
-}
-
 .sup-card-title {
     font-size: 1.05rem;
     font-weight: 600;
@@ -2989,14 +3010,11 @@ body:not(.editing) .context-intro:empty {
     pointer-events: none;
 }
 
-.sup-list-footer {
-    display: flex;
-    justify-content: flex-end;
-}
-
 .sup-btn-link {
     display: inline-block;
     text-align: center;
+    flex: 0 0 auto;
+    white-space: nowrap;
     background-color: #116a70;
     color: #ffffff;
     text-decoration: none;
@@ -3163,6 +3181,8 @@ body:not(.editing) .context-intro:empty {
 }
 
 /* ------ NÍVEL 2: Validação e Realização (degrau à direita do Estágio) ------ */
+/* A descida parte de BAIXO do Estágio: o conector vertical cai do centro dele
+   e só então vira à direita (ver elVert + o degrau em desenharArvore). */
 .cv-branch-validacao {
     grid-column: 5 / 6;
     grid-row: 2 / 3;
@@ -3715,16 +3735,16 @@ body.editing .dup-edit-bar {
 }
 
 /* Cores das etapas (mesmo padrão dos atores: borda/texto vivo + fundo pastel) */
-.etapa-ator[data-step="disponibilizacao"] .actor-card { border-color: #0070c0; color: #0070c0; }
-.etapa-ator[data-step="disponibilizacao"] .actor-description { background-color: #d9e8f5; }
+.etapa-ator[data-step="disponibilizacao"] .actor-card { border-color: #737478; color: #737478; }
+.etapa-ator[data-step="disponibilizacao"] .actor-description { background-color: #eaeaeb; }
 .etapa-ator[data-step="contratacao"] .actor-card { border-color: #1bb193; color: #1bb193; }
 .etapa-ator[data-step="contratacao"] .actor-description { background-color: #d6f1e9; }
 .etapa-ator[data-step="vigencia"] .actor-card { border-color: #7030a0; color: #7030a0; }
 .etapa-ator[data-step="vigencia"] .actor-description { background-color: #ebdcf5; }
-.etapa-ator[data-step="encerramento"] .actor-card { border-color: #c00000; color: #c00000; }
-.etapa-ator[data-step="encerramento"] .actor-description { background-color: #f9e1e1; }
-.etapa-ator[data-step="gestao"] .actor-card { border-color: #d88e00; color: #d88e00; }
-.etapa-ator[data-step="gestao"] .actor-description { background-color: #fef0cb; }
+.etapa-ator[data-step="encerramento"] .actor-card { border-color: #833075; color: #833075; }
+.etapa-ator[data-step="encerramento"] .actor-description { background-color: #ece0ea; }
+.etapa-ator[data-step="gestao"] .actor-card { border-color: #57585c; color: #57585c; }
+.etapa-ator[data-step="gestao"] .actor-description { background-color: #e6e6e7; }
 
 body.editing .etapa-ator {
     cursor: grab;

@@ -22,23 +22,17 @@
     <!-- MENU DE NAVEGAÇÃO -->
     <nav class="site-nav" id="siteNav" aria-label="Navegação principal">
         <div class="nav-container">
-            <a href="https://processos.utfpr.edu.br/portfolio/index.php" class="nav-brand" aria-label="Ir para o site da UTFPR">
-                <img src="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_Processos_UTFPR@master/Portfolio_Processos_UTFPR/logo_utfpr.png" alt="Logo UTFPR" class="nav-logo">
-                <span class="nav-brand-text">
-                    <strong class="nav-brand-title">UTFPR</strong>
-                    <small class="nav-brand-sub">Portfólio de Processos e Dados</small>
-                </span>
-            </a>
             <button class="nav-toggle" id="navToggle" type="button" aria-label="Abrir ou fechar menu" aria-expanded="false" aria-controls="navMenu">
                 <span></span><span></span><span></span>
             </button>
             <ul class="nav-menu" id="navMenu">
+                <li><a href="#hierarquiaBox" data-secao="hierarquiaBox">Hierarquia</a></li>
                 <li><a href="#contextBox" data-secao="contextBox">Contextualização</a></li>
-                <li><a href="#sec3Box" data-secao="sec3Box">Macroprocesso</a></li>
-                <li><a href="#suporteBox" data-secao="suporteBox">Suporte Tecnológico</a></li>
+                <li><a href="#sec3Box" data-secao="sec3Box">Fluxos dos processos</a></li>
+                <li><a href="#suporteBox" data-secao="suporteBox">Sistemas</a></li>
                 <li><a href="#sec1Box" data-secao="sec1Box">Atores</a></li>
                 <li><a href="#sec1bBox" data-secao="sec1bBox">Documentos</a></li>
-                <li><a href="#sec2Box" data-secao="sec2Box">Mapa Interativo</a></li>
+                <li><a href="#sec2Box" data-secao="sec2Box">Infográfico</a></li>
             </ul>
             <div class="nav-actions">
                 <button class="btn-custom btn-custom-outline" id="btnToggleEdit" onclick="toggleEditMode()" aria-label="Alternar modo de edição">Editar</button>
@@ -69,27 +63,138 @@
 
     <div class="page-container" id="pageContainer">
         <!-- HERO INSTITUCIONAL -->
-        <header class="page-hero" data-ap-section="hero">
+        <header class="page-hero" id="hero" data-ap-section="hero">
             <div class="hero-content">
-                <p class="hero-eyebrow">Universidade Tecnológica Federal do Paraná</p>
-                <h1 class="hero-title">Portfólio de Processos e Dados</h1>
-                <p class="hero-subtitle">Conheça o Portfólio de Processos e Dados da UTFPR: a contextualização do processo, o macroprocesso do estágio externo (da disponibilização ao encerramento e à gestão), o suporte tecnológico com o SEI, os atores envolvidos, os documentos utilizados e o mapa interativo das etapas.</p>
-                <div class="hero-actions">
-                    <a href="#contextBox" class="btn-custom btn-custom-success">Explorar Conteúdo</a>
-                    <a href="#sec2Box" class="btn-custom btn-custom-success">Ver Mapa Interativo</a>
-                </div>
+                <h1 class="hero-title" contenteditable="false" data-editable="true" data-field="hero_titulo">Estágio</h1>
+                <p class="hero-subtitle" contenteditable="false" data-editable="true" data-field="hero_subtitle">Conheça o Portfólio de Processos e Dados da UTFPR: a contextualização do processo, o macroprocesso do estágio externo (da disponibilização ao encerramento e à gestão), o suporte tecnológico com o SEI, os atores envolvidos, os documentos utilizados e o mapa interativo das etapas.</p>
             </div>
         </header>
+
+        <!-- HIERARQUIA DO PROCESSO (Cadeia de Valor) -->
+        <div class="section-box" id="hierarquiaBox" data-ap-section="hierarquiaBox">
+            <div class="section-header" onclick="toggleSection('hierarquiaContent', 'hierarquiaToggle')">
+                <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v4"></path><path d="M5 21v-4"></path><path d="M19 21v-4"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect><rect x="2" y="17" width="6" height="4" rx="1"></rect><rect x="16" y="17" width="6" height="4" rx="1"></rect><path d="M12 7v4"></path><path d="M5 17v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"></path></svg> Hierarquia do Processo</span>
+                <span id="hierarquiaToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Hierarquia do Processo">[−] Ocultar</span>
+            </div>
+            <div id="hierarquiaContent">
+                <div class="sec-intro" contenteditable="false" data-editable="true" data-field="hierarquia_intro" data-placeholder="Escreva aqui o texto da Hierarquia do Processo..."></div>
+                <!-- Cadeia de Valor (Hierarquia de Processo) -->
+                <div class="cadeia-container" id="cadeiaContainer">
+                    <!-- Raia: ENSINO (macroprocesso) e as etapas principais, na mesma linha -->
+                    <div class="cv-raia">
+                        <div class="cv-floor">
+                            <div class="cv-step cv-macro-ensino" title="Macroprocesso">
+                                <strong data-editable="true">ENSINO</strong>
+                            </div>
+                            <div class="cv-step bg-gray-chevron">
+                                <strong data-editable="true">Projeto de Curso</strong>
+                            </div>
+                            <div class="cv-step bg-gray-chevron">
+                                <strong data-editable="true">Ingresso</strong>
+                            </div>
+                            <div class="cv-step bg-blue-mid">
+                                <strong data-editable="true">Vida Acadêmica</strong>
+                            </div>
+                            <div class="cv-step bg-gray-chevron">
+                                <strong data-editable="true">Conclusão</strong>
+                            </div>
+                            <div class="cv-step bg-gray-chevron">
+                                <strong data-editable="true">Egresso</strong>
+                            </div>
+                        </div>
+                        <!-- Ramificação: Estágio -> Validação -> Realização, descendendo de Vida Acadêmica -->
+                        <div class="cv-branch-row">
+                        <div class="cv-branch-spacer" style="display:none;"></div>
+                        <div class="cv-branch">
+                            <div class="cv-tree-lines"></div>
+                            <div class="cv-branch-estagio">
+                                <div class="cv-step bg-blue-mid">
+                                    <strong data-editable="true">Estágio</strong>
+                                    <span data-editable="true">(Realização)</span>
+                                </div>
+                            </div>
+                            <div class="cv-branch-validacao">
+                                <div class="cv-step bg-blue-mid">
+                                    <strong data-editable="true">Validação</strong>
+                                    <span data-editable="true">(Atividade Profissional, Bolsista ou Voluntário)</span>
+                                </div>
+                            </div>
+                            <div class="cv-branch-realizacao">
+                                <div class="cv-step bg-blue-mid">
+                                    <strong data-editable="true">Realização</strong>
+                                    <span data-editable="true">(Disponibilização, Seleção, Contratação, Vigência, Encerramento)</span>
+                                </div>
+                            </div>
+                            <!--
+                                ============================================================================
+                                ETAPAS DO MACROPROCESSO SOB A REALIZAÇÃO — COMENTADO
+                                (Disponibilização, Contratação, Vigência, Encerramento e Gestão do Estágio)
+                                ============================================================================
+                                Para restaurar: apague este bloco de comentário.
+                                Nenhuma alteração em script.js é necessária. O código já trata a
+                                ausência deste bloco:
+                                  - preencherPropsSecao() (L285) esconde o painel de cores #secpCvMpBlock
+                                    porque .cv-branch-filhos-realizacao não é encontrado;
+                                  - desenharArvore() (L3871) só desenha o conector da Realização até
+                                    as etapas dentro de `if (filhos)`, então ele simplesmente não aparece;
+                                  - mudarCorCvMp(), aplicarCoresCvMp() e removerCvMp() retornam cedo
+                                    com `if (!alvo)` / `if (chip)`.
+                                O CSS das classes abaixo (.cv-branch-filhos-realizacao, .cv-filhos-inner,
+                                .cv-mp-pipeline, .cv-mp-chevron, .cv-mp-bar e os tons .cv-mp-disp /
+                                .cv-mp-contrat / .cv-mp-vig / .cv-mp-enc) continua no style.css.
+                                Observação: o .cv-branch tem 4 linhas e este bloco está pronto para
+                                a linha 4 (grid-row 4/5), então descomentar basta — não precisa
+                                mexer em mais nada.
+                                <div class="cv-branch-filhos-realizacao">
+                                    <div class="cv-filhos-inner">
+                                        <div class="cv-mp-pipeline">
+                                            <div class="cv-mp-chevron cv-mp-disp"><span contenteditable="false" data-editable="true">Disponibilização</span></div>
+                                            <div class="cv-mp-chevron cv-mp-contrat"><span contenteditable="false" data-editable="true">Contratação</span></div>
+                                            <div class="cv-mp-chevron cv-mp-vig"><span contenteditable="false" data-editable="true">Vigência</span></div>
+                                            <div class="cv-mp-chevron cv-mp-enc"><span contenteditable="false" data-editable="true">Encerramento</span></div>
+                                        </div>
+                                        <div class="cv-mp-bar"><span contenteditable="false" data-editable="true">Gestão do Estágio</span></div>
+                                    </div>
+                                </div>
+                                ============================================================================
+                            -->
+                            <div class="cv-branch-resultados">
+                                <div class="cadeia-card-resultados">
+                                    <div class="cadeia-card-titulo">Resultados</div>
+                                    <div class="cadeia-card-imagens">
+                                        <img src="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_Processos_UTFPR@master/paineis_resultados.png" alt="Painel de Resultados 2" onclick="abrirImgCadeia(this.src)">
+                                    </div>
+                                </div>
+                            </div>
+                            <!-- PROCESSO TRANSVERSAL: compacto, ao lado da Realização (veio da Contextualização) -->
+                            <div class="transversal-box cv-transversal">
+                                <h3 class="transversal-title" contenteditable="false" data-editable="true">Processo Transversal (Ensino, Extensão, Gestão de Pessoas e Administração)</h3>
+                                <div class="transversal-grid">
+                                    <div class="pill-btn" contenteditable="false" data-editable="true">ENSINO</div>
+                                    <div class="pill-btn" contenteditable="false" data-editable="true">EXTENSÃO</div>
+                                    <div class="roof-btn" contenteditable="false" data-editable="true">GESTÃO DE PESSOAS</div>
+                                    <div class="roof-btn" contenteditable="false" data-editable="true">ADMINISTRAÇÃO</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    </div>
+                </div>
+                <div class="edit-actor-bar">
+                    <button class="add-actor-btn" onclick="adicionarLinhaCadeia()" aria-label="Adicionar nova linha na cadeia de valor">+ Adicionar Linha</button>
+                </div>
+            </div>
+        </div>
 
         <!-- CONTEXTUALIZAÇÃO: ESTÁGIO -->
         <div class="section-box" id="contextBox" data-ap-section="contextBox">
             <div class="section-header" onclick="toggleSection('contextContent', 'contextToggle')">
-                <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="15.5" width="6" height="4.5" rx="1"></rect><rect x="15" y="15.5" width="6" height="4.5" rx="1"></rect><rect x="9" y="4" width="6" height="4.5" rx="1"></rect><path d="M12 8.5V13"></path><path d="M6 15.5v-2h12v2"></path><path d="M10 9.25H6.5"></path><path d="M14 9.25h3.5"></path></svg> Contextualização e Hierarquia de Processo</span>
+                <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="15.5" width="6" height="4.5" rx="1"></rect><rect x="15" y="15.5" width="6" height="4.5" rx="1"></rect><rect x="9" y="4" width="6" height="4.5" rx="1"></rect><path d="M12 8.5V13"></path><path d="M6 15.5v-2h12v2"></path><path d="M10 9.25H6.5"></path><path d="M14 9.25h3.5"></path></svg> Contextualização</span>
                 <span id="contextToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Contextualização">[−] Ocultar</span>
             </div>
             <div id="contextContent">
                 <!-- Campo de texto introdutório editável (modo edição) -->
-                <div class="context-intro" contenteditable="false" data-editable="true" data-field="context_intro"></div>
+                <div class="context-intro" contenteditable="false" data-editable="true" data-field="context_intro" data-placeholder="Escreva aqui o texto de contextualização..."></div>
                 <div class="slide-body">
                     <!-- Coluna Esquerda: Diagrama de Imagem + Legenda -->
                     <div class="left-col">
@@ -169,107 +274,59 @@
                         </ul>
                     </div>
                 </div>
-                <!-- Rodapé: Legenda + Processo Transversal lado a lado -->
-                <div class="context-footer">
-                    <div class="transversal-box">
-                        <h3 class="transversal-title" contenteditable="false" data-editable="true">Processo transversal (Ensino, Extensão e Gestão de Pessoas)</h3>
-                        <div class="transversal-grid">
-                            <div class="pill-btn" contenteditable="false" data-editable="true">EXTENSÃO</div>
-                            <div class="pill-btn" contenteditable="false" data-editable="true">ENSINO</div>
-                            <div class="roof-btn" contenteditable="false" data-editable="true">Gestão de Pessoas</div>
-                            <div class="roof-btn" contenteditable="false" data-editable="true">Administração</div>
-                        </div>
-                    </div>
-                </div>
-
-                <!-- Cadeia de Valor (Hierarquia de Processo) dentro da Contextualização -->
-                <div class="cadeia-container" id="cadeiaContainer">
-                    <!-- Raia: ENSINO (macroprocesso) e as etapas principais, na mesma linha -->
-                    <div class="cv-raia">
-                        <div class="cv-floor">
-                            <div class="cv-step cv-macro-ensino" title="Macroprocesso">
-                                <strong data-editable="true">ENSINO</strong>
-                            </div>
-                            <div class="cv-step bg-gray-chevron">
-                                <strong data-editable="true">Projeto de Curso</strong>
-                            </div>
-                            <div class="cv-step bg-gray-chevron">
-                                <strong data-editable="true">Ingresso</strong>
-                            </div>
-                            <div class="cv-step bg-blue-mid">
-                                <strong data-editable="true">Vida Acadêmica</strong>
-                            </div>
-                            <div class="cv-step bg-gray-chevron">
-                                <strong data-editable="true">Conclusão</strong>
-                            </div>
-                            <div class="cv-step bg-gray-chevron">
-                                <strong data-editable="true">Egresso</strong>
-                            </div>
-                        </div>
-                        <!-- Ramificação: Estágio -> Validação -> Realização, descendendo de Vida Acadêmica -->
-                        <div class="cv-branch-row">
-                        <div class="cv-branch-spacer" style="display:none;"></div>
-                        <div class="cv-branch">
-                            <div class="cv-tree-lines"></div>
-                            <div class="cv-branch-estagio">
-                                <div class="cv-step bg-blue-mid">
-                                    <strong data-editable="true">Estágio</strong>
-                                    <span data-editable="true">(Realização)</span>
-                                </div>
-                            </div>
-                            <div class="cv-branch-validacao">
-                                <div class="cv-step bg-blue-mid">
-                                    <strong data-editable="true">Validação</strong>
-                                    <span data-editable="true">(Atividade Profissional, Bolsista ou Voluntário)</span>
-                                </div>
-                            </div>
-                            <div class="cv-branch-realizacao">
-                                <div class="cv-step bg-blue-mid">
-                                    <strong data-editable="true">Realização</strong>
-                                    <span data-editable="true">(Disponibilização, Seleção, Contratação, Vigência, Encerramento)</span>
-                                </div>
-                            </div>
-                            <div class="cv-branch-filhos-realizacao">
-                                <div class="cv-filhos-inner">
-                                    <div class="cv-mp-pipeline">
-                                        <div class="cv-mp-chevron cv-mp-disp"><span contenteditable="false" data-editable="true">Disponibilização</span></div>
-                                        <div class="cv-mp-chevron cv-mp-contrat"><span contenteditable="false" data-editable="true">Contratação</span></div>
-                                        <div class="cv-mp-chevron cv-mp-vig"><span contenteditable="false" data-editable="true">Vigência</span></div>
-                                        <div class="cv-mp-chevron cv-mp-enc"><span contenteditable="false" data-editable="true">Encerramento</span></div>
-                                    </div>
-                                    <div class="cv-mp-bar"><span contenteditable="false" data-editable="true">Gestão do Estágio</span></div>
-                                </div>
-                            </div>
-                            <div class="cv-branch-resultados">
-                                <div class="cadeia-card-resultados">
-                                    <div class="cadeia-card-titulo">Resultados</div>
-                                    <div class="cadeia-card-imagens">
-                                        <img src="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_Processos_UTFPR@master/paineis_resultados.png" alt="Painel de Resultados 2" onclick="abrirImgCadeia(this.src)">
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    </div>
-                </div>
-                <div class="edit-actor-bar">
-                    <button class="add-actor-btn" onclick="adicionarLinhaCadeia()" aria-label="Adicionar nova linha na cadeia de valor">+ Adicionar Linha</button>
-                </div>
             </div>
         </div>
 
-        <!-- SEÇÃO 3: MACROPROCESSO -->
+        <!-- SEÇÃO 3: Fluxos dos processos -->
         <div class="section-box" id="sec3Box" data-ap-section="sec3Box">
             <div class="section-header" onclick="toggleSection('sec3Content', 'sec3Toggle')">
-                <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="7" height="7" rx="1"></rect><rect x="14" y="5" width="7" height="7" rx="1"></rect><rect x="3" y="16" width="7" height="4" rx="1"></rect><rect x="14" y="16" width="7" height="4" rx="1"></rect><path d="M10 8.5h4"></path><path d="M10 18h4"></path></svg> Macroprocesso</span>
+                <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="7" height="7" rx="1"></rect><rect x="14" y="5" width="7" height="7" rx="1"></rect><rect x="3" y="16" width="7" height="4" rx="1"></rect><rect x="14" y="16" width="7" height="4" rx="1"></rect><path d="M10 8.5h4"></path><path d="M10 18h4"></path></svg> Fluxos dos processos</span>
                 <span id="sec3Toggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Seção 3">[−] Ocultar</span>
             </div>
             <div id="sec3Content">
+                <div class="sec-intro" contenteditable="false" data-editable="true" data-field="sec3_intro" data-placeholder="Escreva aqui o texto dos Fluxos dos processos..."></div>
+                <!-- NOVO SISTEMA DE ESTÁGIO: escopo do sistema, acima do detalhamento das etapas.
+                     Só a parte laranja (.dup-callout) — o título e a imagem do painel
+                     "Estágio Externo" ficaram na seção Sistemas. -->
+                <div class="sec3-escopo">
+                    <div class="dup-map">
+                            <div class="dup-callout">
+                        <span class="dup-callout-label" contenteditable="false" data-editable="true" data-field="dup_cor_label">Novo Sistema de Estágio: Escopo do Sistema</span>
+                        <div class="dup-flow">
+                                <div class="dup-pipeline">
+                                    <div class="dup-chevron dup-disponibilizacao">
+                                        <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_disp_titulo">Disponibilização</span>
+                                    </div>
+                                    <div class="dup-chevron dup-contratacao">
+                                        <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_contrat_titulo">Contratação</span>
+                                    </div>
+                                    <div class="dup-chevron dup-vigencia">
+                                        <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_vig_titulo">Vigência</span>
+                                    </div>
+                                    <div class="dup-chevron dup-encerramento">
+                                        <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_enc_titulo">Encerramento</span>
+                                    </div>
+                                </div>
+                                <div class="dup-bar">
+                                    <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_gestao_titulo">Gestão do Estágio</span>
+                                </div>
+                            </div>
+                        <div class="dup-edit-bar" aria-label="Editar cores do Macroprocesso">
+                            <label title="Cor do painel Estágio Externo">Estágio Externo <input type="color" value="#1e293b" data-dup-cor="side" onchange="mudarCorDup(this,'side')"></label>
+                            <label title="Cor Disponibilização">Disponibilização <input type="color" value="#737478" data-dup-cor="disp" onchange="mudarCorDup(this,'disp')"></label>
+                            <label title="Cor Contratação">Contratação <input type="color" value="#1bb193" data-dup-cor="contrat" onchange="mudarCorDup(this,'contrat')"></label>
+                            <label title="Cor Vigência">Vigência <input type="color" value="#5f3377" data-dup-cor="vig" onchange="mudarCorDup(this,'vig')"></label>
+                            <label title="Cor Encerramento">Encerramento <input type="color" value="#833075" data-dup-cor="enc" onchange="mudarCorDup(this,'enc')"></label>
+                            <label title="Cor Gestão do Estágio">Gestão <input type="color" value="#57585c" data-dup-cor="gestao" onchange="mudarCorDup(this,'gestao')"></label>
+                        </div>
+                    </div>
+                    </div>
+                </div>
                 <div class="etapas-atores-list" id="etapasList3">
 
-                    <div class="actor-row etapa-ator" data-step="disponibilizacao" data-color="#0070c0" data-img="imagens/diagrama_disponibilizacao.png" data-nome="Disponibilização">
+                    <div class="actor-row etapa-ator expandido" data-step="disponibilizacao" data-color="#737478" data-img="imagens/diagrama_disponibilizacao.png" data-nome="Disponibilização">
                         <div class="edit-controls">
-                            <button class="edit-ctrl-btn color-btn" title="Cor da etapa"><input type="color" value="#0070c0" onchange="mudarCorEtapa(this,'disponibilizacao')"></button>
+                            <button class="edit-ctrl-btn color-btn" title="Cor da etapa"><input type="color" value="#737478" onchange="mudarCorEtapa(this,'disponibilizacao')"></button>
                             <button class="edit-ctrl-btn delete" title="Remover etapa" onclick="event.stopPropagation();removerEtapa(this)">✕</button>
                         </div>
                         <div class="actor-card" contenteditable="false" data-editable="true">Disponibilização</div>
@@ -282,7 +339,7 @@
                         </div>
                     </div>
 
-                    <div class="actor-row etapa-ator" data-step="contratacao" data-color="#1bb193" data-img="imagens/diagrama_contratacao.png" data-nome="Contratação">
+                    <div class="actor-row etapa-ator expandido" data-step="contratacao" data-color="#1bb193" data-img="imagens/diagrama_contratacao.png" data-nome="Contratação">
                         <div class="edit-controls">
                             <button class="edit-ctrl-btn color-btn" title="Cor da etapa"><input type="color" value="#1bb193" onchange="mudarCorEtapa(this,'contratacao')"></button>
                             <button class="edit-ctrl-btn delete" title="Remover etapa" onclick="event.stopPropagation();removerEtapa(this)">✕</button>
@@ -297,7 +354,7 @@
                         </div>
                     </div>
 
-                    <div class="actor-row etapa-ator" data-step="vigencia" data-color="#7030a0" data-img="imagens/diagrama_vigencia.png" data-nome="Vigência">
+                    <div class="actor-row etapa-ator expandido" data-step="vigencia" data-color="#7030a0" data-img="imagens/diagrama_vigencia.png" data-nome="Vigência">
                         <div class="edit-controls">
                             <button class="edit-ctrl-btn color-btn" title="Cor da etapa"><input type="color" value="#7030a0" onchange="mudarCorEtapa(this,'vigencia')"></button>
                             <button class="edit-ctrl-btn delete" title="Remover etapa" onclick="event.stopPropagation();removerEtapa(this)">✕</button>
@@ -312,9 +369,9 @@
                         </div>
                     </div>
 
-                    <div class="actor-row etapa-ator" data-step="encerramento" data-color="#c00000" data-img="imagens/diagrama_encerramento.png" data-nome="Encerramento">
+                    <div class="actor-row etapa-ator expandido" data-step="encerramento" data-color="#833075" data-img="imagens/diagrama_encerramento.png" data-nome="Encerramento">
                         <div class="edit-controls">
-                            <button class="edit-ctrl-btn color-btn" title="Cor da etapa"><input type="color" value="#c00000" onchange="mudarCorEtapa(this,'encerramento')"></button>
+                            <button class="edit-ctrl-btn color-btn" title="Cor da etapa"><input type="color" value="#833075" onchange="mudarCorEtapa(this,'encerramento')"></button>
                             <button class="edit-ctrl-btn delete" title="Remover etapa" onclick="event.stopPropagation();removerEtapa(this)">✕</button>
                         </div>
                         <div class="actor-card" contenteditable="false" data-editable="true">Encerramento</div>
@@ -327,9 +384,9 @@
                         </div>
                     </div>
 
-                    <div class="actor-row etapa-ator etapa-gestao" data-step="gestao" data-color="#d88e00" data-img="imagens/diagrama_gestao.png" data-nome="Gestão do Estágio">
+                    <div class="actor-row etapa-ator etapa-gestao expandido" data-step="gestao" data-color="#57585c" data-img="imagens/diagrama_gestao.png" data-nome="Gestão do Estágio">
                         <div class="edit-controls">
-                            <button class="edit-ctrl-btn color-btn" title="Cor da barra"><input type="color" value="#d88e00" onchange="mudarCorEtapa(this,'gestao')"></button>
+                            <button class="edit-ctrl-btn color-btn" title="Cor da barra"><input type="color" value="#57585c" onchange="mudarCorEtapa(this,'gestao')"></button>
                         </div>
                         <div class="actor-card" contenteditable="false" data-editable="true">Gestão do Estágio</div>
                         <div class="actor-description">
@@ -404,69 +461,53 @@
             </div>
         </div>
 
-        <!-- SEÇÃO: SUPORTE TECNOLÓGICO -->
+        <!-- SEÇÃO: SISTEMAS -->
         <div class="section-box" id="suporteBox" data-ap-section="suporteBox">
             <div class="section-header" onclick="toggleSection('suporteContent', 'suporteToggle')">
-                <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.75z"></path></svg> Suporte Tecnológico</span>
-                <span id="suporteToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Suporte Tecnológico">[−] Ocultar</span>
+                <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Sistemas</span>
+                <span id="suporteToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Sistemas">[−] Ocultar</span>
             </div>
             <div id="suporteContent" style="padding: 20px;">
+                <div class="sec-intro" contenteditable="false" data-editable="true" data-field="suporte_intro" data-placeholder="Escreva aqui o texto dos Sistemas..."></div>
                 <div class="sup-container">
-                    <!-- Cabeçalho -->
+                    <!-- ESTÁGIO EXTERNO: título e imagem do painel lateral.
+                         A parte laranja do escopo (o .dup-callout) ficou na seção
+                         Fluxos dos processos, acima de Disponibilização. -->
+                    <h3 class="dup-title" contenteditable="false" data-editable="true" data-field="dup_titulo">sistemas corporativos - (Estágio Externo)</h3>
+                    <div class="dup-map">
+                        <div class="dup-side">
+                            <img src="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_EPROC@master/Imagem%20(2).png" alt="Estágio Externo" class="dup-side-emoji" draggable="false">
+                        </div>
+                        <div class="cv-branch-filhos-realizacao sup-cvmp-copy">
+                            <div class="cv-filhos-inner">
+                                <div class="cv-step bg-blue-mid sup-cvmp-rel">
+                                    <strong data-editable="true">Realização</strong>
+                                </div>
+                                <div class="sup-cvmp-connector"></div>
+                                <div class="cv-mp-pipeline">
+                                    <div class="cv-mp-chevron cv-mp-disp"><span data-editable="true">Disponibilização</span></div>
+                                    <div class="cv-mp-chevron cv-mp-contrat"><span data-editable="true">Contratação</span></div>
+                                    <div class="cv-mp-chevron cv-mp-vig"><span data-editable="true">Vigência</span></div>
+                                    <div class="cv-mp-chevron cv-mp-enc"><span data-editable="true">Encerramento</span></div>
+                                </div>
+                                <div class="cv-mp-bar"><span data-editable="true">Gestão do Estágio</span></div>
+                            </div>
+                        </div>
+                    </div>
+                    <!-- Logo e título do SEI: abaixo do macroprocesso, acima da lista -->
                     <div class="sup-header">
-                        <div class="sup-header-title">
-                            <p data-editable="true">Bases de Conhecimento &amp; Tipos de Processos no SEI</p>
+                        <div class="sup-header-brand">
+                            <img class="sup-logo-sei" src="https://portalsei.uffs.edu.br/++resource++resourceIMG/sei_logo.png" alt="Logo do Sistema Eletrônico de Informações (SEI)">
+                            <div class="sup-header-title">
+                                <p data-editable="true">Bases de Conhecimento &amp; Tipos de Processos no SEI</p>
+                            </div>
                         </div>
                     </div>
 
-                    <!-- DUPLICATA VISUAL DO MACROPROCESSO (SEÇÃO 3) -->
-                    <h3 class="dup-title" contenteditable="false" data-editable="true" data-field="dup_titulo">Macroprocesso (Estágio Externo)</h3>
-                    <div class="dup-map">
-                            <div class="dup-side">
-                                <img src="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_EPROC@master/Imagem%20(2).png" alt="Estágio Externo" class="dup-side-emoji" draggable="false">
-                            </div>
-                            <div class="dup-callout">
-                        <span class="dup-callout-label" contenteditable="false" data-editable="true" data-field="dup_cor_label">Novo Sistema de Estágio: Escopo do Sistema</span>
-                        <div class="dup-flow">
-                                <div class="dup-pipeline">
-                                    <div class="dup-chevron dup-disponibilizacao">
-                                        <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_disp_titulo">Disponibilização</span>
-                                        <span class="dup-step-desc" contenteditable="false" data-editable="true" data-field="dup_disp_desc">(UCE, Oferta, Homologação)</span>
-                                    </div>
-                                    <div class="dup-chevron dup-contratacao">
-                                        <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_contrat_titulo">Contratação</span>
-                                        <span class="dup-step-desc" contenteditable="false" data-editable="true" data-field="dup_contrat_desc">(PE, TCE, Estudante, IE, Obrigatório, Não Obrigatório)</span>
-                                    </div>
-                                    <div class="dup-chevron dup-vigencia">
-                                        <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_vig_titulo">Vigência</span>
-                                        <span class="dup-step-desc" contenteditable="false" data-editable="true" data-field="dup_vig_desc">(Visita orientador, renovação, TA, Relatório Parcial)</span>
-                                    </div>
-                                    <div class="dup-chevron dup-encerramento">
-                                        <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_enc_titulo">Encerramento</span>
-                                        <span class="dup-step-desc" contenteditable="false" data-editable="true" data-field="dup_enc_desc">(Conclusão, Avaliação, Relatório Final, Registro Acadêmico, Certificado)</span>
-                                    </div>
-                                </div>
-                                <div class="dup-bar">
-                                    <span class="dup-step-title" contenteditable="false" data-editable="true" data-field="dup_gestao_titulo">Gestão do Estágio</span>
-                                    <span class="dup-step-desc" contenteditable="false" data-editable="true" data-field="dup_gestao_desc">(UTFPR como UCE, Gestão da UCE, Acesso Acompanhamento da realização do estágio, Indicadores)</span>
-                                </div>
-                            </div>
-                        <div class="dup-edit-bar" aria-label="Editar cores do Macroprocesso">
-                            <label title="Cor do painel Estágio Externo">Estágio Externo <input type="color" value="#1e293b" data-dup-cor="side" onchange="mudarCorDup(this,'side')"></label>
-                            <label title="Cor Disponibilização">Disponibilização <input type="color" value="#737478" data-dup-cor="disp" onchange="mudarCorDup(this,'disp')"></label>
-                            <label title="Cor Contratação">Contratação <input type="color" value="#1bb193" data-dup-cor="contrat" onchange="mudarCorDup(this,'contrat')"></label>
-                            <label title="Cor Vigência">Vigência <input type="color" value="#5f3377" data-dup-cor="vig" onchange="mudarCorDup(this,'vig')"></label>
-                            <label title="Cor Encerramento">Encerramento <input type="color" value="#833075" data-dup-cor="enc" onchange="mudarCorDup(this,'enc')"></label>
-                            <label title="Cor Gestão do Estágio">Gestão <input type="color" value="#57585c" data-dup-cor="gestao" onchange="mudarCorDup(this,'gestao')"></label>
-                        </div>
-                    </div>
-                    </div>
+                    <div class="sec-intro" contenteditable="false" data-editable="true" data-field="suporte_header_intro" data-placeholder="Escreva aqui o texto abaixo da logo do SEI..."></div>
+
                     <!-- Controles e Filtros -->
-                    <div class="sup-controls" style="margin-top: 32px;">
-                        <img class="sup-logo-sei" src="https://portalsei.uffs.edu.br/++resource++resourceIMG/sei_logo.png" alt="Logo do Sistema Eletrônico de Informações (SEI)">
-                        <div class="sup-search-bar">
-                            <input type="text" id="searchInput" placeholder="Pesquisar por descrição, ID do SEI ou ID da Base de Conhecimento...">
-                        </div>
+                    <div class="sup-controls">
                         <div class="sup-filters">
                             <button class="sup-filter-btn active" data-filter="todos">Todos os Processos</button>
                             <button class="sup-filter-btn" data-filter="externo">UCE Externa</button>
@@ -489,13 +530,14 @@
                 <span id="sec1Toggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Seção 1">[−] Ocultar</span>
             </div>
             <div id="sec1Content" style="padding: 20px;">
+                <div class="sec-intro" contenteditable="false" data-editable="true" data-field="sec1_intro" data-placeholder="Escreva aqui o texto dos Atores..."></div>
                 <div class="search-container" id="searchContainer">
                     <input type="text" id="filterInput" class="search-input" oninput="filterActors()"
                         placeholder="Filtrar ator ou palavra-chave (ex: PRAE, orientador, relatório)...">
                 </div>
                 <div class="actors-list" id="actorsList">
 
-                    <div class="actor-row" data-actor="estudante" title="Duplo clique para focar no Mapa Interativo">
+                    <div class="actor-row expandido" data-actor="estudante" title="Duplo clique para focar no Mapa Interativo">
                         <div class="edit-controls">
                             <button class="edit-ctrl-btn color-btn" title="Cor da borda"><input type="color"
                                     value="#0070c0" onchange="mudarCorAtor('estudante','border',this.value)"></button>
@@ -518,7 +560,7 @@
                         </div>
                     </div>
 
-                    <div class="actor-row" data-actor="uce-rep" title="Duplo clique para focar no Mapa Interativo">
+                    <div class="actor-row expandido" data-actor="uce-rep" title="Duplo clique para focar no Mapa Interativo">
                         <div class="edit-controls">
                             <button class="edit-ctrl-btn color-btn" title="Cor da borda"><input type="color"
                                     value="#c00000" onchange="mudarCorAtor('uce-rep','border',this.value)"></button>
@@ -541,7 +583,7 @@
                         </div>
                     </div>
 
-                    <div class="actor-row" data-actor="ie" title="Duplo clique para focar no Mapa Interativo">
+                    <div class="actor-row expandido" data-actor="ie" title="Duplo clique para focar no Mapa Interativo">
                         <div class="edit-controls">
                             <button class="edit-ctrl-btn color-btn" title="Cor da borda"><input type="color"
                                     value="#d88e00" onchange="mudarCorAtor('ie','border',this.value)"></button>
@@ -562,7 +604,7 @@
                         </div>
                     </div>
 
-                    <div class="actor-row" data-actor="dieem" title="Duplo clique para focar no Mapa Interativo">
+                    <div class="actor-row expandido" data-actor="dieem" title="Duplo clique para focar no Mapa Interativo">
                         <div class="edit-controls">
                             <button class="edit-ctrl-btn color-btn" title="Cor da borda"><input type="color"
                                     value="#7030a0" onchange="mudarCorAtor('dieem','border',this.value)"></button>
@@ -586,7 +628,7 @@
                         </div>
                     </div>
 
-                    <div class="actor-row" data-actor="uce-sup" title="Duplo clique para focar no Mapa Interativo">
+                    <div class="actor-row expandido" data-actor="uce-sup" title="Duplo clique para focar no Mapa Interativo">
                         <div class="edit-controls">
                             <button class="edit-ctrl-btn color-btn" title="Cor da borda"><input type="color"
                                     value="#9b1b1b" onchange="mudarCorAtor('uce-sup','border',this.value)"></button>
@@ -607,7 +649,7 @@
                         </div>
                     </div>
 
-                    <div class="actor-row" data-actor="orientador" title="Duplo clique para focar no Mapa Interativo">
+                    <div class="actor-row expandido" data-actor="orientador" title="Duplo clique para focar no Mapa Interativo">
                         <div class="edit-controls">
                             <button class="edit-ctrl-btn color-btn" title="Cor da borda"><input type="color"
                                     value="#e66a1f" onchange="mudarCorAtor('orientador','border',this.value)"></button>
@@ -634,7 +676,7 @@
                         </div>
                     </div>
 
-                    <div class="actor-row" data-actor="prae" title="Duplo clique para focar no Mapa Interativo">
+                    <div class="actor-row expandido" data-actor="prae" title="Duplo clique para focar no Mapa Interativo">
                         <div class="edit-controls">
                             <button class="edit-ctrl-btn color-btn" title="Cor da borda"><input type="color"
                                     value="#4f7928" onchange="mudarCorAtor('prae','border',this.value)"></button>
@@ -675,9 +717,10 @@
         <div class="section-box" id="sec1bBox" data-ap-section="sec1bBox">
             <div class="section-header" onclick="toggleSection('sec1bContent', 'sec1bToggle')">
                 <span class="section-title-text"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg> Documentos do Estágio</span>
-                <span id="sec1bToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Documentos">[−] Ocultar</span>
+                <span id="sec1bToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Documentos do Estágio">[−] Ocultar</span>
             </div>
             <div id="sec1bContent" style="padding: 20px;">
+                <div class="sec-intro" contenteditable="false" data-editable="true" data-field="sec1b_intro" data-placeholder="Escreva aqui o texto dos Documentos do Estágio..."></div>
                 <div class="doc-layout">
                     <div class="doc-matrix-container" id="docMatrixContainer">
                         <!-- Legenda -->
@@ -711,6 +754,7 @@
                 <span id="sec2Toggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Seção 2">[−] Ocultar</span>
             </div>
             <div id="sec2Content">
+                <div class="sec-intro" contenteditable="false" data-editable="true" data-field="sec2_intro" data-placeholder="Escreva aqui o texto do Infográfico..."></div>
                 <div class="editor-toolbar" id="editorToolbar">
                     <div class="toolbar-group">
                         <button class="btn-custom btn-custom-success" onclick="adicionarCaixa()" aria-label="Adicionar nova caixa no mapa">+ Caixa</button>
@@ -911,9 +955,6 @@
                     <option value="Comic Sans MS, Comic Sans, cursive">Comic Sans MS</option>
                 </select>
             </label>
-            <label class="section-props-label">Tamanho do texto
-                <input type="range" id="secpFontSize" min="13" max="22" step="1" value="16" oninput="aplicarEstiloSecao()">
-            </label>
             <div class="secp-caixa-block" id="secpCaixaBlock" style="display:none;">
                 <span class="secp-caixa-title">Tamanho do texto da caixa</span>
                 <span class="secp-caixa-nome" id="secpCaixaNome"></span>
@@ -927,12 +968,7 @@
             <label class="section-props-label">Espaçamento interno
                 <input type="range" id="secpPadding" min="0" max="60" step="2" value="28" oninput="aplicarEstiloSecao()">
             </label>
-            <label class="section-props-label">Altura da área
-                <span class="section-props-row">
-                    <input type="range" id="secpHeight" min="0" max="800" step="10" value="0" oninput="aplicarEstiloSecao()">
-                    <button type="button" class="edit-ctrl-btn" onclick="resetarAlturaSecao()" title="Usar altura automática">↺</button>
-                </span>
-            </label>
+            
             <div class="secp-cvmp-block" id="secpCvMpBlock">
                 <span class="secp-cvmp-title">Cores do Macroprocesso</span>
                 <span class="secp-cvmp-row"><input type="color" id="secpCvMpDisp" data-cv-cor="disp" value="#737478" oninput="mudarCorCvMp(this,'disp')" title="Cor do tópico"><span class="secp-cvmp-nome">Disponibilização</span><button type="button" class="secp-cvmp-del" onclick="removerCvMp(this,'disp')" title="Remover tópico">✕</button></span>
@@ -970,12 +1006,13 @@
             <div class="footer-col">
                 <h3 class="footer-heading">Navegação</h3>
                 <ul class="footer-list">
+                    <li><a href="#hierarquiaBox">Hierarquia do Processo</a></li>
                     <li><a href="#contextBox">Contextualização</a></li>
-                    <li><a href="#sec3Box">Macroprocesso</a></li>
-                    <li><a href="#suporteBox">Suporte Tecnológico</a></li>
-                    <li><a href="#sec1Box">Atores e Jornada</a></li>
+                    <li><a href="#sec3Box">Fluxos dos processos</a></li>
+                    <li><a href="#suporteBox">Sistemas</a></li>
+                    <li><a href="#sec1Box">Atores</a></li>
                     <li><a href="#sec1bBox">Documentos do Estágio</a></li>
-                    <li><a href="#sec2Box">Mapa Interativo</a></li>
+                    <li><a href="#sec2Box">Infográfico</a></li>
                 </ul>
             </div>
             <div class="footer-col">

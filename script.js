@@ -78,6 +78,10 @@
             document.querySelectorAll('[data-editable="true"]').forEach(el => {
                 el.contentEditable = editMode ? 'true' : 'false';
             });
+            document.querySelectorAll('.sec-titulo-edit').forEach(el => {
+                el.contentEditable = editMode ? 'true' : 'false';
+                el.spellcheck = false;
+            });
             document.querySelectorAll('#etapasList3 .etapa-ator').forEach(item => {
                 item.draggable = editMode;
             });
@@ -211,10 +215,33 @@
             if (p) p.classList.add('show');
         }
 
+        // Envolve o texto do título da seção (deixando o ícone SVG de fora) num
+        // span próprio, para que ele possa ser editado no modo de edição sem
+        // risco de apagar o ícone.
+        function prepararTitulosSecoes() {
+            document.querySelectorAll('.section-title-text').forEach(t => {
+                if (t.querySelector('.sec-titulo-edit')) return;
+                const textos = Array.from(t.childNodes).filter(n => n.nodeType === 3 && n.nodeValue.trim());
+                if (!textos.length) return;
+                const span = document.createElement('span');
+                span.className = 'sec-titulo-edit';
+                t.insertBefore(span, textos[0]);
+                textos.forEach(n => span.appendChild(n));
+            });
+        }
+
+        // Mantém o nome da seção igual nos links do menu (navbar e rodapé).
+        function sincronizarMenuSecao(idSecao, titulo) {
+            if (!idSecao || !titulo) return;
+            document.querySelectorAll('.nav-menu a[data-secao="' + idSecao + '"]').forEach(a => { a.textContent = titulo; });
+            document.querySelectorAll('.footer-list a[href="#' + idSecao + '"]').forEach(a => { a.textContent = titulo; });
+        }
+
         function tituloSecaoTexto(el) {
             const t = el.querySelector('.section-title-text');
             if (t) {
-                const soTexto = Array.from(t.childNodes).filter(n => n.nodeType === 3).map(n => n.nodeValue).join('');
+                const alvo = t.querySelector('.sec-titulo-edit') || t;
+                const soTexto = Array.from(alvo.childNodes).filter(n => n.nodeType === 3).map(n => n.nodeValue).join('');
                 return soTexto.trim();
             }
             const h = el.querySelector('h1, h2, h3');
@@ -224,10 +251,10 @@
         function definirTituloSecao(el, valor) {
             const t = el.querySelector('.section-title-text');
             if (t) {
-                const svg = t.querySelector('svg');
-                t.innerHTML = '';
-                if (svg) t.appendChild(svg);
-                if (valor) t.appendChild(document.createTextNode(' ' + valor));
+                const span = t.querySelector('.sec-titulo-edit') || t;
+                span.classList.add('sec-titulo-edit');
+                span.textContent = valor ? ' ' + valor : '';
+                sincronizarMenuSecao(el.id, valor);
                 return;
             }
             const h = el.querySelector('h1, h2, h3');
@@ -1196,16 +1223,8 @@
             if (!el) return;
             const url = prompt('URL do link (ou #ancora):', el.link || 'https://');
             if (url == null) return;
-            const urlFinal = url.trim();
-            if (el.tipo === 'texto') {
-                const nome = prompt('Texto do link (o que aparecerá no lugar da URL):', el.texto || urlFinal);
-                if (nome === null) return;
-                const nomeFinal = (nome || el.texto || urlFinal).trim();
-                apSelecionados.forEach(id => { const e = apBuscar(id); if (e) { e.link = urlFinal; if (e.tipo === 'texto') e.texto = nomeFinal; } });
-            } else {
-                apSelecionados.forEach(id => { const e = apBuscar(id); if (e) e.link = urlFinal; });
-            }
-            salvarHistorico(); apRender(); apAtualizarProps();
+            apSelecionados.forEach(id => { const e = apBuscar(id); if (e) e.link = url.trim(); });
+            salvarHistorico(); apRender();
         }
 
         function apCriarDOM(el) {
@@ -2282,29 +2301,27 @@
 
         function inserirLinkEditavel() {
             if (!alvoToolbarEl) return;
-            const sel = window.getSelection();
-            const textoSelecionado = sel && sel.toString ? sel.toString().replace(/\s+/g, ' ').trim() : '';
-            const url = prompt('Cole a URL do link:', 'https://');
+            const url = prompt('Cole a URL do link:');
             if (!url || !url.trim()) return;
             const urlFinal = url.trim();
-            const nome = prompt('Texto do link (o que aparecerá no lugar da URL):', textoSelecionado || urlFinal);
-            if (nome === null) return;
-            const nomeFinal = (nome || textoSelecionado || urlFinal).trim();
+            const sel = window.getSelection();
+            const textoSelecionado = sel.toString().trim();
             const a = document.createElement('a');
             a.href = urlFinal;
-            a.textContent = nomeFinal;
+            a.textContent = textoSelecionado || urlFinal;
             a.target = '_blank';
             a.rel = 'noopener noreferrer';
             a.style.cssText = 'color:#2563eb;text-decoration:underline;';
-            if (sel && sel.rangeCount && textoSelecionado) {
+            const spanUrl = document.createElement('span');
+            spanUrl.className = 'link-url-visivel';
+            spanUrl.textContent = ' (' + urlFinal + ')';
+            if (sel.rangeCount && textoSelecionado) {
                 sel.deleteFromDocument();
-                const r = sel.getRangeAt(0);
-                r.insertNode(a);
-                r.setStartAfter(a);
+                sel.getRangeAt(0).insertNode(a);
             } else {
                 alvoToolbarEl.appendChild(a);
             }
-            atualizarPainelCaixa();
+            a.parentNode.insertBefore(spanUrl, a.nextSibling);
         }
 
         function capturarTextosEditaveis() {
@@ -2340,7 +2357,9 @@
 
         function criarLinhaAtorHTML(a) {
             const key = escaparHTML(a.key);
-            const clsExp = a.expandido ? ' expandido' : '';
+            // Padrão: ator nasce expandido. Só fica recolhido se o estado salvo
+            // explicitamente gravou expandido: false (via Restaurar manual).
+            const clsExp = a.expandido === false ? '' : ' expandido';
             return `
                 <div class="actor-row${clsExp}" data-actor="${key}" title="Duplo clique para focar no Mapa Interativo">
                     <div class="edit-controls">
@@ -2389,7 +2408,7 @@
             const cor = et.cor || '#6366f1';
             const fundo = corParaFundo(cor, 0.15);
             return `
-                <div class="actor-row etapa-ator" data-step="${key}" data-color="${cor}" data-img="${(et.img || '').replace(/"/g, '&quot;')}" data-nome="${escaparHTML(et.titulo)}">
+                <div class="actor-row etapa-ator expandido" data-step="${key}" data-color="${cor}" data-img="${(et.img || '').replace(/"/g, '&quot;')}" data-nome="${escaparHTML(et.titulo)}">
                     <div class="edit-controls">
                         <button class="edit-ctrl-btn color-btn" title="Cor da etapa"><input type="color" value="${cor}" onchange="mudarCorEtapa(this,'${key}')"></button>
                         <button class="edit-ctrl-btn delete" title="Remover etapa" onclick="event.stopPropagation();removerEtapa(this)">✕</button>
@@ -2408,7 +2427,7 @@
             const cor = g.cor || '#57585c';
             const fundo = corParaFundo(cor, 0.15);
             return `
-                <div class="actor-row etapa-ator etapa-gestao" data-step="gestao" data-color="${cor}" data-img="${(g.img || '').replace(/"/g, '&quot;')}" data-nome="${escaparHTML(g.titulo)}">
+                <div class="actor-row etapa-ator etapa-gestao expandido" data-step="gestao" data-color="${cor}" data-img="${(g.img || '').replace(/"/g, '&quot;')}" data-nome="${escaparHTML(g.titulo)}">
                     <div class="edit-controls">
                         <button class="edit-ctrl-btn color-btn" title="Cor da barra"><input type="color" value="${cor}" onchange="mudarCorEtapa(this,'gestao')"></button>
                     </div>
@@ -2579,7 +2598,7 @@
                     itensUnicos.push(it);
                 }
                 if (itensUnicos.length !== parsed.etapas.itens.length) {
-                    console.warn('MacroProcesso: ' + (parsed.etapas.itens.length - itensUnicos.length) + ' etapa(s) duplicada(s) removida(s) ao restaurar.');
+                    console.warn('Macroprocesso: ' + (parsed.etapas.itens.length - itensUnicos.length) + ' etapa(s) duplicada(s) removida(s) ao restaurar.');
                 }
                 // Remove as etapas antigas (mantém a barra de edição da lista)
                 const list = document.getElementById('etapasList3');
@@ -2659,16 +2678,15 @@
             setTimeout(() => { pill.style.opacity = '0'; }, 2500);
         }
 
-        function tentarRestaurarAutoSave() {
-            const data = localStorage.getItem(CHAVE_SAVE_MANUAL + '_autosave');
-            if (!data) return false;
-            try {
-                const parsed = JSON.parse(data);
-                return aplicarEstadoCompleto(parsed);
-            } catch (err) { return false; }
-        }
-
         const CHAVE_SAVE_MANUAL = 'utfpr_fluxo_estagio';
+
+        // O auto-save NAO e aplicado no carregamento. Ele sobrescrevia textos,
+        // secoes, cores e estilos vindos do teste.html/style.css, fazendo o
+        // navegador mostrar a versao antiga em vez do codigo recem salvo.
+        // O unico caminho de restauracao e o botao "Restaurar" (manual).
+        function limparAutoSave() {
+            try { localStorage.removeItem(CHAVE_SAVE_MANUAL + '_autosave'); } catch (err) { /* silencioso */ }
+        }
 
         function salvarEstadoLocal() {
             try {
@@ -2913,7 +2931,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
             // toggleSection/secsAd), para que o exportado exiba o conteúdo completo.
             // O clone é document.documentElement.cloneNode(true) (um Element, não um Document),
             // então NÃO use cloneDoc.getElementById(id) — use querySelector('#' + id).
-            ['contextContent', 'suporteContent', 'sec1bContent', 'sec1Content', 'sec2Content', 'sec3Content'].forEach(id => {
+            ['hierarquiaContent', 'contextContent', 'suporteContent', 'sec1bContent', 'sec1Content', 'sec2Content', 'sec3Content'].forEach(id => {
                 const el = cloneDoc.querySelector('#' + id);
                 if (el) el.style.display = '';
                 const tg = cloneDoc.querySelector('#' + id.replace('Content', 'Toggle'));
@@ -2947,6 +2965,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
             const clonedBody = cloneDoc.querySelector('body');
             if (clonedBody) clonedBody.classList.remove('editing');
             cloneDoc.querySelectorAll('[data-editable="true"]').forEach(el => el.setAttribute('contenteditable', 'false'));
+            cloneDoc.querySelectorAll('.sec-titulo-edit').forEach(el => el.setAttribute('contenteditable', 'false'));
             const propFormClone = cloneDoc.querySelector('#propForm');
             if (propFormClone) propFormClone.style.display = 'none';
 
@@ -2976,10 +2995,8 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 linkCss.replaceWith(styleEl);
             }
 
-            // JS: tenta embutir o script.js; se o navegador bloquear a leitura, mantém a referência externa.
-            // Quando o CSS/JS já são inline no próprio DOM (ex.: teste_unico.html), não há <script src="script.js">
-            // no clone e nada precisa ser lido — o JS já está embutido.
-            let jsEmbutido = !cloneDoc.querySelector('script[src="script.js"]');
+            // JS: tenta embutir o script.js; se o navegador bloquear a leitura, mantém a referência externa
+            let jsEmbutido = false;
             const jsTexto = await lerScriptApp();
             const scriptTag = cloneDoc.querySelector('script[src="script.js"]');
             if (jsTexto && scriptTag) scriptTag.remove();
@@ -3052,7 +3069,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
             if (workspace) workspace.style.gridTemplateColumns = '1fr';
 
             // Expande as demais seções (contexto, suporte, documentos) caso estejam colapsadas
-            const secsAd = ['contextContent', 'suporteContent', 'sec1bContent'];
+            const secsAd = ['hierarquiaContent', 'contextContent', 'suporteContent', 'sec1bContent'];
             const secsAdEstados = {};
             secsAd.forEach(id => {
                 const el = document.getElementById(id);
@@ -3162,6 +3179,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 const clonedBody = cloneDoc.querySelector('body');
                 if (clonedBody) clonedBody.classList.remove('editing');
                 cloneDoc.querySelectorAll('[data-editable="true"]').forEach(el => el.setAttribute('contenteditable', 'false'));
+                cloneDoc.querySelectorAll('.sec-titulo-edit').forEach(el => el.setAttribute('contenteditable', 'false'));
                 const propFormClone = cloneDoc.querySelector('#propForm');
                 if (propFormClone) propFormClone.style.display = 'none';
 
@@ -3283,16 +3301,12 @@ const FALLBACK_IMAGENS_CDN_404 = {
         }
 
         document.addEventListener('DOMContentLoaded', () => {
-            // No arquivo exportado (que contém #estadoMapaExportado), o conteúdo embutido
-            // deve ter prioridade sobre o auto-save local do navegador, garantindo que o
-            // que foi exportado seja exatamente o que aparece ao abrir o arquivo.
-            const temEstadoEmbutido = !!document.getElementById('estadoMapaExportado');
-            if (temEstadoEmbutido) {
-                carregarEstadoExportado();
-            } else {
-                const restaurouAutoSave = tentarRestaurarAutoSave();
-                if (!restaurouAutoSave) carregarEstadoExportado();
-            }
+            // A pagina sempre mostra o que esta no HTML/CSS. O auto-save do
+            // localStorage e apenas gravado em segundo plano e nunca aplicado
+            // automaticamente, para nao sobrescrever o codigo recem salvo.
+            carregarEstadoExportado();
+            limparAutoSave();
+            prepararTitulosSecoes();
             salvarHistorico(); renderizarMapa();
             apRender();
             vincularCliquesAtores();
@@ -3307,6 +3321,23 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 const editable = e.target.closest('.etapa-ator [contenteditable="true"]');
                 if (editable) e.stopPropagation();
             }, true);
+
+            // Título da seção: enquanto digita, o nome no menu (navbar e rodapé)
+            // acompanha. O clique no cabeçalho não devePropagation para o select.
+            document.addEventListener('input', (e) => {
+                if (!editMode) return;
+                const alvo = e.target.closest && e.target.closest('.sec-titulo-edit');
+                if (!alvo) return;
+                const secao = alvo.closest('[data-ap-section]');
+                if (secao) sincronizarMenuSecao(secao.id, tituloSecaoTexto(secao));
+            });
+            document.addEventListener('keydown', (e) => {
+                if (!editMode || e.key !== 'Enter') return;
+                const alvo = e.target.closest && e.target.closest('.sec-titulo-edit');
+                if (!alvo) return;
+                e.preventDefault();
+                alvo.blur();
+            });
 
             document.addEventListener('focusin', (e) => {
                 if (inserindoImagem) return;
@@ -3680,7 +3711,6 @@ const FALLBACK_IMAGENS_CDN_404 = {
         ];
 
         const CONTEXTO_SUPORTE_KEY = 'suporte_contextos';
-        const LINK_SUPORTE_KEY = 'suporte_links_editados';
 
         function carregarContextoSuporte(id) {
             try {
@@ -3694,21 +3724,6 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 const dados = JSON.parse(localStorage.getItem(CONTEXTO_SUPORTE_KEY) || '{}');
                 dados['' + id] = texto;
                 localStorage.setItem(CONTEXTO_SUPORTE_KEY, JSON.stringify(dados));
-            } catch (err) { /* silencioso */ }
-        }
-
-        function carregarLinkSuporte(id) {
-            try {
-                const dados = JSON.parse(localStorage.getItem(LINK_SUPORTE_KEY) || '{}');
-                return dados['' + id] || '';
-            } catch (err) { return ''; }
-        }
-
-        function salvarLinkSuporte(id, link) {
-            try {
-                const dados = JSON.parse(localStorage.getItem(LINK_SUPORTE_KEY) || '{}');
-                dados['' + id] = link;
-                localStorage.setItem(LINK_SUPORTE_KEY, JSON.stringify(dados));
             } catch (err) { /* silencioso */ }
         }
 
@@ -3729,20 +3744,6 @@ const FALLBACK_IMAGENS_CDN_404 = {
                     el.contentEditable = editMode ? 'true' : 'false';
                 });
             }
-
-            grid.addEventListener('click', (e) => {
-                const link = e.target.closest('.sup-btn-link');
-                if (!link) return;
-                if (!editMode) return;
-                e.preventDefault();
-                e.stopPropagation();
-                const id = link.getAttribute('data-id');
-                const atual = link.href;
-                const novo = prompt('Editar link (URL) deste processo:', atual);
-                if (novo === null) return;
-                link.href = novo;
-                if (id) salvarLinkSuporte(id, novo);
-            });
 
             function ligarCard(card, contextoId) {
                 const con = card.querySelector('.sup-card-contexto');
@@ -3782,12 +3783,9 @@ const FALLBACK_IMAGENS_CDN_404 = {
                             <div class="sup-list-top">
                                 <span class="sup-category-tag sup-tag-${p.categoria}" data-editable="true">${p.categoriaNome}</span>
                                 <h3 class="sup-list-title" data-editable="true">${p.descricao}</h3>
-                                <span class="sup-sei-badge" data-editable="true" title="ID do Tipo de Processo SEI">SEI ${p.seiId}</span>
+                                ${p.link ? `<a class="sup-btn-link" href="${p.link}" target="_blank" rel="noopener noreferrer">Abrir no SEI</a>` : ''}
                             </div>
                             <div class="sup-card-contexto sup-list-contexto" data-editable="true" data-contexto="${p.idAtual}" role="textbox" aria-multiline="true" data-placeholder="Escreva aqui o contexto explicativo deste processo/documento...">${carregarContextoSuporte(p.idAtual)}</div>
-                            <div class="sup-list-footer">
-                                ${p.link ? `<a class="sup-btn-link" href="${carregarLinkSuporte(p.idAtual) || p.link}" data-id="${p.idAtual}" data-default-link="${p.link}" target="_blank" rel="noopener noreferrer">Abrir no SEI</a>` : ''}
-                            </div>
                         </div>
                     `;
                     grid.appendChild(item);
@@ -3859,23 +3857,29 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 d.style.background = cor;
                 wrap.appendChild(d);
             };
-            // 1) Vida Acadêmica -> Estágio (linha vertical reta)
-            const esgCx = (estP.cx + vidaP.cx) / 2;
-            el(esgCx - 1, vidaP.bottom, 3, estP.top - vidaP.bottom);
-            // 2) Estágio -> Validação e Realização (garfo desce da base do Estágio, um pouco à esquerda)
-            const esqFilho = Math.min(valP.left, relP.left);
-            const trunkX = estP.cx - 6;
-            const topT = Math.min(valP.cy, relP.cy);
-            const botT = Math.max(valP.cy, relP.cy);
-            el(trunkX - 1, estP.bottom, 3, botT - estP.bottom);
-            el(trunkX - 1, valP.cy - 1, valP.left - trunkX + 3, 3);
-            el(trunkX - 1, relP.cy - 1, relP.left - trunkX + 3, 3);
-            // 3) Realização -> Disponibilização, Contratação, Vigência, Encerramento e Gestão
-            const filhos = branch.querySelector('.cv-branch-filhos-realizacao');
-            if (filhos) {
-                const filhosP = pos(filhos);
-                el(relP.cx - 1, relP.bottom, 3, filhosP.top - relP.bottom);
+            // Conector vertical genérico: cai pelo centro do pai até o topo do filho
+            const elVert = (pai, filho) => {
+                const x = Math.round((pai.cx + filho.cx) / 2) - 1;
+                el(x, pai.bottom, 3, Math.max(1, filho.top - pai.bottom));
+            };
+            // 1) Vida Acadêmica -> Estágio (vertical)
+            elVert(vidaP, estP);
+            // 2) Estágio -> Validação em DEGRAU: desce por BAIXO do centro do Estágio
+            //    e só então vira à direita, entrando pela lateral esquerda da Validação.
+            const xEst = Math.round(estP.cx) - 1;
+            el(xEst, estP.bottom, 3, Math.max(1, valP.cy - estP.bottom));
+            el(xEst, valP.cy - 1, Math.max(1, valP.left - xEst), 3);
+            // 3) Validação -> Realização (mesma coluna: vertical)
+            elVert(valP, relP);
+            // 4) Realização -> Resultados (mesma linha: horizontal)
+            const res = branch.querySelector('.cv-branch-resultados');
+            if (res) {
+                const resP = pos(res);
+                el(Math.round(relP.right), relP.cy - 1, Math.max(1, resP.left - relP.right), 3);
             }
+            // 5) Realização -> etapas do macroprocesso (bloco comentado por padrão no HTML)
+            const filhos = branch.querySelector('.cv-branch-filhos-realizacao');
+            if (filhos) elVert(relP, pos(filhos));
         }
 
         function iniciarArvore() {

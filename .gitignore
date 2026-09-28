@@ -1,2 +1,5 @@
-# Arquivo gerado pelo build (node gerar_unico.js)
+# Build de arquivo unico removido (gerar_unico.js).
+# O HTML de um so arquivo continua sendo gerado pela propria pagina,
+# em Exportar > Exportar como HTML (exportarComoHTML no script.js).
 teste_unico.html
+servidor-local.js
