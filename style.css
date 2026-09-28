@@ -2238,6 +2238,12 @@ body.editing .cadeia-step-sub {
     background: #2e78a2;
 }
 
+/* Estágio na ramificação: mesma cor do botão "Abrir no SEI" da seção Sistemas */
+.bg-sei {
+    background: #116a70;
+    box-shadow: 0 4px 10px rgba(17, 106, 112, 0.3);
+}
+
 .bg-blue-dark {
     background: #1a5276;
 }
@@ -2490,11 +2496,11 @@ body:not(.editing) .context-intro:empty {
 }
 
 .left-col {
-    width: 270px;
+    width: auto;
     flex-shrink: 0;
     display: flex;
     flex-direction: column;
-    justify-content: space-between;
+    justify-content: center;
 }
 
 .flow-diagram {
@@ -2584,7 +2590,8 @@ body:not(.editing) .context-intro:empty {
 }
 
 .context-imagem {
-    width: 100%;
+    width: 400px;
+    max-width: 100%;
     height: auto;
     border-radius: 10px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
@@ -3579,6 +3586,21 @@ body.editing .cv-step.bg-gray-chevron span {
     letter-spacing: 1.5px;
     margin: 0 0 12px;
     color: #1e293b;
+}
+.dup-title-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+}
+.dup-title-img {
+    height: 40px;
+    width: auto;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+.dup-title-row .dup-title {
+    margin: 0;
 }
 .dup-map {
     display: flex;
