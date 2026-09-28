@@ -2439,6 +2439,28 @@ body:not(.editing) .context-intro:empty {
     display: none;
 }
 
+/* Imagem de abertura da seção Fluxos dos processos */
+.sec3-imagem {
+    display: block;
+    width: 82%;
+    margin: 0 auto 34px;
+    height: auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+/* Imagem na seção Sistemas: ao lado do painel Estágio Externo, no lugar da
+   cópia da Realização com chevrons */
+.sup-sistemas-img {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    height: auto;
+    object-fit: contain;
+    border-radius: 10px;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
 /* Subtítulos e bullets dentro das caixas de texto (opções do Estilos da Seção).
    Qualquer caixa editável pode receber h3 (subtítulo), ul/li (bullets) e p. */
 .sec-intro h3,
@@ -3673,6 +3695,9 @@ body.editing .cv-step.bg-gray-chevron span {
         width: 100%;
         min-width: unset;
         padding: 16px;
+    }
+    .sup-sistemas-img {
+        width: 100%;
     }
     .dup-callout {
         flex: 1;
