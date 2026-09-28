@@ -163,7 +163,7 @@ body {
     overflow: hidden;
     background: linear-gradient(135deg, #374151 0%, #6b7280 50%, #d1d5db 100%);
     color: #ffffff;
-    padding: 56px 40px;
+    padding: 24px 32px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
 }
 
@@ -181,9 +181,9 @@ body {
     position: absolute;
     top: -60px;
     right: -40px;
-    width: 280px;
-    height: 280px;
-    border-radius: 50%;
+    width: 200px;
+    height: 200px;
+    border-radius: 3%;
     background: radial-gradient(circle, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 70%);
     pointer-events: none;
 }
@@ -195,7 +195,7 @@ body {
 }
 
 .hero-title {
-    margin: 0 0 14px 0;
+    margin: 0 0 6px 0;
     font-size: 2rem;
     font-weight: 800;
     line-height: 1.2;
@@ -203,7 +203,7 @@ body {
 }
 
 .hero-subtitle {
-    margin: 0 0 24px 0;
+    margin: 0;
     font-size: 1rem;
     line-height: 1.6;
     color: rgba(255, 255, 255, 0.88);
@@ -254,7 +254,7 @@ body {
     }
 
     .page-hero {
-        padding: 40px 24px;
+        padding: 20px 20px;
     }
 
     .hero-title {
@@ -1176,6 +1176,44 @@ body.editing .section-props-panel.show { display: flex; }
 .secp-caixa-title { font-weight: 700; font-size: 0.75rem; color: #334155; }
 .secp-caixa-nome { font-size: 0.7rem; color: #64748b; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 100%; }
 .secp-caixa-fontsize { font-weight: 700; font-size: 0.75rem; color: #1e293b; min-width: 38px; text-align: center; }
+/* Opções de subtítulo e bullets das caixas de texto ricas */
+.secp-rico-block {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 8px;
+    border: 1px solid #dbe4f0;
+    border-radius: 8px;
+    background: #f8fafc;
+}
+.secp-rico-title { font-weight: 700; font-size: 0.75rem; color: #334155; }
+.secp-rico-botoes {
+    display: flex;
+    gap: 4px;
+}
+.secp-rico-btn {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+    height: auto;
+    padding: 6px 4px;
+    border-radius: 6px;
+    border: 1px solid #cbd5e1;
+    background: #e2e8f0;
+    color: #1e293b;
+    font-size: 0.7rem;
+    font-weight: 600;
+    text-align: center;
+    white-space: nowrap;
+}
+.secp-rico-btn + .secp-rico-btn {
+    margin: 0;
+}
+.secp-rico-btn.ativo {
+    background: #e0f2fe;
+    border-color: #0284c7;
+    color: #0369a1;
+}
 body.editing [data-ap-section] [data-editable="true"].sec-caixa-ativa {
     outline: 2px dashed #f59e0b;
     outline-offset: 2px;
@@ -2401,6 +2439,34 @@ body:not(.editing) .context-intro:empty {
     display: none;
 }
 
+/* Subtítulos e bullets dentro das caixas de texto (opções do Estilos da Seção).
+   Qualquer caixa editável pode receber h3 (subtítulo), ul/li (bullets) e p. */
+.sec-intro h3,
+.context-intro h3 {
+    font-size: 1.05rem;
+    color: #1d72b8;
+    margin: 8px 0 4px;
+    line-height: 1.35;
+}
+.sec-intro h3:first-child,
+.context-intro h3:first-child {
+    margin-top: 0;
+}
+.sec-intro p,
+.context-intro p {
+    margin: 4px 0;
+}
+.sec-intro ul,
+.context-intro ul {
+    margin: 4px 0 8px 22px;
+    padding: 0;
+    list-style: disc;
+}
+.sec-intro li,
+.context-intro li {
+    margin: 2px 0;
+}
+
 .left-col {
     width: 270px;
     flex-shrink: 0;
@@ -2540,6 +2606,12 @@ body:not(.editing) .context-intro:empty {
     flex-grow: 1;
 }
 
+/* Contextualização: remove os bullets das listas principais, mantendo apenas
+   os discos da lista de bases legais (.sub-list) */
+#contextContent .content-list > li > .bullet-container {
+    display: none;
+}
+
 .sub-list {
     list-style-type: disc;
     padding-left: 20px;
@@ -2658,47 +2730,47 @@ body:not(.editing) .context-intro:empty {
     min-width: 0;
 }
 
-/* Processo transversal: à esquerda da ramificação (cols 1-4, linha 3), largo o bastante
-   para os quatro itens ficarem em uma linha só. */
+/* Processo transversal: à esquerda da ramificação (cols 1-3, linha 3), um pouco mais
+   compacto, com os quatro itens ainda lado a lado em uma única linha. */
 .cv-transversal {
-    grid-column: 1 / 5;
+    grid-column: 1 / 4;
     grid-row: 3 / 4;
     align-self: center;
     margin-top: 0;
-    padding: 12px 14px 14px 14px;
+    padding: 10px 12px 12px 12px;
     border-radius: 14px;
 }
 
 .cv-transversal .transversal-title {
-    font-size: 0.85rem;
-    line-height: 1.35;
-    margin-bottom: 9px;
+    font-size: 0.8rem;
+    line-height: 1.3;
+    margin-bottom: 7px;
 }
 
-/* 4 colunas: ENSINO | EXTENSÃO | GESTÃO DE PESSOAS | ADMINISTRAÇÃO */
+/* 4 em linha: ENSINO | EXTENSÃO | GESTÃO DE PESSOAS | ADMINISTRAÇÃO (mais compacto) */
 .cv-transversal .transversal-grid {
-    grid-template-columns: repeat(4, 1fr);
-    gap: 8px;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 6px;
 }
 
 .cv-transversal .pill-btn {
-    font-size: 0.85rem;
-    letter-spacing: 0.5px;
-    padding: 12px 6px;
+    font-size: 0.7rem;
+    letter-spacing: 0.2px;
+    padding: 9px 4px;
     border-radius: 10px;
 }
 
 .cv-transversal .roof-btn {
-    font-size: 0.75rem;
-    letter-spacing: 0.3px;
-    padding: 18px 6px 9px 6px;
+    font-size: 0.65rem;
+    letter-spacing: 0.1px;
+    padding: 13px 4px 7px 4px;
 }
 
 @media (max-width: 768px) {
     .slide-body { flex-direction: column; }
     .left-col { width: 100%; }
     .transversal-grid { grid-template-columns: 1fr 1fr; }
-    /* específico o bastante para vencer a regra de 4 colunas da .cv-transversal acima */
+    /* específico o bastante para vencer a regra da .cv-transversal acima */
     .cv-transversal { grid-column: 1 / 7; }
     .cv-transversal .transversal-grid { grid-template-columns: 1fr 1fr; }
 }
@@ -3040,11 +3112,11 @@ body:not(.editing) .context-intro:empty {
 .cv-raia {
     display: flex;
     flex-direction: column;
-    gap: 10px;
+    gap: 8px;
     align-items: stretch;
     background: #ffffff;
     border-radius: 12px;
-    padding: 14px;
+    padding: 10px;
     box-shadow: 0 4px 12px rgba(0, 0, 0, 0.04);
     border: 1px solid rgba(0, 0, 0, 0.05);
 }
@@ -3166,7 +3238,7 @@ body:not(.editing) .context-intro:empty {
     display: grid;
     grid-template-columns: repeat(6, 1fr);
     grid-template-rows: auto auto auto auto;
-    gap: 26px 14px;
+    gap: 18px 14px;
     align-items: center;
 }
 
@@ -3176,13 +3248,14 @@ body:not(.editing) .context-intro:empty {
     grid-row: 1 / 2;
     justify-self: center;
     position: relative;
-    width: 95%;
+    width: 85%;
     z-index: 1;
 }
 
-/* ------ NÍVEL 2: Validação e Realização (degrau à direita do Estágio) ------ */
-/* A descida parte de BAIXO do Estágio: o conector vertical cai do centro dele
-   e só então vira à direita (ver elVert + o degrau em desenharArvore). */
+/* ------ NÍVEL 2 e 3: Validação e Realização na coluna 5 (degrau à direita) ------ */
+/* A ramificação sai de BAIXO do Estágio: um tronco vertical desce pelo lado esquerdo
+   da Validação; um braço entra pela lateral esquerda dela e a linha segue até descer
+   ao topo da Realização, logo abaixo (ver o garfo em desenharArvore). */
 .cv-branch-validacao {
     grid-column: 5 / 6;
     grid-row: 2 / 3;
@@ -3194,6 +3267,8 @@ body:not(.editing) .context-intro:empty {
 }
 
 .cv-branch-realizacao {
+    /* Abaixo da Validação (coluna 5): a Realização continua recebendo a ramificação
+       que sai do Estágio (o tronco passa pelo lado esquerdo da Validação). */
     grid-column: 5 / 6;
     grid-row: 3 / 4;
     justify-self: center;
@@ -3224,8 +3299,8 @@ body:not(.editing) .context-intro:empty {
 
 /* Compacta os cards da ramificação */
 .cv-branch .cv-step {
-    min-height: 56px;
-    padding: 12px 16px;
+    min-height: 50px;
+    padding: 10px 14px;
     justify-content: center;
     text-align: center;
     box-shadow: 0 4px 10px rgba(46, 120, 162, 0.25);

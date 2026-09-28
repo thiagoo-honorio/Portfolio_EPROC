@@ -102,7 +102,7 @@
                                 <strong data-editable="true">Egresso</strong>
                             </div>
                         </div>
-                        <!-- Ramificação: Estágio -> Validação -> Realização, descendendo de Vida Acadêmica -->
+                        <!-- Ramificação: descendente de Vida Acadêmica. O Estágio liga a Validação (braço lateral) e à Realização (logo abaixo dela), com a ramificação sempre partindo do Estágio. -->
                         <div class="cv-branch-row">
                         <div class="cv-branch-spacer" style="display:none;"></div>
                         <div class="cv-branch">
@@ -494,6 +494,9 @@
                             </div>
                         </div>
                     </div>
+                    <!-- Caixa editável com subtítulos e bullets: acima da logo do SEI,
+                         abaixo do macroprocesso (Estágio Externo). -->
+                    <div class="sec-intro sec-intro-rico" contenteditable="false" data-editable="true" data-field="suporte_detalhes" data-placeholder="Escreva aqui o texto de apoio da seção. No painel Estilos da Seção você pode adicionar Subtítulo e Bullets"></div>
                     <!-- Logo e título do SEI: abaixo do macroprocesso, acima da lista -->
                     <div class="sup-header">
                         <div class="sup-header-brand">
@@ -963,6 +966,13 @@
                     <span id="secpCaixaFontSize" class="secp-caixa-fontsize">16px</span>
                     <button type="button" class="edit-ctrl-btn" onclick="ajustarTamanhoTextoCaixa(1)" title="Aumentar texto da caixa">A+</button>
                     <button type="button" class="edit-ctrl-btn" onclick="resetarTamanhoTextoCaixa()" title="Restaurar tamanho original da caixa">↺</button>
+                </span>
+            </div>
+            <div class="secp-rico-block" id="secpRicoBlock" style="display:none;">
+                <span class="secp-rico-title">Opções da caixa de texto</span>
+                <span class="secp-rico-botoes">
+                    <button type="button" class="edit-ctrl-btn secp-rico-btn" id="secpRicoSubBtn" onclick="alternarRicoSub()" title="Adicionar um subtítulo no topo do texto">➕ Adicionar Subtítulo</button>
+                    <button type="button" class="edit-ctrl-btn secp-rico-btn" id="secpRicoBulletsBtn" onclick="alternarRicoBullets()" title="Transformar as linhas do texto em bullets">• Adicionar Bullets</button>
                 </span>
             </div>
             <label class="section-props-label">Espaçamento interno

@@ -78,6 +78,9 @@
             document.querySelectorAll('[data-editable="true"]').forEach(el => {
                 el.contentEditable = editMode ? 'true' : 'false';
             });
+            document.querySelectorAll('[data-editable="true"]').forEach(el => {
+                if (!editMode) normalizarCaixaRica(el);
+            });
             document.querySelectorAll('.sec-titulo-edit').forEach(el => {
                 el.contentEditable = editMode ? 'true' : 'false';
                 el.spellcheck = false;
@@ -179,6 +182,12 @@
                 nome.textContent = (campo ? campo.toUpperCase() + ': ' : '') + (texto ? texto.slice(0, 40) : '(sem texto)');
             }
             if (valEl) valEl.textContent = Math.round(obterFontSizeCaixa()) + 'px';
+            const rico = document.getElementById('secpRicoBlock');
+            if (rico) {
+                const ehRico = caixaPodeSerRica(secaoCaixaAtual);
+                rico.style.display = ehRico ? '' : 'none';
+                if (ehRico) atualizarBotoesRico();
+            }
         }
 
         function ajustarTamanhoTextoCaixa(delta) {
@@ -2326,7 +2335,9 @@
 
         function capturarTextosEditaveis() {
             const t = {};
-            document.querySelectorAll('[data-field]').forEach(el => { t[el.dataset.field] = el.innerHTML; });
+            document.querySelectorAll('[data-field]').forEach(el => {
+                t[el.dataset.field] = el.innerHTML;
+            });
             return t;
         }
 
@@ -2336,6 +2347,151 @@
                 const el = document.querySelector(`[data-field="${field}"]`);
                 if (el) el.innerHTML = t[field];
             });
+        }
+
+        /* ================================================
+           SUBTÍTULO E BULLETS EM QUALQUER CAIXA DE TEXTO
+           Toda caixa de texto editável (data-editable) pode receber h3/ul/li.
+           Os botões do painel "Estilos da Seção" adicionam ou removem o
+           subtítulo e as bullets na hora, sem exceção, colocando o cursor
+           direto no elemento novo para o usuário digitar imediatamente.
+        ================================================ */
+        function caixaRicaTemSub(el) {
+            return !!el.querySelector(':scope > h3');
+        }
+        function caixaRicaTemBullets(el) {
+            return !!el.querySelector(':scope > ul');
+        }
+        function colocarCursorEm(node) {
+            node.focus();
+            const range = document.createRange();
+            range.selectNodeContents(node);
+            range.collapse(false);
+            const sel = window.getSelection();
+            sel.removeAllRanges();
+            sel.addRange(range);
+        }
+        function criarElementoFormatado(tag, textoVazio) {
+            const no = document.createElement(tag);
+            if (textoVazio) no.textContent = '';
+            return no;
+        }
+        function alternativaRico(btn, tem, textoOn, textoOff) {
+            if (!btn) return;
+            btn.textContent = tem ? textoOn : textoOff;
+            btn.classList.toggle('ativo', tem);
+        }
+        function caixaPodeSerRica(el) {
+            // Sem exceção: qualquer caixa de texto editável selecionada pode
+            // receber subtítulo e bullets pelo painel "Estilos da Seção".
+            return !!el && el.nodeType === 1;
+        }
+        function atualizarBotoesRico() {
+            const el = secaoCaixaAtual;
+            if (!el || !caixaPodeSerRica(el)) return;
+            const temSub = caixaRicaTemSub(el);
+            const temBul = caixaRicaTemBullets(el);
+            alternativaRico(document.getElementById('secpRicoSubBtn'), temSub, '✕ Remover Subtítulo', '➕ Subtítulo');
+            alternativaRico(document.getElementById('secpRicoBulletsBtn'), temBul, '• Remover Bullets', '• Bullets');
+        }
+        function alternarRicoSub() {
+            const el = secaoCaixaAtual;
+            if (!el || !caixaPodeSerRica(el)) return;
+            const h3 = el.querySelector(':scope > h3');
+            const temBul = caixaRicaTemBullets(el);
+            if (h3) {
+                const txt = h3.innerText.trim();
+                h3.remove();
+                if (txt) {
+                    const corpo = temBul ? el.querySelector(':scope > ul') : el;
+                    const no = document.createElement(temBul ? 'li' : 'p');
+                    no.textContent = txt;
+                    corpo.insertBefore(no, corpo.firstChild);
+                }
+            } else {
+                const no = criarElementoFormatado('h3', true);
+                el.insertBefore(no, el.firstChild);
+                colocarCursorEm(no);
+            }
+            atualizarBotoesRico();
+            secAgendarHistorico();
+        }
+        function alternarRicoBullets() {
+            const el = secaoCaixaAtual;
+            if (!el || !caixaPodeSerRica(el)) return;
+            const ul = el.querySelector(':scope > ul');
+            const temBul = !!ul;
+            const temH3 = el.querySelector(':scope > h3');
+            if (temBul && ul) {
+                const paragrafos = [];
+                ul.querySelectorAll(':scope > li').forEach(li => {
+                    const t = li.innerText.trim();
+                    const p = criarElementoFormatado('p', true);
+                    p.textContent = t;
+                    paragrafos.push(p);
+                });
+                paragrafos.forEach(p => el.insertBefore(p, ul));
+                el.removeChild(ul);
+            } else {
+                const linhas = [];
+                Array.from(el.childNodes).forEach(n => {
+                    if (n === temH3) return;
+                    if (n.nodeType === 1) {
+                        const t = (n.innerText || '').trim();
+                        if (t) linhas.push(t);
+                        el.removeChild(n);
+                    } else if (n.nodeType === 3) {
+                        const t = (n.textContent || '').trim();
+                        if (t) linhas.push(t);
+                    }
+                });
+                if (!linhas.length) linhas.push('');
+                const novaUl = document.createElement('ul');
+                linhas.forEach(t => {
+                    const li = criarElementoFormatado('li', true);
+                    li.textContent = t;
+                    novaUl.appendChild(li);
+                });
+                if (temH3 && temH3.nextSibling) temH3.parentNode.insertBefore(novaUl, temH3.nextSibling);
+                else el.appendChild(novaUl);
+                colocarCursorEm(novaUl.lastChild);
+            }
+            atualizarBotoesRico();
+            secAgendarHistorico();
+        }
+        function normalizarCaixaRica(el) {
+            if (!caixaPodeSerRica(el)) return;
+            el.querySelectorAll(':scope > h3, :scope > p, :scope > ul li').forEach(n => {
+                if (n.textContent.trim() === '') n.remove();
+            });
+            el.querySelectorAll(':scope > ul').forEach(ul => {
+                if (!ul.querySelector('li')) ul.remove();
+            });
+            const h3 = el.querySelector(':scope > h3');
+            const ul = el.querySelector(':scope > ul');
+            if (h3 && ul) h3.parentNode.insertBefore(h3, ul);
+        }
+        function instalarCaixasRicas() {
+            document.querySelectorAll('[data-editable="true"]').forEach(el => {
+                el.addEventListener('keydown', (ev) => {
+                    if (!editMode || ev.key !== 'Enter' || ev.shiftKey) return;
+                    const alvo = ev.target && ev.target.closest ? ev.target.closest('li') : null;
+                    if (!alvo || !el.contains(alvo)) return;
+                    ev.preventDefault();
+                    const nova = document.createElement('li');
+                    nova.textContent = '';
+                    alvo.after(nova);
+                    colocarCursorEm(nova);
+                });
+                el.addEventListener('input', () => {
+                    if (editMode && secaoCaixaAtual === el) atualizarBotoesRico();
+                });
+            });
+        }
+        if (document.readyState === 'loading') {
+            document.addEventListener('DOMContentLoaded', instalarCaixasRicas, { once: true });
+        } else {
+            instalarCaixasRicas();
         }
 
         function capturarAtores(forcarExpandido) {
@@ -2953,6 +3109,8 @@ const FALLBACK_IMAGENS_CDN_404 = {
             // DUPLICADOS: "(-) (-)" ou "(+) Imagem (+) Imagem". Deixar o clone "cru" faz o
             // exportado injetar exatamente um toggle e uma prévia por ator.
             cloneDoc.querySelectorAll('.ator-toggle-btn, .ator-preview').forEach(el => el.remove());
+            // Normaliza as caixas de texto do clone: remove h3/li/p vazios antes de exportar.
+            cloneDoc.querySelectorAll('[data-editable="true"]').forEach(el => normalizarCaixaRica(el));
         }
 
         async function gerarHTMLCompleto() {
@@ -3864,13 +4022,16 @@ const FALLBACK_IMAGENS_CDN_404 = {
             };
             // 1) Vida Acadêmica -> Estágio (vertical)
             elVert(vidaP, estP);
-            // 2) Estágio -> Validação em DEGRAU: desce por BAIXO do centro do Estágio
-            //    e só então vira à direita, entrando pela lateral esquerda da Validação.
+            // 2) Estágio -> Realização em formato de L, limpo:
+            //    o tronco desce do Estágio pelo lado esquerdo (fora da Validação)
+            //    até a altura do meio da Realização e só então dobra à direita,
+            //    entrando pela lateral esquerda dela. A Validação recebe um
+            //    rabinho curto vindo desse mesmo tronco.
             const xEst = Math.round(estP.cx) - 1;
-            el(xEst, estP.bottom, 3, Math.max(1, valP.cy - estP.bottom));
-            el(xEst, valP.cy - 1, Math.max(1, valP.left - xEst), 3);
-            // 3) Validação -> Realização (mesma coluna: vertical)
-            elVert(valP, relP);
+            const yRel = Math.round(relP.cy);
+            el(xEst, estP.bottom, 3, Math.max(1, yRel - estP.bottom));          // tronco (descida do L)
+            el(xEst, yRel - 1, Math.max(1, relP.left - xEst), 3);               // dobra do L -> Realização
+            el(xEst, Math.round(valP.cy) - 1, Math.max(1, valP.left - xEst), 3);// rabinho -> Validação
             // 4) Realização -> Resultados (mesma linha: horizontal)
             const res = branch.querySelector('.cv-branch-resultados');
             if (res) {
