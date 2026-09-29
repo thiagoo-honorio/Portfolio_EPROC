@@ -2316,22 +2316,20 @@
             const urlFinal = url.trim();
             const sel = window.getSelection();
             const textoSelecionado = sel.toString().trim();
+            const titulo = prompt('Nome do link (texto que vai aparecer, sem mostrar a URL):', textoSelecionado || urlFinal);
+            if (titulo == null) return;
             const a = document.createElement('a');
             a.href = urlFinal;
-            a.textContent = textoSelecionado || urlFinal;
+            a.textContent = (titulo && titulo.trim()) ? titulo.trim() : urlFinal;
             a.target = '_blank';
             a.rel = 'noopener noreferrer';
             a.style.cssText = 'color:#2563eb;text-decoration:underline;';
-            const spanUrl = document.createElement('span');
-            spanUrl.className = 'link-url-visivel';
-            spanUrl.textContent = ' (' + urlFinal + ')';
             if (sel.rangeCount && textoSelecionado) {
                 sel.deleteFromDocument();
                 sel.getRangeAt(0).insertNode(a);
             } else {
                 alvoToolbarEl.appendChild(a);
             }
-            a.parentNode.insertBefore(spanUrl, a.nextSibling);
         }
 
         function capturarTextosEditaveis() {
