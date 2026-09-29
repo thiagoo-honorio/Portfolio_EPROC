@@ -77,8 +77,6 @@
         function aplicarEstadoEditavel() {
             document.querySelectorAll('[data-editable="true"]').forEach(el => {
                 el.contentEditable = editMode ? 'true' : 'false';
-            });
-            document.querySelectorAll('[data-editable="true"]').forEach(el => {
                 if (!editMode) normalizarCaixaRica(el);
             });
             document.querySelectorAll('.sec-titulo-edit').forEach(el => {
@@ -282,9 +280,6 @@
             const pdTxt = el.style.padding || cs.padding || '0px';
             const pd = parseFloat(pdTxt) || 0;
             set('secpPadding', Math.round(Math.min(Math.max(pd, 0), 60)));
-            const ahTxt = el.style.minHeight || cs.minHeight || '0px';
-            const ah = parseFloat(ahTxt) || 0;
-            set('secpHeight', Math.round(Math.min(Math.max(ah, 0), 800)));
             const form = document.getElementById('sectionPropsForm');
             const nosel = document.getElementById('sectionPropsNoSel');
             if (form) form.classList.add('show');
@@ -321,17 +316,6 @@
             if (!isNaN(fs)) el.style.fontSize = fs + 'px';
             const pd = parseFloat(v('secpPadding'));
             if (!isNaN(pd)) el.style.padding = pd + 'px';
-            const ah = parseFloat(v('secpHeight'));
-            if (!isNaN(ah) && ah > 0) el.style.minHeight = ah + 'px'; else if (!isNaN(ah) && ah <= 0) el.style.removeProperty('minHeight');
-            agendarHistorico();
-            secAgendarHistorico();
-        }
-
-        function resetarAlturaSecao() {
-            if (!secaoAtual) return;
-            secaoAtual.style.removeProperty('minHeight');
-            const i = document.getElementById('secpHeight');
-            if (i) i.value = '0';
             agendarHistorico();
             secAgendarHistorico();
         }
@@ -436,7 +420,11 @@
         function secCapturar() {
             const secs = {}, ordem = [];
             document.querySelectorAll('#pageContainer [data-ap-section]').forEach(s => {
-                if (s.id) { secs[s.id] = s.outerHTML; ordem.push(s.id); }
+                if (!s.id) return;
+                const clone = s.cloneNode(true);
+                clone.querySelectorAll('.ator-toggle-btn, .ator-preview').forEach(el => el.remove());
+                secs[s.id] = clone.outerHTML;
+                ordem.push(s.id);
             });
             return { secs, ordem };
         }
@@ -474,6 +462,8 @@
             });
             aplicarEstadoEditavel();
             try { instalarTogglesAtores(); } catch (err) { console.error('Toggles de atores:', err); }
+            try { iniciarDragEtapas(); } catch (err) { console.error('Drag das etapas:', err); }
+            try { vincularCliquesAtores(); } catch (err) { console.error('Cliques dos atores:', err); }
             secaoCaixaAtual = null;
             atualizarPainelCaixa();
             if (secaoAtual && secaoAtual.id && document.getElementById(secaoAtual.id)) selecionarSecao(document.getElementById(secaoAtual.id));
@@ -649,7 +639,7 @@
             enc: '.cv-mp-enc',
             gestao: '.cv-mp-bar'
         };
-        let cvMpCores = { disp: '#737478', contrat: '#1bb193', vig: '#5f3377', enc: '#833075', gestao: '#57585c' };
+        let cvMpCores = { disp: '#737478', contrat: '#1bb193', vig: '#7030a0', enc: '#833075', gestao: '#57585c' };
 
         function mudarCorCvMp(input, tipo) {
             const alvo = document.querySelector('.cv-branch-filhos-realizacao ' + CV_MP_SELETORES[tipo]);
@@ -762,46 +752,6 @@
             }
         }
 
-        /* ================================================
-           SUPORTE — MACROPROCESSO: CORES DO BLOCO
-           ("Novo Sistema de Estágio: Escopo do Sistema")
-        ================================================ */
-        const DUP_SELETORES = {
-            side: '.dup-side',
-            disp: '.dup-disponibilizacao',
-            contrat: '.dup-contratacao',
-            vig: '.dup-vigencia',
-            enc: '.dup-encerramento',
-            gestao: '.dup-bar'
-        };
-        let dupCores = { side: '#1e293b', disp: '#737478', contrat: '#1bb193', vig: '#5f3377', enc: '#833075', gestao: '#57585c' };
-
-        function mudarCorDup(input, tipo) {
-            const alvo = document.querySelector('.dup-map ' + DUP_SELETORES[tipo]);
-            if (!alvo) return;
-            const cor = input.value;
-            dupCores[tipo] = cor;
-            if (tipo === 'side') alvo.style.background = cor;
-            else alvo.style.backgroundColor = cor;
-            agendarHistorico();
-        }
-
-        function aplicarCoresDup(cores) {
-            if (cores && typeof cores === 'object') dupCores = Object.assign({}, dupCores, cores);
-            if (!document.querySelector('.dup-map')) return;
-            document.querySelectorAll('.dup-edit-bar input[type="color"]').forEach(input => {
-                const tipo = input.getAttribute('data-dup-cor');
-                if (tipo && dupCores[tipo] != null) input.value = dupCores[tipo];
-            });
-            Object.keys(DUP_SELETORES).forEach(tipo => {
-                const alvo = document.querySelector('.dup-map ' + DUP_SELETORES[tipo]);
-                if (!alvo) return;
-                const cor = dupCores[tipo];
-                if (tipo === 'side') alvo.style.background = cor;
-                else alvo.style.backgroundColor = cor;
-            });
-        }
-
         function removerEtapa(btn) {
             const item = btn.closest('.etapa-ator');
             if (!item) return;
@@ -828,7 +778,9 @@
            SEÇÃO 1: FILTRO & NAVEGAÇÃO
         ================================================ */
         function filterActors() {
-            const filter = normalizarBusca(document.getElementById('filterInput').value);
+            const input = document.getElementById('filterInput');
+            if (!input) return;
+            const filter = normalizarBusca(input.value);
             const rows = document.querySelectorAll('#actorsList .actor-row');
             for (let i = 0; i < rows.length; i++) {
                 const card = rows[i].querySelector('.actor-card');
@@ -1934,11 +1886,17 @@
         function apImgResetar() {
             if (!apImgEdit) return;
             const img = apImgEdit.img;
-            img.style.removeProperty('width');
-            img.style.removeProperty('height');
             img.style.removeProperty('transform');
             delete img.dataset.apTx;
             delete img.dataset.apTy;
+            if (img.classList && img.classList.contains('img-inserida')) {
+                // Imagem inserida pela caixa de edição: "original" é o padrão da caixa
+                img.style.width = '260px';
+                img.style.height = 'auto';
+            } else {
+                img.style.removeProperty('width');
+                img.style.removeProperty('height');
+            }
             apImgAtualizarOverlay();
         }
 
@@ -1947,6 +1905,7 @@
             const img = apImgEdit.img;
             const ow = parseFloat(img.style.width) || img.offsetWidth;
             const oh = parseFloat(img.style.height) || img.offsetHeight;
+            const razao = oh / ow || 1;
             const iniX = e.clientX, iniY = e.clientY;
             const moveF = (ev) => {
                 const dx = (ev.clientX - iniX) / apZoom, dy = (ev.clientY - iniY) / apZoom;
@@ -1955,7 +1914,12 @@
                 if (dir === 'sw' || dir === 'nw') nw = Math.max(40, ow - dx);
                 if (dir === 'se' || dir === 'sw') nh = Math.max(30, oh + dy);
                 if (dir === 'ne' || dir === 'nw') nh = Math.max(30, oh - dy);
-                if (e.shiftKey) { const ratio = oh / ow; nh = nw * ratio; }
+                if (!ev.shiftKey) {
+                    // Mantém a proporção da imagem por padrão (não distorce).
+                    // Segure Shift (durante o arraste) para redimensionar a largura e a altura livremente.
+                    if (Math.abs(dx) >= Math.abs(dy)) nh = nw * razao;
+                    else nw = nh / razao;
+                }
                 img.style.width = nw + 'px';
                 img.style.height = nh + 'px';
                 apImgAtualizarOverlay();
@@ -2218,9 +2182,39 @@
             const content = document.getElementById(contentId);
             const btn = document.getElementById(toggleBtnId);
             if (!content || !btn) return;
-            if (content.style.display === 'none') { content.style.display = 'block'; btn.innerText = '[−] Ocultar'; }
-            else { content.style.display = 'none'; btn.innerText = '[+] Expandir'; }
+            const expandindo = content.style.display === 'none';
+            content.style.display = expandindo ? 'block' : 'none';
+            btn.innerText = expandindo ? '[−] Ocultar' : '[+] Expandir';
+            btn.setAttribute('aria-expanded', String(expandindo));
+            const header = btn.closest('.section-header');
+            if (header) header.setAttribute('aria-expanded', String(expandindo));
         }
+
+        (function () {
+            function initTogglesA11y() {
+                document.querySelectorAll('[id$="Toggle"]').forEach(btn => {
+                    if (btn.getAttribute('role') === 'button') return;
+                    btn.setAttribute('role', 'button');
+                    btn.setAttribute('tabindex', '0');
+                    const expandido = btn.textContent.indexOf('Expandir') === -1;
+                    btn.setAttribute('aria-expanded', String(expandido));
+                    const header = btn.closest('.section-header');
+                    if (header) header.setAttribute('aria-expanded', String(expandido));
+                    btn.addEventListener('keydown', function (e) {
+                        if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            toggleSection(btn.id.replace('Toggle', 'Content'), btn.id);
+                        }
+                    });
+                });
+            }
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', initTogglesA11y, { once: true });
+            } else {
+                initTogglesA11y();
+            }
+        })();
 
         function abrirImgCadeia(src) {
             if (!src) return;
@@ -2296,11 +2290,18 @@
         function inserirImgNoAlvo(src) {
             if (!alvoToolbarEl || !src) return;
             const img = document.createElement('img');
+            img.className = 'img-inserida';
             img.src = src;
             img.alt = 'Imagem inserida';
-            img.style.cssText = 'max-width:120px;max-height:80px;border-radius:4px;cursor:pointer;margin-top:6px;display:block;border:1px solid var(--border-color);';
+            img.draggable = false;
+            // Sem max-height/miniatura fixa: a imagem abre num tamanho razoável e,
+            // no modo Editar, é redimensionada livremente pelo seletor próprio da
+            // página (alça que aparece ao clicar na imagem). max-width:100% evita
+            // que ela estoure a largura da caixa.
+            img.style.cssText = 'width:260px;height:auto;max-width:100%;border-radius:4px;cursor:pointer;margin:6px 0 0;display:block;border:1px solid var(--border-color);';
             img.addEventListener('click', (e) => {
                 e.stopPropagation();
+                if (editMode) return; // no modo edição o resize usa o seletor da própria página
                 const lb = document.getElementById('jornadaLightbox');
                 const lbImg = lb ? lb.querySelector('.jornada-lightbox-img') : null;
                 if (lbImg) { lbImg.src = src; lb.classList.add('active'); }
@@ -2352,15 +2353,114 @@
         /* ================================================
            SUBTÍTULO E BULLETS EM QUALQUER CAIXA DE TEXTO
            Toda caixa de texto editável (data-editable) pode receber h3/ul/li.
-           Os botões do painel "Estilos da Seção" adicionam ou removem o
-           subtítulo e as bullets na hora, sem exceção, colocando o cursor
-           direto no elemento novo para o usuário digitar imediatamente.
+           Os botões do painel "Estilos da Seção" agem só na linha/trecho sob o
+           cursor: o subtítulo torna a letra do texto local maior (h3) e o
+           bullet marca/desmarca apenas o texto daquele ponto. Se houver texto
+           selecionado, a formatação vale só para o trecho selecionado.
         ================================================ */
-        function caixaRicaTemSub(el) {
-            return !!el.querySelector(':scope > h3');
+        function segmentoDoCursor(box) {
+            // Linha/parágrafo sob o cursor dentro da caixa: o <li> de uma lista,
+            // o elemento de bloco direto (p/h3/div) ou um nó de texto puro no
+            // topo da caixa. Sem cursor na caixa, usa o primeiro filho preenchido.
+            if (!box || box.nodeType !== 1) return null;
+            let no = null;
+            const sel = window.getSelection();
+            if (sel && sel.rangeCount > 0 && sel.anchorNode && box.contains(sel.anchorNode)) {
+                no = sel.anchorNode;
+            }
+            if (!no) {
+                const prim = Array.from(box.childNodes).find(function (ch) {
+                    if (ch.nodeType === 3) return Boolean((ch.textContent || '').trim());
+                    return true;
+                });
+                no = prim || box;
+            }
+            let atual = no;
+            while (atual && atual !== box && atual.nodeType === 3) atual = atual.parentNode;
+            if (!atual || atual === box) {
+                const filho = Array.from(box.childNodes).find(function (ch) {
+                    if (ch.nodeType === 3) return Boolean((ch.textContent || '').trim());
+                    return true;
+                });
+                return filho || box;
+            }
+            let seg = atual;
+            while (seg && seg !== box && seg.parentNode !== box) {
+                if (seg.nodeType === 1 && seg.tagName === 'LI') break;
+                seg = seg.parentNode;
+            }
+            return seg && seg !== box ? seg : no;
         }
-        function caixaRicaTemBullets(el) {
-            return !!el.querySelector(':scope > ul');
+        function linhaSobCursor(noTexto) {
+            // Isola só a linha que contém o cursor dentro de um nó de texto puro.
+            const sel = window.getSelection();
+            const t = noTexto.textContent || '';
+            let ix = t.length;
+            if (sel && sel.anchorNode === noTexto && typeof sel.anchorOffset === 'number') {
+                ix = Math.min(sel.anchorOffset, t.length);
+            }
+            let ini = t.lastIndexOf('\n', ix - 1) + 1;
+            if (t[ix] === '\n') ini = ix + 1;
+            let fim = t.indexOf('\n', ix);
+            if (fim === -1) fim = t.length;
+            const antes = t.slice(0, ini);
+            const linha = t.slice(ini, fim);
+            const depois = t.slice(fim);
+            const pai = noTexto.parentNode;
+            if (antes !== '') pai.insertBefore(document.createTextNode(antes), noTexto);
+            const noMeio = document.createTextNode(linha);
+            pai.insertBefore(noMeio, noTexto);
+            if (depois !== '') pai.insertBefore(document.createTextNode(depois), noTexto);
+            pai.removeChild(noTexto);
+            return noMeio;
+        }
+        function substituirPorTag(noOrigem, tag) {
+            const novo = document.createElement(tag);
+            if (noOrigem.nodeType === 3) novo.textContent = noOrigem.textContent;
+            else novo.innerHTML = noOrigem.innerHTML;
+            if (noOrigem.parentNode) noOrigem.parentNode.replaceChild(novo, noOrigem);
+            return novo;
+        }
+        function envolverSelecao(box, tag) {
+            // Com texto selecionado, formata apenas o trecho selecionado.
+            const sel = window.getSelection();
+            if (!sel || sel.rangeCount === 0) return null;
+            const range = sel.getRangeAt(0);
+            if (range.collapsed || !box.contains(range.commonAncestorContainer)) return null;
+            if (!range.toString().trim()) return null;
+            const trecho = range.cloneContents();
+            const novo = document.createElement(tag);
+            novo.appendChild(trecho);
+            range.deleteContents();
+            range.insertNode(novo);
+            return novo;
+        }
+        function colocarBulletNaLista(el, li) {
+            const ul = el.querySelector(':scope > ul');
+            if (ul) {
+                ul.appendChild(li);
+            } else if (li.parentNode === el) {
+                // li já é filho direto da caixa → cria a lista no lugar dele
+                const ulNova = document.createElement('ul');
+                el.replaceChild(ulNova, li);
+                ulNova.appendChild(li);
+            } else {
+                // li veio de um trecho dentro de outro bloco → lista nova no fim
+                const ulNova = document.createElement('ul');
+                el.appendChild(ulNova);
+                ulNova.appendChild(li);
+            }
+        }
+        function elevarFilhoDaCaixa(el, novo) {
+            // Move um elemento recém-criado para filho direto da caixa quando
+            // ele nasceu aninhado (ex.: trecho selecionado dentro de um <p>).
+            if (!novo || novo.parentNode === el) return;
+            const pai = novo.parentNode;
+            if (pai && pai.parentNode && pai.parentNode === el) {
+                el.insertBefore(novo, pai.nextSibling);
+            } else {
+                el.appendChild(novo);
+            }
         }
         function colocarCursorEm(node) {
             node.focus();
@@ -2389,29 +2489,62 @@
         function atualizarBotoesRico() {
             const el = secaoCaixaAtual;
             if (!el || !caixaPodeSerRica(el)) return;
-            const temSub = caixaRicaTemSub(el);
-            const temBul = caixaRicaTemBullets(el);
-            alternativaRico(document.getElementById('secpRicoSubBtn'), temSub, '✕ Remover Subtítulo', '➕ Subtítulo');
-            alternativaRico(document.getElementById('secpRicoBulletsBtn'), temBul, '• Remover Bullets', '• Bullets');
+            const seg = segmentoDoCursor(el);
+            const emSub = !!(seg && ((seg.nodeType === 1 && seg.tagName === 'H3') ||
+                (seg.nodeType === 3 && seg.parentNode && seg.parentNode.tagName === 'H3')));
+            const emBul = !!(seg && seg.nodeType === 1 && seg.tagName === 'LI');
+            alternativaRico(document.getElementById('secpRicoSubBtn'), emSub, '✕ Remover Subtítulo', '➕ Adicionar Subtítulo');
+            alternativaRico(document.getElementById('secpRicoBulletsBtn'), emBul, '✕ Remover Bullet', '• Adicionar Bullet');
         }
         function alternarRicoSub() {
             const el = secaoCaixaAtual;
             if (!el || !caixaPodeSerRica(el)) return;
-            const h3 = el.querySelector(':scope > h3');
-            const temBul = caixaRicaTemBullets(el);
-            if (h3) {
-                const txt = h3.innerText.trim();
-                h3.remove();
-                if (txt) {
-                    const corpo = temBul ? el.querySelector(':scope > ul') : el;
-                    const no = document.createElement(temBul ? 'li' : 'p');
-                    no.textContent = txt;
-                    corpo.insertBefore(no, corpo.firstChild);
+            const sel = window.getSelection();
+            const temSelecao = !!(sel && !sel.isCollapsed && el.contains(sel.anchorNode));
+            const seg = segmentoDoCursor(el);
+            const emSub = !!(seg && ((seg.nodeType === 1 && seg.tagName === 'H3') ||
+                (seg.nodeType === 3 && seg.parentNode && seg.parentNode.tagName === 'H3')));
+            if (emSub) {
+                // cursor dentro de um subtítulo → volta a ser texto normal
+                const alvo = seg.nodeType === 3 ? seg.parentNode : seg;
+                const novo = substituirPorTag(alvo, 'p');
+                colocarCursorEm(novo);
+                atualizarBotoesRico();
+                secAgendarHistorico();
+                return;
+            }
+            if (temSelecao) {
+                // só o trecho selecionado vira subtítulo
+                const novo = envolverSelecao(el, 'h3');
+                if (novo) {
+                    elevarFilhoDaCaixa(el, novo);
+                    colocarCursorEm(novo);
+                    atualizarBotoesRico();
+                    secAgendarHistorico();
                 }
-            } else {
+                return;
+            }
+            if (seg && seg.nodeType === 1 && seg.tagName === 'LI') {
+                // item marcado vira subtítulo (sai da lista)
+                const ul = seg.parentNode;
+                const h3 = document.createElement('h3');
+                h3.innerHTML = seg.innerHTML;
+                if (ul && ul.parentNode) ul.parentNode.insertBefore(h3, ul.nextSibling);
+                ul.removeChild(seg);
+                if (!ul.querySelector('li')) ul.remove();
+                colocarCursorEm(h3);
+            } else if (!seg || seg === el) {
+                // caixa vazia ou sem cursor → subtítulo novo no começo
                 const no = criarElementoFormatado('h3', true);
                 el.insertBefore(no, el.firstChild);
                 colocarCursorEm(no);
+            } else {
+                // a linha sob o cursor vira subtítulo
+                const no = (seg.nodeType === 3 && seg.textContent.indexOf('\n') !== -1)
+                    ? linhaSobCursor(seg)
+                    : seg;
+                const h3 = substituirPorTag(no, 'h3');
+                colocarCursorEm(h3);
             }
             atualizarBotoesRico();
             secAgendarHistorico();
@@ -2419,42 +2552,52 @@
         function alternarRicoBullets() {
             const el = secaoCaixaAtual;
             if (!el || !caixaPodeSerRica(el)) return;
-            const ul = el.querySelector(':scope > ul');
-            const temBul = !!ul;
-            const temH3 = el.querySelector(':scope > h3');
-            if (temBul && ul) {
-                const paragrafos = [];
-                ul.querySelectorAll(':scope > li').forEach(li => {
-                    const t = li.innerText.trim();
-                    const p = criarElementoFormatado('p', true);
-                    p.textContent = t;
-                    paragrafos.push(p);
-                });
-                paragrafos.forEach(p => el.insertBefore(p, ul));
-                el.removeChild(ul);
+            const sel = window.getSelection();
+            const temSelecao = !!(sel && !sel.isCollapsed && el.contains(sel.anchorNode));
+            const seg = segmentoDoCursor(el);
+            if (seg && seg.nodeType === 1 && seg.tagName === 'LI') {
+                // cursor num item → remove apenas esse item da lista
+                const ul = seg.parentNode;
+                const p = document.createElement('p');
+                p.innerHTML = seg.innerHTML;
+                if (ul && ul.parentNode) ul.parentNode.insertBefore(p, ul.nextSibling);
+                ul.removeChild(seg);
+                if (!ul.querySelector('li')) ul.remove();
+                colocarCursorEm(p);
+                atualizarBotoesRico();
+                secAgendarHistorico();
+                return;
+            }
+            if (temSelecao) {
+                // só o trecho selecionado vira bullet
+                const novo = envolverSelecao(el, 'li');
+                if (novo) {
+                    colocarBulletNaLista(el, novo);
+                    colocarCursorEm(novo);
+                    atualizarBotoesRico();
+                    secAgendarHistorico();
+                }
+                return;
+            }
+            if (!seg || seg === el) {
+                // caixa vazia ou sem cursor → bullet novo no fim da lista (ou nova lista)
+                const novoLi = criarElementoFormatado('li', true);
+                const ul = el.querySelector(':scope > ul');
+                if (ul) ul.appendChild(novoLi);
+                else {
+                    const ulNova = document.createElement('ul');
+                    el.appendChild(ulNova);
+                    ulNova.appendChild(novoLi);
+                }
+                colocarCursorEm(novoLi);
             } else {
-                const linhas = [];
-                Array.from(el.childNodes).forEach(n => {
-                    if (n === temH3) return;
-                    if (n.nodeType === 1) {
-                        const t = (n.innerText || '').trim();
-                        if (t) linhas.push(t);
-                        el.removeChild(n);
-                    } else if (n.nodeType === 3) {
-                        const t = (n.textContent || '').trim();
-                        if (t) linhas.push(t);
-                    }
-                });
-                if (!linhas.length) linhas.push('');
-                const novaUl = document.createElement('ul');
-                linhas.forEach(t => {
-                    const li = criarElementoFormatado('li', true);
-                    li.textContent = t;
-                    novaUl.appendChild(li);
-                });
-                if (temH3 && temH3.nextSibling) temH3.parentNode.insertBefore(novaUl, temH3.nextSibling);
-                else el.appendChild(novaUl);
-                colocarCursorEm(novaUl.lastChild);
+                // a linha sob o cursor vira bullet
+                const no = (seg.nodeType === 3 && seg.textContent.indexOf('\n') !== -1)
+                    ? linhaSobCursor(seg)
+                    : seg;
+                const novoLi = substituirPorTag(no, 'li');
+                colocarBulletNaLista(el, novoLi);
+                colocarCursorEm(novoLi);
             }
             atualizarBotoesRico();
             secAgendarHistorico();
@@ -2698,7 +2841,6 @@
                 textos: capturarTextosEditaveis(),
                 secoes: capturarSecoes(),
                 estiloSecoes: capturarEstilosSecoes(),
-                dupCores: dupCores,
                 cvMpCores: cvMpCores,
                 apresentacao: Array.isArray(state.apresentacao) ? state.apresentacao : [],
                 imgEdits: capturarImgEdits()
@@ -2787,7 +2929,6 @@
             }
             if (parsed.textos) aplicarTextosEditaveis(parsed.textos);
             if (parsed.secoes) aplicarSecoes(parsed.secoes);
-            if (parsed.dupCores) aplicarCoresDup(parsed.dupCores);
             if (parsed.estiloSecoes) aplicarEstilosSecoes(parsed.estiloSecoes);
             if (parsed.cvMpCores) aplicarCoresCvMp(parsed.cvMpCores);
 
@@ -2854,7 +2995,8 @@
         }
 
         function restaurarEstadoLocal() {
-            const data = localStorage.getItem(CHAVE_SAVE_MANUAL);
+            let data = null;
+            try { data = localStorage.getItem(CHAVE_SAVE_MANUAL); } catch (err) { alert('Não foi possível acessar o armazenamento do navegador.'); return; }
             if (!data) { alert('Nenhum estado salvo foi encontrado. Use o botão 💾 Salvar primeiro.'); return; }
             let parsed;
             try { parsed = JSON.parse(data); } catch (err) { alert('Os dados salvos estão corrompidos.'); return; }
@@ -3058,7 +3200,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
 
         // Limpa a UI de edição e expande todas as seções para gerar um arquivo "final" limpo
         function limparCloneParaExportacao(cloneDoc) {
-            cloneDoc.querySelectorAll('.edit-controls, .step-edit-controls, .edit-step-bar, .edit-actor-bar, .add-actor-btn, .add-btn, .append-btn, .edit-add, .toast-msg, .dup-edit-bar, .cadeia-row-edit, .cv-mp-edit').forEach(el => el.remove());
+            cloneDoc.querySelectorAll('.edit-controls, .edit-step-bar, .edit-actor-bar, .add-actor-btn, .toast-msg, .cadeia-row-edit').forEach(el => el.remove());
             // Remove também a UI de edição do mapa e os filtros/navegação de edição,
             // que não devem aparecer no arquivo exportado (o PDF já os escondia; aqui no clone).
             ['#editorToolbar', '#propertiesPanel', '#searchContainer'].forEach(sel => {
@@ -3087,7 +3229,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
             // toggleSection/secsAd), para que o exportado exiba o conteúdo completo.
             // O clone é document.documentElement.cloneNode(true) (um Element, não um Document),
             // então NÃO use cloneDoc.getElementById(id) — use querySelector('#' + id).
-            ['hierarquiaContent', 'contextContent', 'suporteContent', 'sec1bContent', 'sec1Content', 'sec2Content', 'sec3Content'].forEach(id => {
+            ['hierarquiaContent', 'contextContent', 'suporteContent', 'sec1bContent', 'sec1Content', 'sec2Content', 'sec3Content', 'secBaseLegalContent'].forEach(id => {
                 const el = cloneDoc.querySelector('#' + id);
                 if (el) el.style.display = '';
                 const tg = cloneDoc.querySelector('#' + id.replace('Content', 'Toggle'));
@@ -3227,7 +3369,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
             if (workspace) workspace.style.gridTemplateColumns = '1fr';
 
             // Expande as demais seções (contexto, suporte, documentos) caso estejam colapsadas
-            const secsAd = ['hierarquiaContent', 'contextContent', 'suporteContent', 'sec1bContent'];
+            const secsAd = ['hierarquiaContent', 'contextContent', 'suporteContent', 'sec1bContent', 'secBaseLegalContent'];
             const secsAdEstados = {};
             secsAd.forEach(id => {
                 const el = document.getElementById(id);
@@ -3619,10 +3761,18 @@ const FALLBACK_IMAGENS_CDN_404 = {
         }
 
         function closeJornada(event) {
-            if (event.target === document.getElementById('jornadaLightbox') || event.target.classList.contains('jornada-lightbox-close')) {
-                document.getElementById('jornadaLightbox').classList.remove('active');
+            const lb = document.getElementById('jornadaLightbox');
+            if (!lb) return;
+            if (!event || event.target === lb || (event.target && event.target.classList && event.target.classList.contains('jornada-lightbox-close'))) {
+                lb.classList.remove('active');
             }
         }
+
+        document.addEventListener('keydown', function (event) {
+            if (event.key !== 'Escape') return;
+            const lb = document.getElementById('jornadaLightbox');
+            if (lb && lb.classList.contains('active')) closeJornada();
+        });
 
 
 
@@ -3891,11 +4041,9 @@ const FALLBACK_IMAGENS_CDN_404 = {
             // Em arquivo exportado (que contém #estadoMapaExportado), preserva os cards
             // que já vieram embutidos no DOM, em vez de reconstruí-los do zero.
             const ehExportado = !!document.getElementById('estadoMapaExportado');
-            const searchInput = document.getElementById('searchInput');
             const filterBtns = Array.from(document.querySelectorAll('.sup-filter-btn'));
 
             let currentFilter = 'todos';
-            let searchTerm = '';
 
             function aplicarEstadoCards() {
                 document.querySelectorAll('.sup-list-item [data-editable="true"]').forEach(el => {
@@ -3913,13 +4061,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
 
             function renderCards() {
                 const filtered = processosSuporte.filter(p => {
-                    const matchesFilter = currentFilter === 'todos' || p.categoria === currentFilter;
-                    const t = searchTerm;
-                    const matchesSearch = t === '' ||
-                        p.descricao.toLowerCase().includes(t) ||
-                        p.seiId.includes(t) ||
-                        p.idAtual.includes(t);
-                    return matchesFilter && matchesSearch;
+                    return currentFilter === 'todos' || p.categoria === currentFilter;
                 });
 
                 grid.innerHTML = '';
@@ -3943,20 +4085,13 @@ const FALLBACK_IMAGENS_CDN_404 = {
                                 <h3 class="sup-list-title" data-editable="true">${p.descricao}</h3>
                                 ${p.link ? `<a class="sup-btn-link" href="${p.link}" target="_blank" rel="noopener noreferrer">Abrir no SEI</a>` : ''}
                             </div>
-                            <div class="sup-card-contexto sup-list-contexto" data-editable="true" data-contexto="${p.idAtual}" role="textbox" aria-multiline="true" data-placeholder="Escreva aqui o contexto explicativo deste processo/documento...">${carregarContextoSuporte(p.idAtual)}</div>
+                            <div class="sup-card-contexto sup-list-contexto" data-editable="true" data-contexto="${p.idAtual}" role="textbox" aria-multiline="true" data-placeholder="Escreva aqui o contexto explicativo deste processo/documento...">${escaparHTML(carregarContextoSuporte(p.idAtual))}</div>
                         </div>
                     `;
                     grid.appendChild(item);
                     ligarCard(item, p.idAtual);
                 });
                 aplicarEstadoCards();
-            }
-
-            if (searchInput) {
-                searchInput.addEventListener('input', () => {
-                    searchTerm = searchInput.value.toLowerCase().trim();
-                    renderCards();
-                });
             }
 
             filterBtns.forEach(btn => {
@@ -4058,13 +4193,10 @@ const FALLBACK_IMAGENS_CDN_404 = {
             iniciarArvore();
         }
 
-        function iniciarCoresDup() { aplicarCoresDup(); }
         function iniciarCoresCvMp() { aplicarCoresCvMp(); }
         if (document.readyState === 'loading') {
-            document.addEventListener('DOMContentLoaded', iniciarCoresDup, { once: true });
             document.addEventListener('DOMContentLoaded', iniciarCoresCvMp, { once: true });
         } else {
-            iniciarCoresDup();
             iniciarCoresCvMp();
         }
     
