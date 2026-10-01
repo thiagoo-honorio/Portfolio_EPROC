@@ -36,6 +36,21 @@ html {
     scroll-behavior: smooth;
 }
 
+/* Quem prefere menos movimento não recebe rolagem suave. */
+@media (prefers-reduced-motion: reduce) {
+    html {
+        scroll-behavior: auto;
+    }
+
+    *,
+    *::before,
+    *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+    }
+}
+
 body {
     font-family: 'Open Sans', -apple-system, sans-serif;
     background-color: #f8fafc;
@@ -162,37 +177,10 @@ body {
     position: relative;
     border-radius: 16px;
     overflow: hidden;
-    background: linear-gradient(135deg, #374151 0%, #6b7280 50%, #d1d5db 100%);
+    background: linear-gradient(135deg, #374151 0%, #6b7280 50%);
     color: #ffffff;
     padding: 24px 32px;
     box-shadow: 0 10px 30px rgba(0, 0, 0, 0.15);
-}
-
-.page-hero::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background-image: radial-gradient(rgba(255, 255, 255, 0.08) 1px, transparent 1px);
-    background-size: 22px 22px;
-    pointer-events: none;
-}
-
-.page-hero::before {
-    content: '';
-    position: absolute;
-    top: -60px;
-    right: -40px;
-    width: 200px;
-    height: 200px;
-    border-radius: 3%;
-    background: radial-gradient(circle, rgba(255, 255, 255, 0.14) 0%, rgba(255, 255, 255, 0) 70%);
-    pointer-events: none;
-}
-
-.hero-content {
-    position: relative;
-    z-index: 1;
-    max-width: 760px;
 }
 
 .hero-title {
@@ -208,7 +196,10 @@ body {
     font-size: 1rem;
     line-height: 1.6;
     color: rgba(255, 255, 255, 0.88);
-    max-width: 640px;
+    /* Um parágrafo corrido na largura toda da caixa fica difícil de ler:
+       limitar a medida e equilibrar as quebras. */
+    max-width: 78ch;
+    text-wrap: pretty;
 }
 
 /* Ajusta âncoras para compensar o menu fixo (2 linhas: links + botões) */
@@ -217,7 +208,9 @@ body {
 #sec3Box,
 #sec1Box,
 #sec1bBox,
-#sec2Box {
+#sec2Box,
+#suporteBox,
+#secBaseLegalBox {
     scroll-margin-top: 125px;
 }
 
@@ -267,7 +260,9 @@ body {
     #sec3Box,
     #sec1Box,
     #sec1bBox,
-    #sec2Box {
+    #sec2Box,
+    #suporteBox,
+    #secBaseLegalBox {
         scroll-margin-top: 150px;
     }
 }
@@ -319,6 +314,29 @@ body.editing .action-stack {
 .action-stack .btn-custom {
     justify-content: flex-start;
     text-align: left;
+}
+
+/* Botão de preferência: o estado "ligado" precisa ficar óbvio, senão o
+   usuário não sabe se a página vai restaurar o trabalho sozinha. */
+.action-stack .ap-toggle.ativo {
+    background: #ecfdf5;
+    border-color: #10b981;
+    color: #065f46;
+    font-weight: 700;
+}
+
+.action-stack .ap-toggle.ativo::before {
+    content: '✓ ';
+}
+
+.action-stack .ap-toggle-danger {
+    color: #9f1239;
+    border-color: #fecdd3;
+}
+
+.action-stack .ap-toggle-danger:hover {
+    background: #fff1f2;
+    border-color: #fb7185;
 }
 
 .action-stack .edit-mode-indicator {
@@ -383,7 +401,10 @@ body.editing .nav-actions {
 .jornada-lightbox {
     position: fixed;
     top: 0; left: 0;
-    width: 100vw; height: 100vh;
+    /* 100vw inclui a largura da barra de rolagem e fazia a página ganhar uma
+       rolagem horizontal assim que a sobreposição abria. inset: 0 resolve. */
+    inset: 0;
+    width: auto; height: auto;
     background-color: rgba(15, 23, 42, 0.92);
     backdrop-filter: blur(4px);
     display: flex;
@@ -702,6 +723,25 @@ body.editing .nav-actions {
     height: 20px;
     flex-shrink: 0;
     color: var(--primary);
+}
+
+/* Corpo de todas as seções colapsáveis (#<id>Content). Padding único no lugar
+   dos style="padding: 20px;" repetidos no teste.html — assim mexer no respiro
+   interno é uma regra só, e não uma edition em 5 pontos do HTML. */
+.sec-content {
+    padding: 22px 24px;
+}
+
+/* Variante sem respiro: usada pelo Infográfico, onde a barra de ferramentas e
+   o canvas devem encostar nas bordas da caixa da seção. */
+.sec-content-flush {
+    padding: 0;
+}
+
+/* Botão [−] Ocultar / [+] Expandir do cabeçalho de cada seção. */
+.section-toggle {
+    padding: 2px 8px;
+    flex-shrink: 0;
 }
 
 .editor-toolbar {
@@ -1249,6 +1289,23 @@ body.editing [data-ap-section].sec-ativo { outline: 2px dashed #2563eb; outline-
     font-size: 0.85rem;
 }
 
+/* Cabeçalho e mensagem de "nada selecionado" do painel de propriedades
+   (usavam style= inline no teste.html). */
+.prop-painel-titulo {
+    font-size: 0.9rem;
+    font-weight: 700;
+}
+
+.prop-painel-vazio {
+    font-size: 0.8rem;
+    color: var(--text-secondary);
+}
+
+/* Sigla do ator no cartão (PRAE). */
+.ator-card-sigla {
+    font-size: 18px;
+}
+
 /* ============================================ */
 /* ESTILOS DO MODO EDIÇÃO                        */
 /* ============================================ */
@@ -1404,7 +1461,9 @@ body.editing .edit-step-bar {
 .modal-overlay {
     position: fixed;
     top: 0; left: 0;
-    width: 100vw; height: 100vh;
+    /* Ver comentário em .jornada-lightbox: 100vw estourava a viewport. */
+    inset: 0;
+    width: auto; height: auto;
     background-color: rgba(15, 23, 42, 0.65);
     backdrop-filter: blur(4px);
     display: flex;
@@ -1568,7 +1627,9 @@ body.editing .edit-step-bar {
 .lightbox-overlay {
     position: fixed;
     top: 0; left: 0;
-    width: 100vw; height: 100vh;
+    /* Ver comentário em .jornada-lightbox: 100vw estourava a viewport. */
+    inset: 0;
+    width: auto; height: auto;
     background-color: rgba(15, 23, 42, 0.92);
     z-index: 10000;
     display: flex;
@@ -1717,6 +1778,8 @@ body.editing .edit-step-bar {
 
 .doc-image-container {
     flex: 0 0 auto;
+    min-width: 0;
+    max-width: 100%;
 }
 
 .doc-image {
@@ -1746,8 +1809,42 @@ body.editing .edit-step-bar {
 
 .doc-legend strong { color: var(--title-color); }
 
+/* A imagem do "Mapeamento Completo" tem 700px fixos e #sec1bBox tem overflow-x
+   hidden: em telas estreitas ela era recortada sem barra de rolagem. Aqui o
+   layout empilha e a imagem passa a caber na largura disponível. */
+@media (max-width: 992px) {
+    .doc-layout {
+        flex-direction: column;
+    }
+
+    .doc-image-container {
+        width: 100%;
+    }
+
+    .doc-image {
+        width: 100%;
+        max-width: 100%;
+    }
+}
+
 @media print {
     .doc-matrix-container { box-shadow: none; page-break-inside: avoid; }
+
+    /* Fundo e gradiente não sobrevivem bem ao impresso: mantém-se só a
+       barra de cor da esquerda, que ainda separa o texto de abertura. */
+    .sec-lead,
+    .sec-note {
+        background: none;
+        padding: 6px 0 6px 12px;
+        margin-bottom: 12px;
+    }
+
+    /* Evita que um bloco de abertura quebre sozinho no fim da página. */
+    .sec-lead,
+    .sec-note,
+    .sec-intro {
+        page-break-inside: avoid;
+    }
 }
 
 /* ============================================ */
@@ -2079,6 +2176,111 @@ body:not(.editing) [data-editable] a:not(.jornada-link)::before {
 .slide-body {
     display: flex;
     gap: 25px;
+}
+
+/* ============================================ */
+/* TEXTO DE ABERTURA DA SEÇÃO (.sec-lead)       */
+/* ============================================
+   Bloco de texto que abre cada seção logo abaixo do cabeçalho. Antes era um
+   <div><p> solto, sem classe: herdava a formatação do pai, não era editável
+   no modo Editar e, por não ter data-field, não entrava em
+   capturarTextosEditaveis() — ou seja, não era salvo nem exportado.
+   Agora é uma caixa nomeada (data-field="<idDaSecao>_lead"), com hierarquia
+   visual própria e participating da persistência automática. */
+.sec-lead,
+.sec-note {
+    font-size: 1.02rem;
+    line-height: 1.72;
+    color: var(--text-primary);
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.06) 0%, rgba(37, 99, 235, 0) 72%);
+    border-left: 4px solid var(--primary);
+    border-radius: 0 10px 10px 0;
+    padding: 16px 20px;
+    margin: 0 0 22px;
+    text-align: justify;
+    hyphens: auto;
+    -webkit-hyphens: auto;
+    /* A página tem 1200px de largura útil, mas um parágrafo justificado com
+       140 caracteres por linha é ilegível. 40em ≈ 80 caracteres: é a medida
+       confortável para leitura em bloco corrido. */
+    max-width: 40em;
+}
+
+/* Primeiro bloco da seção: o padding do .sec-content já faz a separação. */
+.sec-content > .sec-lead:first-child,
+.sec-content > .sec-note:first-child {
+    margin-top: 0;
+}
+
+/* O Infográfico mantém a barra de ferramentas e o canvas em largura total,
+   então é o texto de abertura que recebe a margem lateral. */
+#sec2Content > .sec-lead {
+    margin: 22px 24px;
+}
+
+.sec-lead > p,
+.sec-note > p {
+    margin: 0 0 0.75em;
+}
+.sec-lead > p:last-child,
+.sec-note > p:last-child {
+    margin-bottom: 0;
+}
+
+/* Subtítulos escritos dentro do bloco de abertura. */
+.sec-lead h3 {
+    font-size: 1rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--primary);
+    margin: 1.15em 0 0.45em;
+}
+.sec-lead ul,
+.sec-note ul {
+    margin: 0.55em 0 0.55em 1.15em;
+    padding: 0;
+    list-style: disc;
+}
+.sec-lead li,
+.sec-note li {
+    margin: 0.3em 0;
+}
+
+/* Nota curta no meio da seção (Sistemas, Documentos): mesma linguagem visual,
+   mais compacta e sem justificação. */
+.sec-note {
+    font-size: 0.96rem;
+    line-height: 1.6;
+    background: rgba(15, 23, 42, 0.035);
+    border-left-color: var(--border-color);
+    margin: 18px 0;
+    text-align: left;
+}
+
+/* No modo de edição o bloco de abertura ganha a mesma affordance das demais
+   caixas de texto; a borda esquerda tracejada avisa que o texto é editável.
+   Com a caixa selecionada, o contorno âmbar de .sec-caixa-ativa tem
+   precedência (seletor mais específico) e substitui este. */
+body.editing .sec-lead,
+body.editing .sec-note {
+    border-left-style: dashed;
+}
+
+/* Telas estreitas: justificação com hifenização cria "rios" de espaço. */
+@media (max-width: 700px) {
+    .sec-lead,
+    .sec-note {
+        text-align: left;
+        hyphens: manual;
+        -webkit-hyphens: manual;
+        font-size: 1rem;
+        padding: 14px 16px;
+        max-width: none;
+    }
+    #sec2Content > .sec-lead {
+        margin: 18px 16px;
+    }
 }
 
 /* Caixa de texto introdutória de cada seção.
@@ -3061,12 +3263,19 @@ body.editing .cv-step.bg-gray-chevron span {
     .cv-branch-estagio,
     .cv-branch-validacao,
     .cv-branch-realizacao,
-    .cv-branch-resultados {
+    .cv-branch-resultados,
+    .cv-transversal {
         grid-template-columns: 1fr;
         grid-column: auto;
         grid-row: auto;
         justify-self: stretch;
         max-width: none;
+    }
+    /* A regra da linha 2554 (grid-column: 1 / 7) mantinha a cadeia com 6
+       colunas abaixo de 768px, espremendo o card de Resultados até ele sair
+       da caixa. Aqui o eixo volta a ser o do fluxo. */
+    .cv-branch-resultados {
+        transform: none;
     }
     .cv-branch-filhos-realizacao {
         grid-column: auto;
@@ -3258,4 +3467,20 @@ body.editing .page-container [data-ap-section] {
 }
 body.editing .page-container [data-ap-section]:hover {
     box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.45), 0 4px 20px rgba(0,0,0,0.10);
+}
+
+/* ================================================
+   TEXTO ALTERNATIVO / LEGENDA DE IMAGEM
+   O alt digitado no editor vira legenda visível na
+   exportação (e no modo de leitura), porque sem o
+   editor não existe outro lugar para o usuário ver.
+   ================================================ */
+.ap-figcaption {
+    display: block;
+    margin: 4px 0 12px;
+    font-size: 13px;
+    line-height: 1.45;
+    color: var(--text-secondary, #475569);
+    text-align: center;
+    font-style: italic;
 }

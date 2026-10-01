@@ -351,18 +351,97 @@
             secAgendarHistorico();
         }
 
+        /* Ids que a propria secao cita nos seus handlers internos: sao "dela" e
+           precisam ganhar ids proprios na duplicata. Ids de elementos globais
+           (modais, lightbox, toast, canvas) so sao alcancados pelo script, nunca
+           por onclick/aria-controls internos, e por isso ficam intactos. */
+        function idsLocaisDaSecao(raiz) {
+            const ids = new Set();
+            const dentro = id => {
+                try { return id && !!raiz.querySelector('#' + CSS.escape(id)); } catch (e) { return false; }
+            };
+            raiz.querySelectorAll('[onclick]').forEach(el => {
+                const attr = el.getAttribute('onclick') || '';
+                let m; const re = /'([A-Za-z][\w:.-]*)'/g;
+                while ((m = re.exec(attr))) if (dentro(m[1])) ids.add(m[1]);
+            });
+            raiz.querySelectorAll('[aria-controls]').forEach(el => {
+                const alvo = el.getAttribute('aria-controls');
+                if (dentro(alvo)) ids.add(alvo);
+            });
+            raiz.querySelectorAll('a[href^="#"]').forEach(a => {
+                const alvo = a.getAttribute('href').slice(1);
+                if (dentro(alvo)) ids.add(alvo);
+            });
+            return ids;
+        }
+
+        /* cloneNode copia todos os ids da original, e a original continua na
+           pagina: dois elementos com o mesmo id quebram qualquer getElementById
+           e, com isso,ecurezas inteiras dentro da duplicata (o
+           #cadeiaContainer da copia, por exemplo, virava invisivel para o
+           script). Como o id original ainda existe fora da copia, e a colisao
+           e exata, todo id da duplicata que tambem existe no documento ganha
+           um prefixo. */
+        function idsColidindoForaDe(raiz) {
+            const ids = new Set();
+            raiz.querySelectorAll('[id]').forEach(el => {
+                if (!el.id) return;
+                let fora = 0;
+                try {
+                    document.querySelectorAll('#' + CSS.escape(el.id)).forEach(outro => {
+                        if (!raiz.contains(outro)) fora++;
+                    });
+                } catch (e) { return; }
+                if (fora > 0) ids.add(el.id);
+            });
+            return ids;
+        }
+
         function duplicarSecao() {
             if (!secaoAtual) return;
-            const base = secaoAtual.id || '';
             const copia = secaoAtual.cloneNode(true);
             const novoId = gerarId('secBox');
             copia.id = novoId;
-            if (base) copia.querySelectorAll('[id]').forEach(el => {
-                if (el.id && (el.id === base || el.id.indexOf(base) === 0)) el.id = novoId + el.id.slice(base.length);
+            const renomeados = {};
+            const locais = idsLocaisDaSecao(copia);
+            idsColidindoForaDe(copia).forEach(id => locais.add(id));
+            copia.querySelectorAll('[id]').forEach(el => {
+                if (!locais.has(el.id)) return;
+                const novo = novoId + '_' + el.id;
+                renomeados[el.id] = novo;
+                el.id = novo;
+            });
+            // Sem isso o cabecalho da duplicata ainda apontaria para os ids da
+            // original e abriria/recolheria a secao original em vez dela mesma.
+            const antigos = Object.keys(renomeados);
+            const ATRIBUTOS_REF = ['onclick', 'aria-controls', 'aria-labelledby', 'aria-describedby', 'aria-owns', 'for', 'list', 'href'];
+            if (antigos.length) {
+                const seletor = ATRIBUTOS_REF.map(a => '[' + a + ']').join(',');
+                copia.querySelectorAll(seletor).forEach(el => {
+                    ATRIBUTOS_REF.forEach(attr => {
+                        const val = el.getAttribute(attr);
+                        if (!val) return;
+                        let novo = val;
+                        antigos.forEach(a => {
+                            novo = novo.split("'" + a + "'").join("'" + renomeados[a] + "'")
+                                       .split('"' + a + '"').join('"' + renomeados[a] + '"')
+                                       .split('#' + a).join('#' + renomeados[a]);
+                        });
+                        el.setAttribute(attr, novo);
+                    });
+                });
+            }
+            // data-field precisa ser unico por copia: caso contrario o texto da
+            // duplicata sobrescreve o da original ao salvar e nao e restaurado.
+            copia.querySelectorAll('[data-field]').forEach(el => {
+                el.dataset.field = novoId + '_' + el.dataset.field;
             });
             copia.classList.remove('sec-ativo');
             if (secaoAtual.parentNode.nextSibling) secaoAtual.parentNode.insertBefore(copia, secaoAtual.nextSibling);
             else secaoAtual.parentNode.appendChild(copia);
+            // cloneNode nao copia listeners: religa teclado/acessibilidade do toggle.
+            ligarTogglesA11y(copia);
             selecionarSecao(copia);
             agendarHistorico();
             secAgendarHistorico();
@@ -378,11 +457,16 @@
                 });
                 const t = tituloSecaoTexto(sec);
                 if (t) st.titulo = t;
-                const caixas = Array.from(sec.querySelectorAll('[data-editable="true"]')).map(c => {
+                const caixas = {};
+                Array.from(sec.querySelectorAll('[data-editable="true"]')).forEach((c, i) => {
                     const fs = parseFloat(c.style.fontSize);
-                    return fs && !isNaN(fs) ? Math.round(fs) : 0;
+                    if (!fs || isNaN(fs)) return;
+                    // A chave vem do data-field quando existe: índice quebrava
+                    // sempre que uma caixa era inserida ou removida na seção.
+                    const k = c.dataset.field || 'idx' + i;
+                    caixas[k] = Math.round(fs);
                 });
-                if (caixas.some(v => v)) st.caixas = caixas;
+                if (Object.keys(caixas).length) st.caixas = caixas;
                 if (Object.keys(st).length) out[sec.id || sec.className] = st;
             });
             return out;
@@ -403,9 +487,19 @@
                 if (st.minHeight) sec.style.minHeight = st.minHeight;
                 if (st.titulo) definirTituloSecao(sec, st.titulo);
                 if (Array.isArray(st.caixas)) {
-                    sec.querySelectorAll('[data-editable="true"]').forEach((c, i) => {
+                    // Estados salvos antes das chaves por campo: ainda são
+                    // uma lista na ordem das caixas da seção.
+                    Array.from(sec.querySelectorAll('[data-editable="true"]')).forEach((c, i) => {
                         const fs = st.caixas[i];
                         if (fs && !isNaN(fs)) c.style.fontSize = fs + 'px';
+                    });
+                } else if (st.caixas && typeof st.caixas === 'object') {
+                    Object.keys(st.caixas).forEach(k => {
+                        const fs = st.caixas[k];
+                        if (!fs || isNaN(fs)) return;
+                        if (k === 'idx') return;
+                        const c = sec.querySelector('[data-field="' + k.replace(/"/g, '\\"') + '"]');
+                        if (c) c.style.fontSize = fs + 'px';
                     });
                 }
             });
@@ -1172,10 +1266,34 @@
             if (!apSelecionados.length) { apAdd('imagem'); return; }
             const el = apBuscar(apSelecionados[apSelecionados.length - 1]);
             if (!el) { apAdd('imagem'); return; }
-            const url = prompt('URL da imagem:', el.imagem || 'https://');
+            const url = prompt('URL da imagem — deixe vazio para escolher um arquivo do computador:', el.imagem || 'https://');
             if (url == null) return;
-            el.imagem = url.trim();
+            const texto = url.trim();
+            if (!texto) { escolherArquivoImagemApresentacao(el); return; }
+            el.imagem = texto;
             salvarHistorico(); apRender();
+        }
+
+        /* Upload da camada de apresentação: o arquivo vira data URL e entra no
+           estado (state.apresentacao), então sobrevive a salvar/reabrir e não
+           depende de caminho absoluto. */
+        function escolherArquivoImagemApresentacao(el) {
+            const input = document.getElementById('inputFileImgApresentacao');
+            if (!input || !el) return;
+            input.value = '';
+            input.onchange = function () {
+                const file = this.files && this.files[0];
+                if (!file) return;
+                arquivoParaDataUrl(file, 1400, 0.85)
+                    .then(src => {
+                        el.imagem = src;
+                        salvarHistorico();
+                        apRender();
+                        toast('Imagem adicionada.');
+                    })
+                    .catch(err => toast(err.message || 'Não foi possível ler a imagem.', 'erro'));
+            };
+            input.click();
         }
 
         function apDefinirLink() {
@@ -1758,14 +1876,63 @@
         ================================================ */
         let apImgEdit = null;
 
+        /* Identidade estável por imagem.
+           A chave antiga era o índice do <img> na página mais o nome do
+           arquivo. Inserir, remover ou reordenar imagens deslocava o índice e
+           o redimensionamento salvo voltava a cair na imagem errada; em
+           imagens de data URL o "nome do arquivo" ainda era um base64
+           gigante dentro da chave.
+
+           Agora cada <img> recebe um data-ap-img-id na ordem em que aparece
+           no teste.html. Como o arquivo não muda entre recargas, a ordem
+           volta igual; e as imagens inseridas pelo usuário viajam com o id
+           dentro do innerHTML da caixa que as contém. */
+        /* Só entram no estado as imagens que são CONTEÚDO da página. Ficam de
+           fora as que são interface recriada a cada uso: camada do layout
+           livre, lightboxes, modais de detalhe das etapas e as miniaturas de
+           prévia (.ator-preview).
+
+           Isso não é vaidade: instalarPreviewsEtapas() cria as prévias DEPOIS
+           de garantirIdsImagem() rodar no carregamento. Se elas fossem
+           numeradas junto, roubariam a numeração das imagens de conteúdo e
+           duas imagens diferentes poderiam receber o mesmo data-ap-img-id. */
+        function apImgAlvo(img) {
+            if (!img || img.closest('#pageContainer') === null) return false;
+            if (img.closest('.ap-layer')) return false;
+            if (img.closest('.ator-preview')) return false;
+            if (img.closest('#jornadaLightbox')) return false;
+            if (img.closest('.modal-overlay')) return false;
+            if (img.closest('.lightbox-overlay')) return false;
+            return true;
+        }
+
+        /* Garante uma chave única por imagem de conteúdo (data-ap-img-id).
+           Numa numeração simples, uma imagem inserida no meio da página
+           receberia o mesmo número de uma que já existia — e as edições de uma
+           viriam na outra ao restaurar. Aqui a chave existente nunca é
+           renumerada: só imagens sem chave (ou com chave repetida, vinda de
+           uma versão antiga) recebem um número livre acima do maior atual. */
+        function garantirIdsImagem() {
+            const imgs = Array.prototype.filter.call(document.querySelectorAll('#pageContainer img'), apImgAlvo);
+            const usados = new Set();
+            let maior = 0;
+            imgs.forEach(img => {
+                const m = /^img(\d+)$/.exec(img.dataset.apImgId || '');
+                if (m) maior = Math.max(maior, parseInt(m[1], 10));
+            });
+            imgs.forEach(img => {
+                const atual = img.dataset.apImgId;
+                if (atual && !usados.has(atual)) { usados.add(atual); return; }
+                let chave;
+                do { chave = 'img' + (++maior); } while (usados.has(chave));
+                img.dataset.apImgId = chave;
+                usados.add(chave);
+            });
+        }
+
         function apImgChave(img) {
-            if (!img._apImgChave) {
-                const idx = Array.from(document.querySelectorAll('#pageContainer img')).filter(i => i.closest('#apLayer') === null && i !== document.querySelector('.jornada-lightbox-img')).indexOf(img);
-                const src = img.src || '';
-                const sufixo = src.startsWith('data:') ? '' : (src.split('/').pop() || '').slice(0, 40);
-                img._apImgChave = 'img' + idx + (sufixo ? '_' + sufixo : '');
-            }
-            return img._apImgChave;
+            garantirIdsImagem();
+            return img.dataset.apImgId || '';
         }
 
         function apImgSelecionar(img) {
@@ -1795,13 +1962,19 @@
             overlay.className = 'ap-img-overlay';
             pc.appendChild(overlay);
             apImgEdit.overlay = overlay;
+            const removida = img.dataset.apImgRemovida === '1';
             const tb = document.createElement('div');
             tb.className = 'ap-img-toolbar';
             tb.innerHTML = '<button class="ap-btn" onclick="apImgResizeRel(-0.1)" title="Diminuir">−L</button>' +
                 '<button class="ap-btn" onclick="apImgResizeRel(0.1)" title="Aumentar">+L</button>' +
                 '<button class="ap-btn" onclick="apImgResizeAspect(-0.1)" title="Encolher proporcional">−%</button>' +
                 '<button class="ap-btn" onclick="apImgResizeAspect(0.1)" title="Ampliar proporcional">+%</button>' +
+                '<button class="ap-btn" onclick="apImgTrocar()" title="Trocar esta imagem por outra (URL ou upload)">⇄</button>' +
+                '<button class="ap-btn" onclick="apImgAlt()" title="Descrever a imagem (vira legenda na exportação)">✎</button>' +
                 '<button class="ap-btn" onclick="apImgResetar()" title="Restaurar tamanho original">↺</button>' +
+                (removida
+                    ? '<button class="ap-btn" onclick="apImgRestaurar()" title="Reexibir esta imagem removida">↩</button>'
+                    : '<button class="ap-btn danger" onclick="apImgRemover()" title="Remover esta imagem da página">🗑</button>') +
                 '<button class="ap-btn danger" onclick="apImgDeselecionar()" title="Fechar">✕</button>';
             overlay.appendChild(tb);
             ['nw', 'ne', 'se', 'sw'].forEach(dir => {
@@ -1898,6 +2071,91 @@
                 img.style.removeProperty('height');
             }
             apImgAtualizarOverlay();
+        }
+
+        /* Trocar o arquivo de uma imagem mantendo o tamanho e a posição já
+           escolhidos. O src só entra no estado quando a troca aconteceu de
+           fato (data-ap-img-trocada) — assim o JSON não guarda uma cópia
+           desnecessária de toda imagem base64 da página. */
+        function apImgTrocar() {
+            if (!apImgEdit) return;
+            const img = apImgEdit.img;
+            const url = prompt('Cole a URL da nova imagem (deixe vazio para escolher um arquivo do computador):', img.getAttribute('src') || '');
+            if (url === null) return;
+            if (url && url.trim()) {
+                const alt = prompt('Texto alternativo (descreva a imagem; usado por leitores de tela):', img.getAttribute('alt') || '');
+                if (alt === null) return;
+                apImgAplicarTroca(img, url.trim(), alt);
+                return;
+            }
+            const input = document.getElementById('inputFileImagem');
+            if (!input) return;
+            input.value = '';
+            input.onchange = function () {
+                const file = this.files && this.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = ev => apImgAplicarTroca(img, ev.target.result, img.getAttribute('alt') || 'Imagem');
+                reader.readAsDataURL(file);
+            };
+            input.click();
+        }
+
+        function apImgAplicarTroca(img, src, alt) {
+            if (!img || !src) return;
+            img.setAttribute('src', src);
+            img.dataset.apImgTrocada = '1';
+            if (alt != null) img.setAttribute('alt', alt.trim());
+            agendarHistorico();
+            if (apImgEdit && apImgEdit.img === img) {
+                apImgEdit.origW = img.naturalWidth || img.width;
+                apImgEdit.origH = img.naturalHeight || img.height;
+                apImgAtualizarOverlay();
+            }
+            toast('Imagem trocada.');
+        }
+
+        /* Remover não apaga o <img>: marca com data-ap-img-removida e esconde.
+           Assim a remoção sobrevive ao recarregar mesmo para imagens do
+           teste.html que não vivem dentro de uma caixa com data-field (logo,
+           diagramas, jornada dos atores), e o "↩ Desfazer" continua
+           funcionando. A exportação remove de vez o elemento marcado. */
+        function apImgRemover() {
+            if (!apImgEdit) return;
+            const img = apImgEdit.img;
+            if (!confirm('Remover esta imagem da página?\n\nUse "↩ Desfazer" no painel se mudar de ideia.')) return;
+            if (img.dataset.apImgRemovida !== '1') {
+                img.dataset.apImgDisplay = img.style.display || '';
+            }
+            img.dataset.apImgRemovida = '1';
+            img.style.display = 'none';
+            apImgDeselecionar();
+            agendarHistorico();
+            atualizarBotaoImagensRemovidas();
+            toast('Imagem removida.');
+        }
+
+        function apImgRestaurar() {
+            if (!apImgEdit) return;
+            apImgReexibir(apImgEdit.img);
+            agendarHistorico();
+            apImgAtualizarOverlay();
+            atualizarBotaoImagensRemovidas();
+        }
+
+        /* Texto alternativo da imagem. Fica em data-ap-img-alt porque é ele
+           que a exportação transforma em legenda visível (ver gerarHTMLCompleto). */
+        function apImgAlt() {
+            if (!apImgEdit) return;
+            const img = apImgEdit.img;
+            const atual = img.getAttribute('data-ap-img-alt') || img.getAttribute('alt') || '';
+            const texto = prompt('Descreva a imagem.\n\nEsse texto vira legenda visível no arquivo exportado.', atual);
+            if (texto == null) return;
+            const limpo = texto.trim();
+            if (limpo) { img.setAttribute('alt', limpo); img.setAttribute('data-ap-img-alt', limpo); }
+            else { img.removeAttribute('alt'); img.removeAttribute('data-ap-img-alt'); }
+            agendarHistorico();
+            toast(limpo ? 'Descrição salva — sai como legenda na exportação.' : 'Descrição removida.');
         }
 
         function apImgResizeHandle(e, dir) {
@@ -2190,25 +2448,35 @@
             if (header) header.setAttribute('aria-expanded', String(expandindo));
         }
 
-        (function () {
-            function initTogglesA11y() {
-                document.querySelectorAll('[id$="Toggle"]').forEach(btn => {
-                    if (btn.getAttribute('role') === 'button') return;
-                    btn.setAttribute('role', 'button');
-                    btn.setAttribute('tabindex', '0');
-                    const expandido = btn.textContent.indexOf('Expandir') === -1;
-                    btn.setAttribute('aria-expanded', String(expandido));
-                    const header = btn.closest('.section-header');
-                    if (header) header.setAttribute('aria-expanded', String(expandido));
-                    btn.addEventListener('keydown', function (e) {
-                        if (e.key === 'Enter' || e.key === ' ') {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            toggleSection(btn.id.replace('Toggle', 'Content'), btn.id);
-                        }
-                    });
+        /* Liga papel de botao + teclado aos "[x]Toggle" dos cabecalhos de secao.
+           O seletor e restrito a .section-header de proposito: #navToggle e um
+           <button> nativo com listener proprio e, se fosse incluido aqui, o
+           preventDefault() do keydown cancelaria o clique sintetico do teclado. */
+        function ligarTogglesA11y(raiz) {
+            const escopo = raiz || document;
+            escopo.querySelectorAll('.section-header [id$="Toggle"]').forEach(btn => {
+                // _a11yToggle e propriedade JS: cloneNode nao a copia, entao a
+                // duplicata recomeca sem listener e volta a ser ligada aqui.
+                if (btn._a11yToggle) return;
+                btn._a11yToggle = true;
+                btn.setAttribute('role', 'button');
+                btn.setAttribute('tabindex', '0');
+                const expandido = btn.textContent.indexOf('Expandir') === -1;
+                btn.setAttribute('aria-expanded', String(expandido));
+                const header = btn.closest('.section-header');
+                if (header) header.setAttribute('aria-expanded', String(expandido));
+                btn.addEventListener('keydown', function (e) {
+                    if (e.key === 'Enter' || e.key === ' ') {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        toggleSection(btn.id.replace('Toggle', 'Content'), btn.id);
+                    }
                 });
-            }
+            });
+        }
+
+        (function () {
+            function initTogglesA11y() { ligarTogglesA11y(); }
             if (document.readyState === 'loading') {
                 document.addEventListener('DOMContentLoaded', initTogglesA11y, { once: true });
             } else {
@@ -2228,6 +2496,7 @@
             if (!container) return;
             const linha = document.createElement('div');
             linha.className = 'cadeia-row';
+            linha.dataset.key = gerarId('cad');
             linha.setAttribute('data-level', '2');
             linha.innerHTML = '<div class="cadeia-step bg-blue-mid">' +
                 '<span class="cadeia-step-titulo" data-editable="true">Nova Linha</span>' +
@@ -2237,7 +2506,9 @@
                 '# Texto explicativo #' +
                 '</div>';
             container.appendChild(linha);
+            instalarControlesCadeia();
             aplicarEstadoEditavel();
+            agendarHistorico();
         }
 
         /* ================================================
@@ -2254,6 +2525,42 @@
             toolbar.style.left = (rect.right + 8) + 'px';
             toolbar.style.top = rect.top + 'px';
             toolbar.classList.add('active');
+            atualizarBotaoImagensRemovidas();
+        }
+
+        /* Imagem removida fica com display:none, então não há como clicar nela
+           para usar o "↩" da barra da imagem. O botão da toolbar da caixa
+           resolve: ele só aparece quando a caixa tem imagem removida. */
+        function imagensRemovidasNaCaixa(el) {
+            if (!el || !el.querySelectorAll) return [];
+            return Array.from(el.querySelectorAll('img[data-ap-img-removida="1"]'));
+        }
+
+        function atualizarBotaoImagensRemovidas() {
+            const btn = document.getElementById('btnRestaurarImgCaixa');
+            if (!btn) return;
+            const n = imagensRemovidasNaCaixa(alvoToolbarEl).length;
+            btn.style.display = n ? '' : 'none';
+            btn.title = n ? 'Reexibir ' + n + ' imagem(ns) removida(s) desta caixa' : 'Restaurar imagens removidas';
+        }
+
+        function restaurarImagensRemovidas() {
+            const alvos = imagensRemovidasNaCaixa(alvoToolbarEl);
+            if (!alvos.length) return;
+            alvos.forEach(apImgReexibir);
+            agendarHistorico();
+            atualizarBotaoImagensRemovidas();
+            toast(alvos.length + ' imagem(ns) reexibida(s).');
+        }
+
+        /* Reexibe uma imagem marcada como removida, devolvendo o display
+           original (pode não ser vazio: imagens podem nascer com display
+          :block definido no style inline). */
+        function apImgReexibir(img) {
+            if (!img) return;
+            delete img.dataset.apImgRemovida;
+            img.style.display = img.dataset.apImgDisplay || '';
+            delete img.dataset.apImgDisplay;
         }
 
         function esconderToolbar(e) {
@@ -2278,13 +2585,384 @@
                     inserindoImagem = false;
                     const file = this.files && this.files[0];
                     if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = function (ev) { inserirImgNoAlvo(ev.target.result); };
-                    reader.readAsDataURL(file);
+                    arquivoParaDataUrl(file)
+                        .then(src => inserirImgNoAlvo(src))
+                        .catch(err => toast(err.message || 'Não foi possível ler a imagem.', 'erro'));
                 };
                 input.oncancel = function () { inserindoImagem = false; };
-                input.click();
+            input.click();
+        }
+
+        /* ================================================
+           PERSISTÊNCIA NO ARQUIVO (o "Salvar" de verdade)
+        ================================================
+
+           Até aqui o botão Salvar só escrevia no localStorage: a página
+           continuava igual ao recarregar e o trabalho só existia dentro
+           daquele navegador. Como o projeto é HTML/CSS/JS puro aberto em
+           file://, não existe caminho único — o que existe é uma cascata
+           que escolhe o melhor mecanismo disponível NA HORA do salvamento:
+
+             1. File System Access API — a página escreve direto no
+                teste.html, sem diálogo, usando o handle autorizado que a
+                supervisora escolheu uma vez (guardado em IndexedDB).
+             2. servidor.js — POST api/salvar. O Node grava o arquivo no
+                disco. É o caminho que funciona com a página aberta por
+                http://localhost e o único que grava sem nenhum diálogo.
+             3. showSaveFilePicker — a supervisora escolhe o arquivo.
+             4. Download do HTML atualizado (funciona em qualquer navegador).
+
+           O localStorage continua existindo como CÓPIA de segurança do
+           botão "Restaurar" — nunca como fonte de verdade.
+        ================================================ */
+        const ARQUIVO_PAGINA = 'teste.html';
+        const IDB_PERSISTENCIA = 'utfpr_persistencia';
+        const IDB_LOJA = 'arquivos';
+
+        function temFileSystemAccess() {
+            return typeof window.showSaveFilePicker === 'function' && window.isSecureContext !== false;
+        }
+
+        /* --- IndexedDB: guardar o handle do arquivo entre sessões ---------- */
+        function idbRequisicao() {
+            return new Promise((resolve, reject) => {
+                if (!window.indexedDB) { reject(new Error('SEM_IDB')); return; }
+                const req = indexedDB.open(IDB_PERSISTENCIA, 1);
+                req.onupgradeneeded = () => {
+                    const db = req.result;
+                    if (!db.objectStoreNames.contains(IDB_LOJA)) db.createObjectStore(IDB_LOJA);
+                };
+                req.onsuccess = () => resolve(req.result);
+                req.onerror = () => reject(req.error || new Error('IDB'));
+            });
+        }
+        async function idbOperar(modo, executar) {
+            const db = await idbRequisicao();
+            try {
+                return await new Promise((resolve, reject) => {
+                    const tx = db.transaction(IDB_LOJA, modo);
+                    const req = executar(tx.objectStore(IDB_LOJA));
+                    tx.oncomplete = () => resolve(req && req.result);
+                    tx.onerror = () => reject(tx.error || new Error('IDB_TX'));
+                    tx.onabort = () => reject(tx.error || new Error('IDB_ABORT'));
+                });
+            } finally { db.close(); }
+        }
+        async function idbLerHandleArquivo() {
+            try { return await idbOperar('readonly', loja => loja.get(ARQUIVO_PAGINA)); }
+            catch (err) { return null; }
+        }
+        async function idbGuardarHandleArquivo(handle) {
+            try { await idbOperar('readwrite', loja => loja.put(handle, ARQUIVO_PAGINA)); return true; }
+            catch (err) { return false; }
+        }
+        async function idbEsquecerHandleArquivo() {
+            try { await idbOperar('readwrite', loja => loja.delete(ARQUIVO_PAGINA)); } catch (err) { /* silencioso */ }
+        }
+
+        async function permissaoEscrita(handle, pedir) {
+            const op = pedir ? handle.requestPermission({ mode: 'readwrite' }) : handle.queryPermission({ mode: 'readwrite' });
+            return (await op) === 'granted';
+        }
+
+        async function escreverComHandle(handle, texto) {
+            const writable = await handle.createWritable();
+            await writable.write(texto);
+            await writable.close();
+        }
+
+        async function salvarPeloHandle(texto, forcarEscolha) {
+            if (!temFileSystemAccess()) return null;
+            let handle = forcarEscolha ? null : await idbLerHandleArquivo();
+            if (!handle) {
+                handle = await window.showSaveFilePicker({
+                    suggestedName: ARQUIVO_PAGINA,
+                    types: [{ description: 'Página HTML', accept: { 'text/html': ['.html'] } }]
+                });
+                await idbGuardarHandleArquivo(handle);
             }
+            if (!(await permissaoEscrita(handle, true))) throw new Error('SEM_PERMISSAO');
+            await escreverComHandle(handle, texto);
+            return handle.name || ARQUIVO_PAGINA;
+        }
+
+        /* --- servidor.js: escrita real no disco, sem diálogo --------------- */
+        let servidorLocalCache = null; // null = não testado, true/false = resposta
+        async function servidorLocalDisponivel() {
+            if (servidorLocalCache !== null) return servidorLocalCache;
+            servidorLocalCache = false;
+            try {
+                const ctrl = new AbortController();
+                const t = setTimeout(() => ctrl.abort(), 1500);
+                const r = await fetch('api/salvar', { method: 'HEAD', signal: ctrl.signal });
+                clearTimeout(t);
+                servidorLocalCache = !!r.ok;
+            } catch (err) { servidorLocalCache = false; }
+            return servidorLocalCache;
+        }
+        async function salvarPeloServidor(texto) {
+            const r = await fetch('api/salvar', {
+                method: 'POST',
+                headers: { 'Content-Type': 'text/html; charset=utf-8' },
+                body: texto
+            });
+            if (!r.ok) throw new Error('SERVIDOR_' + r.status);
+            let dados = null;
+            try { dados = await r.json(); } catch (err) { /* sem JSON */ }
+            return (dados && dados.arquivo) || ARQUIVO_PAGINA;
+        }
+
+        /* --- Último recurso: baixa o HTML atualizado ----------------------- */
+        function salvarPorDownload(texto) {
+            const blob = new Blob([texto], { type: 'text/html;charset=utf-8' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = ARQUIVO_PAGINA;
+            document.body.appendChild(a);
+            a.click();
+            a.remove();
+            setTimeout(() => URL.revokeObjectURL(url), 4000);
+            return ARQUIVO_PAGINA;
+        }
+
+        /* O HTML salvo é o MESMO arquivo do projeto, ainda editável: mantém
+           <script src="script.js"> e <link href="style.css">, a ordem das
+           seções e toda a UI de edição. Só o que é estado de sessão é
+           removido — senão o arquivo abriria com a caixa ainda selecionada,
+           o modo edição ligado e o mapa com um nó marcado. */
+        function limparCloneParaSalvar(cloneDoc) {
+            cloneDoc.querySelectorAll(
+                '.toast-msg, .edit-controls, .edit-step-bar, .edit-actor-bar, .add-actor-btn,' +
+                '.cadeia-row-edit, .ap-sel-box, .ap-img-overlay, .ap-sel-rotline,' +
+                '.ator-toggle-btn, .ator-preview'
+            ).forEach(el => el.remove());
+
+            const body = cloneDoc.querySelector('body');
+            if (body) {
+                body.classList.remove('editing');
+                const tc = cloneDoc.querySelector('#toastContainer');
+                if (tc) tc.innerHTML = '';
+            }
+            cloneDoc.querySelectorAll('[data-editable="true"], .sec-titulo-edit')
+                .forEach(el => el.setAttribute('contenteditable', 'false'));
+            cloneDoc.querySelectorAll('.modal-overlay, .lightbox-overlay, .jornada-lightbox')
+                .forEach(el => el.classList.remove('active'));
+            cloneDoc.querySelectorAll('.map-node.selected, .map-node.connecting-origin')
+                .forEach(el => el.classList.remove('selected', 'connecting-origin'));
+            cloneDoc.querySelectorAll('.actor-row.expandido, .etapa-ator.expandido')
+                .forEach(el => el.classList.remove('actor-highlight'));
+
+            // Painéis, barra flutuante e formulários voltam ao neutro.
+            cloneDoc.querySelectorAll('#editFloatToolbar').forEach(el => el.classList.remove('active'));
+            cloneDoc.querySelectorAll('#apPropsPanel').forEach(el => el.classList.remove('show'));
+            cloneDoc.querySelectorAll('#propForm, #apPropsForm').forEach(el => el.style.display = 'none');
+            cloneDoc.querySelectorAll('#propertiesPanel, #sectionPropsPanel').forEach(el => el.style.display = '');
+            cloneDoc.querySelectorAll('.page-container').forEach(el => el.style.removeProperty('zoom'));
+            cloneDoc.querySelectorAll('input[type="file"]').forEach(el => el.removeAttribute('value'));
+            cloneDoc.querySelectorAll('input, textarea, select').forEach(el => {
+                if (el.tagName !== 'INPUT' || !/^(checkbox|radio|color|range)$/i.test(el.type)) el.value = '';
+            });
+
+            // O título da seção ganha espaço inicial quando é digitado
+            // (necessário para o padding do CSS); no arquivo ele volta limpo.
+            cloneDoc.querySelectorAll('.sec-titulo-edit').forEach(el => {
+                if (el.firstChild && el.firstChild.nodeType === 3) el.firstChild.nodeValue = el.firstChild.nodeValue.replace(/^\s+/, '');
+            });
+
+            // Imagem removida pela supervisora some do arquivo (no editor ela
+            // só ficava escondida, para permitir o Desfazer).
+            cloneDoc.querySelectorAll('img[data-ap-img-removida="1"]').forEach(el => el.remove());
+
+            // Legendas são artefato da exportação: no arquivo de trabalho elas
+            // não devem se duplicar a cada Salvar.
+            cloneDoc.querySelectorAll('.ap-figcaption').forEach(el => el.remove());
+        }
+
+        /* Monta o HTML do arquivo de trabalho a partir do DOM vivo — é o
+           que faz o que a supervisora editou virar a nova versão da página. */
+        async function gerarHTMLEditavel() {
+            garantirCamposEditaveis();
+            garantirIdsImagem();
+
+            const cloneDoc = document.documentElement.cloneNode(true);
+            limparCloneParaSalvar(cloneDoc);
+
+            // Caminho absoluto do computador da supervisora não pode entrar
+            // no arquivo: em outro lugar a imagem não existiria. Tenta
+            // converter para base64; o que não conseguir vira erro explícito.
+            const absolutos = varrerCaminhosAbsolutos(cloneDoc);
+            if (absolutos.length) await embutirImagens(cloneDoc);
+            const restantes = varrerCaminhosAbsolutos(cloneDoc);
+            if (restantes.length) {
+                const e = new Error('IMAGEM_NAO_PORTATIL');
+                e.caminhos = restantes;
+                throw e;
+            }
+
+            // O que só existe em memória (mapa interativo e camada de layout
+            // livre) vai embutido em JSON: sem isso as formas e os nós
+            // posicionados sumiriam ao recarregar o arquivo salvo.
+            const cloneBody = cloneDoc.querySelector('body');
+            if (cloneBody) {
+                const antigo = cloneDoc.querySelector('#estadoPersistencia');
+                if (antigo) antigo.remove();
+                const tag = document.createElement('script');
+                tag.type = 'application/json';
+                tag.id = 'estadoPersistencia';
+                tag.textContent = JSON.stringify({
+                    versao: 1,
+                    salvoEm: new Date().toISOString(),
+                    state: {
+                        nodes: state.nodes,
+                        conexoes: state.conexoes,
+                        apresentacao: Array.isArray(state.apresentacao) ? state.apresentacao : []
+                    }
+                }).replace(/<\//g, '<\\/');
+                cloneBody.appendChild(tag);
+            }
+
+            return '<!DOCTYPE html>\n' + cloneDoc.outerHTML;
+        }
+
+        /* Lê o JSON que o próprio "Salvar" escreveu no arquivo. Não tem nada
+           a ver com o localStorage: é o conteúdo do arquivo, então é
+           aplicado sozinho — igual ler um <h1> do HTML. */
+        function carregarEstadoDoArquivo() {
+            const tag = document.getElementById('estadoPersistencia');
+            if (!tag) return false;
+            try {
+                const s = JSON.parse(tag.textContent);
+                const st = s && s.state;
+                if (!st) return false;
+                if (Array.isArray(st.nodes) && Array.isArray(st.conexoes)) {
+                    state.nodes = st.nodes;
+                    state.conexoes = st.conexoes;
+                }
+                if (Array.isArray(st.apresentacao)) state.apresentacao = st.apresentacao;
+                return true;
+            } catch (err) {
+                console.warn('JSON de persistência inválido no arquivo:', err);
+                return false;
+            }
+        }
+
+        /* Botão "Salvar". Cópia no navegador + escrita no arquivo. */
+        async function salvarTrabalho(forcarEscolha) {
+            forcarEscolha = forcarEscolha === true;
+            const backup = gravarEstadoLocalSilencioso();
+
+            let html;
+            try {
+                toast('Salvando no arquivo...', 'info', null, 2500);
+                html = await gerarHTMLEditavel();
+            } catch (err) {
+                if (err && err.message === 'IMAGEM_NAO_PORTATIL') {
+                    const lista = (err.caminhos || []).slice(0, 3).join(', ');
+                    toast('Não salvei: ' + err.caminhos.length + ' imagem(ns) apontam para um caminho do seu computador (' + lista + (err.caminhos.length > 3 ? '…' : '') + '), e o navegador não conseguiu lê-las. Selecione cada imagem e use ⇄ para trocar por um upload ou por um caminho relativo como imagens/foto.png.', 'erro', null, 20000);
+                } else {
+                    console.error(err);
+                    toast('Não consegui montar o arquivo para salvar. Veja o console.', 'erro', null, 9000);
+                }
+                return;
+            }
+
+            const destino = [];
+            // 1) handle já autorizado
+            try {
+                if (!forcarEscolha && temFileSystemAccess() && await idbLerHandleArquivo()) {
+                    const h = await idbLerHandleArquivo();
+                    if (await permissaoEscrita(h, false)) {
+                        await escreverComHandle(h, html);
+                        destino.push('arquivo "' + (h.name || ARQUIVO_PAGINA) + '"');
+                    }
+                }
+            } catch (err) {
+                await idbEsquecerHandleArquivo();
+            }
+            // 2) servidor.js — escrita no disco sem diálogo
+            if (!destino.length && !forcarEscolha && await servidorLocalDisponivel()) {
+                try {
+                    destino.push('arquivo "' + (await salvarPeloServidor(html)) + '"');
+                } catch (err) {
+                    console.warn('Falha ao gravar pelo servidor local:', err);
+                    servidorLocalCache = false;
+                }
+            }
+            // 3) seletor de arquivos
+            if (!destino.length) {
+                try {
+                    destino.push('arquivo "' + (await salvarPeloHandle(html, forcarEscolha)) + '"');
+                } catch (err) {
+                    if (err && err.name === 'AbortError') {
+                        toast('Salvamento cancelado.', 'info', null, 4000);
+                        return;
+                    }
+                    console.warn('File System Access indisponível:', err);
+                }
+            }
+            // 4) download
+            if (!destino.length) {
+                salvarPorDownload(html);
+                destino.push('download de "' + ARQUIVO_PAGINA + '"');
+            }
+
+            const avisoCopia = backup ? ''
+                : ' (a cópia no navegador não coube por causa do tamanho das imagens — o arquivo foi salvo normalmente)';
+            if (destino.length === 1 && destino[0].indexOf('download') === 0) {
+                toast('Página salva como ' + ARQUIVO_PAGINA + '. Substitua o arquivo original por esse download para a alteração valer no código.' + avisoCopia, 'ok', null, 12000);
+            } else {
+                toast('Alterações gravadas no ' + destino.join(' e no ') + '. Feche e reabra a página: o conteúdo salvo é o do arquivo.' + avisoCopia, 'ok', null, 8000);
+            }
+        }
+
+        /* Texto auxiliar do botão: mostra qual mechanism está em uso. */
+        async function explicarPersistencia() {
+            const linhas = [];
+            linhas.push('Onde o "Salvar" grava:');
+            if (temFileSystemAccess()) linhas.push('• File System Access API disponível neste navegador.');
+            else linhas.push('• Este navegador não tem File System Access API (comum ao abrir via file://).');
+            linhas.push(await servidorLocalDisponivel()
+                ? '• servidor.js detectado: o Salvar escreve direto no teste.html do disco.'
+                : '• servidor.js não está rodando (abra com "node servidor.js" para salvar sem diálogo).');
+            linhas.push('• Sem nenhum dos dois, o Salvar baixa o teste.html atualizado para você substituir o original.');
+            linhas.push('• O localStorage guarda só uma cópia de segurança do botão "Restaurar".');
+            toast(linhas.join('\n'), 'info', null, 12000);
+        }
+        }
+
+        /* Converte um arquivo de imagem em data URL, reduzindo o lado maior
+           quando a imagem é grande. Serve para os dois fluxos de upload
+           (caixa de texto e camada de apresentação): o estado vai para o
+           localStorage/JSON, e um PNG de 4 MB estouraria a cota. */
+        function arquivoParaDataUrl(file, maxLado, qualidade) {
+            return new Promise((resolve, reject) => {
+                if (!file || !/^image\//.test(file.type)) { reject(new Error('Arquivo não é imagem.')); return; }
+                const reader = new FileReader();
+                reader.onerror = () => reject(new Error('Falha ao ler o arquivo.'));
+                reader.onload = () => {
+                    const dataUrl = String(reader.result || '');
+                    const img = new Image();
+                    img.onerror = () => resolve(dataUrl);   // sem decode: devolve como veio
+                    img.onload = () => {
+                        const limite = maxLado || 1600;
+                        const maior = Math.max(img.naturalWidth, img.naturalHeight);
+                        if (!maior || maior <= limite) { resolve(dataUrl); return; }
+                        const escala = limite / maior;
+                        const cv = document.createElement('canvas');
+                        cv.width = Math.max(1, Math.round(img.naturalWidth * escala));
+                        cv.height = Math.max(1, Math.round(img.naturalHeight * escala));
+                        const ctx = cv.getContext('2d');
+                        ctx.fillStyle = '#ffffff';
+                        ctx.fillRect(0, 0, cv.width, cv.height);
+                        ctx.drawImage(img, 0, 0, cv.width, cv.height);
+                        try { resolve(cv.toDataURL('image/jpeg', qualidade || 0.85)); }
+                        catch (err) { resolve(dataUrl); }
+                    };
+                    img.src = dataUrl;
+                };
+                reader.readAsDataURL(file);
+            });
         }
 
         function inserirImgNoAlvo(src) {
@@ -2294,28 +2972,82 @@
             img.src = src;
             img.alt = 'Imagem inserida';
             img.draggable = false;
+            // Id estável já na criação: o texto da caixa é serializado no mesmo
+            // salvamento e precisa carregar o id junto, senão a imagem voltaria
+            // do "Restaurar" sem chave e perderia tamanho/deslocamento.
+            img.setAttribute('data-ap-img-id', gerarId('imgins'));
             // Sem max-height/miniatura fixa: a imagem abre num tamanho razoável e,
             // no modo Editar, é redimensionada livremente pelo seletor próprio da
             // página (alça que aparece ao clicar na imagem). max-width:100% evita
             // que ela estoure a largura da caixa.
             img.style.cssText = 'width:260px;height:auto;max-width:100%;border-radius:4px;cursor:pointer;margin:6px 0 0;display:block;border:1px solid var(--border-color);';
-            img.addEventListener('click', (e) => {
-                e.stopPropagation();
-                if (editMode) return; // no modo edição o resize usa o seletor da própria página
-                const lb = document.getElementById('jornadaLightbox');
-                const lbImg = lb ? lb.querySelector('.jornada-lightbox-img') : null;
-                if (lbImg) { lbImg.src = src; lb.classList.add('active'); }
-            });
+            // O clique no lightbox é delegado em instalarImagensInseridas(): o
+            // innerHTML restaurado recria o <img> e perderia um listener preso
+            // direto no elemento.
             alvoToolbarEl.appendChild(img);
+            agendarHistorico();
         }
 
+        /* Um único listener no documento cobre todas as imagens inseridas,
+           inclusive as que voltaram de um "Restaurar" (innerHTML novo, mesmo
+           src). */
+        function instalarImagensInseridas() {
+            if (instalarImagensInseridas._pronto) return;
+            instalarImagensInseridas._pronto = true;
+            document.addEventListener('click', (e) => {
+                if (editMode) return;
+                const img = e.target.closest ? e.target.closest('img.img-inserida') : null;
+                if (!img) return;
+                e.stopPropagation();
+                const lb = document.getElementById('jornadaLightbox');
+                const lbImg = lb ? lb.querySelector('.jornada-lightbox-img') : null;
+                if (lbImg) { lbImg.src = img.getAttribute('src') || ''; lb.classList.add('active'); }
+            });
+        }
+
+        /* O link sob o cursor serve para editar/remover um link que já existe.
+           Sem seleção, usa o último link da caixa — assim dá para mexer num
+           link inserido num texto longo sem precisar acertar a posição. */
+        function linkSobCursor(caixa) {
+            const sel = window.getSelection();
+            let no = sel && sel.anchorNode;
+            if (no) {
+                let el = no.nodeType === 1 ? no : no.parentElement;
+                if (el && el.closest) el = el.closest('a[href]');
+                if (el && caixa && caixa.contains(el)) return el;
+            }
+            if (!caixa) return null;
+            const links = caixa.querySelectorAll('a[href]');
+            return links.length ? links[links.length - 1] : null;
+        }
+
+        /* Inserir link NUNCA edita um link que já existe.
+
+           Este botão já procurava um link sob o cursor e, achando um,
+           saía editando-o em vez de criar outro — como linkSobCursor()
+           cai no ÚLTIMO link da caixa quando o cursor não está sobre
+           nenhum, a supervisora conseguia colocar o primeiro link e,
+           nas tentativas seguintes, acabava sobrescrevendo esse mesmo
+           link. Daí a impressão de "só aceita 1 link".
+
+           Agora este botão só cria. Editar é o botão ✏️ ao lado
+           (editarLinkEditavel), que age sobre o link sob o cursor. */
         function inserirLinkEditavel() {
-            if (!alvoToolbarEl) return;
+            if (!alvoToolbarEl) {
+                toast('Clique dentro de uma caixa de texto para inserir um link.', 'info');
+                return;
+            }
             const url = prompt('Cole a URL do link:');
-            if (!url || !url.trim()) return;
+            if (url == null || !url.trim()) return;
             const urlFinal = url.trim();
             const sel = window.getSelection();
-            const textoSelecionado = sel.toString().trim();
+            let textoSelecionado = '';
+            // Só aproveita a seleção se ela estiver DENTRO da caixa alvo —
+            // texto de outra seção não pode ser roubado pelo link.
+            if (sel && sel.rangeCount && sel.toString().trim()
+                && alvoToolbarEl.contains(sel.getRangeAt(0).commonAncestorContainer)) {
+                textoSelecionado = sel.toString().trim();
+            }
             const titulo = prompt('Nome do link (texto que vai aparecer, sem mostrar a URL):', textoSelecionado || urlFinal);
             if (titulo == null) return;
             const a = document.createElement('a');
@@ -2324,15 +3056,149 @@
             a.target = '_blank';
             a.rel = 'noopener noreferrer';
             a.style.cssText = 'color:#2563eb;text-decoration:underline;';
-            if (sel.rangeCount && textoSelecionado) {
+            if (textoSelecionado) {
                 sel.deleteFromDocument();
                 sel.getRangeAt(0).insertNode(a);
             } else {
-                alvoToolbarEl.appendChild(a);
+                // Sem seleção: insere no ponto do cursor se ele estiver na
+                // caixa, senão no fim — sempre como link NOVO e independente.
+                inserirLinkNaPosicaoDoCursor(alvoToolbarEl, a);
+            }
+            if (sel) sel.removeAllRanges();
+            a.scrollIntoView({ block: 'nearest' });
+            const total = alvoToolbarEl.querySelectorAll('a[href]').length;
+            toast('Link adicionado (' + total + ' link' + (total > 1 ? 's' : '') + ' nesta caixa).', 'ok', null, 2500);
+            agendarHistorico();
+        }
+
+        /* Sem seleção: respeita o cursor; na dúvida, appenda. O separador
+           evita que dois links no fim da caixa virem "site1.comsite2.com". */
+        function inserirLinkNaPosicaoDoCursor(caixa, a) {
+            const sel = window.getSelection();
+            let noCursor = false;
+            if (sel && sel.rangeCount) {
+                const range = sel.getRangeAt(0);
+                const alvo = range.startContainer;
+                const dentro = alvo === caixa || caixa.contains(alvo);
+                if (dentro && range.collapsed) {
+                    const antes = alvo === caixa ? null : alvo.previousSibling;
+                    if (antes && antes.nodeType === 3 && !/\s$/.test(antes.nodeValue)) {
+                        alvo.insertBefore(document.createTextNode(' '), range.startContainer);
+                    }
+                    range.insertNode(a);
+                    noCursor = true;
+                }
+            }
+            if (!noCursor) {
+                const ultimo = caixa.lastElementChild;
+                const ultimoEhLink = ultimo && ultimo.tagName === 'A';
+                if (!ultimoEhLink) caixa.appendChild(document.createTextNode(' '));
+                caixa.appendChild(a);
             }
         }
 
+        /* Edição pontual: só o link sob o cursor muda, os vizinhos ficam
+           intactos (inclusive quando o cursor não está sobre nenhum link —
+           aí o alvo é o último da caixa, que é o que se vê/editou por último). */
+        function editarLinkEditavel() {
+            if (!alvoToolbarEl) {
+                toast('Clique dentro de uma caixa de texto para editar um link.', 'info');
+                return;
+            }
+            const total = alvoToolbarEl.querySelectorAll('a[href]').length;
+            if (!total) {
+                toast('Esta caixa ainda não tem nenhum link. Use 🔗 para adicionar.', 'info');
+                return;
+            }
+            const a = linkSobCursor(alvoToolbarEl);
+            if (!a) { toast('Passe o cursor sobre um link para editá-lo.', 'info'); return; }
+            editarLink(a);
+        }
+
+        function editarLink(a) {
+            const url = prompt('URL do link:', a.getAttribute('href') || '');
+            if (url === null) return;
+            if (!url.trim()) {
+                // URL vazia é o atalho natural para "tirar o link e manter o texto".
+                removerLinkMantendoTexto(a);
+                return;
+            }
+            const titulo = prompt('Texto do link:', a.textContent || url.trim());
+            if (titulo === null) return;
+            a.setAttribute('href', url.trim());
+            a.textContent = titulo.trim() || url.trim();
+            agendarHistorico();
+            toast('Link atualizado.');
+        }
+
+        function removerLinkMantendoTexto(a) {
+            const texto = document.createTextNode(a.textContent || '');
+            a.replaceWith(texto);
+            agendarHistorico();
+            toast('Link removido — o texto foi mantido.');
+        }
+
+        function removerLinkEditavel() {
+            if (!alvoToolbarEl) return;
+            const a = linkSobCursor(alvoToolbarEl);
+            if (!a) {
+                toast('Passe o cursor sobre um link (ou o selecione) para removê-lo.', 'info');
+                return;
+            }
+            if (!confirm('Remover este link?\n\nO texto será mantido, apenas o link. Use "↩ Desfazer" no painel se mudar de ideia.')) return;
+            removerLinkMantendoTexto(a);
+        }
+
+        /* ================================================
+           CHAVES ESTÁVEIS DAS CAIXAS DE TEXTO
+           Só 13 das 73 caixas [data-editable] tinham data-field. Sem ele,
+           capturarTextosEditaveis() pulava o conteúdo: o texto digitado —
+           e também as imagens e links inseridos dentro dessas caixas, que
+           viajam no mesmo innerHTML — sumiam ao restaurar.
+
+           garantirCamposEditaveis() dá a cada caixa uma chave derivada do
+           caminho do elemento dentro da sua seção, que é a mesma a cada
+           recarga porque o teste.html não muda entre elas.
+
+           #actorsList, #etapasList3 e .cadeia-row ficam de fora: essas linhas
+          são capturadas e reconstruídas inteiras por capturarAtores(),
+          capturarEtapas() e capturarCadeia(), e o innerHTML que elas gravam
+          não preserva os atributos das caixas internas — o caminho voltaria
+          diferente se alguma linha fosse removida e passaria a gravar texto
+          na linha errada.
+        ================================================ */
+        const AP_CAPTURA_DEDICADA = '#actorsList, #etapasList3, .cadeia-row';
+
+        function apCaminhoDoCampo(el, raiz) {
+            const partes = [];
+            let no = el;
+            while (no && no !== raiz && no.parentElement) {
+                let i = 1;
+                let irmao = no.previousElementSibling;
+                while (irmao) { i++; irmao = irmao.previousElementSibling; }
+                partes.unshift(no.tagName.toLowerCase() + '-' + i);
+                no = no.parentElement;
+            }
+            return partes.join('_');
+        }
+
+        function garantirCamposEditaveis() {
+            document.querySelectorAll('#pageContainer [data-editable="true"]').forEach(el => {
+                if (el.dataset.field) return;
+                if (el.closest(AP_CAPTURA_DEDICADA)) return;
+                const sec = el.closest('[data-ap-section]');
+                const raiz = sec || document.getElementById('pageContainer');
+                if (!raiz) return;
+                el.dataset.field = 'auto_' + (sec && sec.id ? sec.id : 'doc') + '_' + apCaminhoDoCampo(el, raiz);
+            });
+        }
+
         function capturarTextosEditaveis() {
+            garantirCamposEditaveis();
+            // As imagens dentro das caixas são serializadas como innerHTML:
+            // precisam do id estável ANTES do HTML ser lido, caso contrário
+            // voltariam do "Restaurar" sem data-ap-img-id.
+            garantirIdsImagem();
             const t = {};
             document.querySelectorAll('[data-field]').forEach(el => {
                 t[el.dataset.field] = el.innerHTML;
@@ -2342,10 +3208,66 @@
 
         function aplicarTextosEditaveis(t) {
             if (!t) return;
+            // Antes de procurar as chaves: as caixas sem campo no teste.html
+            // só recebem a chave depois que este passo roda.
+            garantirCamposEditaveis();
             Object.keys(t).forEach(field => {
-                const el = document.querySelector(`[data-field="${field}"]`);
-                if (el) el.innerHTML = t[field];
+                document.querySelectorAll(`[data-field="${field}"]`).forEach(el => {
+                    el.innerHTML = t[field];
+                });
             });
+        }
+
+        /* ================================================
+           LINHAS DA CADEIA DE VALOR
+           #cadeiaContainer nasce vazio no teste.html: as linhas são criadas
+           por adicionarLinhaCadeia() e, sem captura própria, sumiam ao
+           recarregar. Aqui cada linha vira um item de estado com chave
+           própria (data-level mantém o nível 1/2 da linha).
+        ================================================ */
+        function capturarCadeia() {
+            const itens = [];
+            document.querySelectorAll('#cadeiaContainer > .cadeia-row').forEach((row, i) => {
+                const passo = row.querySelector('.cadeia-step');
+                const tit = passo ? passo.querySelector('.cadeia-step-titulo') : null;
+                const sub = passo ? passo.querySelector('.cadeia-step-sub') : null;
+                const desc = row.querySelector('.cadeia-desc');
+                const cs = passo ? getComputedStyle(passo) : null;
+                itens.push({
+                    key: row.dataset.key || ('cad' + (i + 1)),
+                    level: row.getAttribute('data-level') || '2',
+                    titulo: tit ? tit.innerHTML : '',
+                    sub: sub ? sub.innerHTML : '',
+                    desc: desc ? desc.innerHTML : '',
+                    cor: (cs && passo.dataset.cor) ? passo.dataset.cor : (passo ? passo.dataset.cor || '' : '')
+                });
+            });
+            return itens;
+        }
+
+        function criarLinhaCadeiaHTML(c) {
+            const key = escaparHTML(c.key);
+            const nivel = escaparHTML(c.level || '2');
+            const cor = c.cor ? ' style="background:' + escaparHTML(c.cor) + ';"' : '';
+            return '<div class="cadeia-row" data-key="' + key + '" data-level="' + nivel + '">' +
+                '<div class="cadeia-step bg-blue-mid"' + cor + '>' +
+                '<span class="cadeia-step-titulo" data-editable="true">' + (c.titulo || 'Nova Linha') + '</span>' +
+                '<span class="cadeia-step-sub" data-editable="true">' + (c.sub || '(descrição)') + '</span>' +
+                '</div>' +
+                '<div class="cadeia-desc" data-editable="true">' + (c.desc || '') + '</div>' +
+                '</div>';
+        }
+
+        function aplicarCadeia(itens) {
+            const container = document.getElementById('cadeiaContainer');
+            // lista vazia é estado válido: o usuário apagou todas as linhas e
+            // precisa que elas continuem ausentes depois de restaurar.
+            if (!container || !Array.isArray(itens)) return;
+            container.querySelectorAll(':scope > .cadeia-row').forEach(el => el.remove());
+            if (!itens.length) return;
+            const tmp = document.createElement('template');
+            tmp.innerHTML = itens.map(criarLinhaCadeiaHTML).join('');
+            tmp.content.querySelectorAll('.cadeia-row').forEach(node => container.appendChild(node));
         }
 
         /* ================================================
@@ -2799,45 +3721,143 @@
         /* ================================================
            ESTADO COMPLETO (COLETAR / APLICAR)
         ================================================ */
+
+        /* Cada imagem guarda, sob a chave estável data-ap-img-id:
+             - w/h/tx/ty  → tamanho e deslocamento escolhidos no editor
+             - src/alt    → só quando a imagem foi trocada (ou ganhou alt),
+                            para não duplicar no JSON todo base64 da página
+             - removida   → a imagem foi escondida com apImgRemover() */
         function capturarImgEdits() {
             const edts = {};
+            garantirIdsImagem();
             document.querySelectorAll('#pageContainer img').forEach(img => {
-                if (img.closest('.ap-layer')) return;
-                if (!img.style.width && !img.dataset.apTx) return;
-                const chave = apImgChave(img);
-                edts[chave] = {
-                    w: img.style.width || null,
-                    h: img.style.height || null,
-                    tx: img.dataset.apTx || '0',
-                    ty: img.dataset.apTy || '0'
-                };
+                if (!apImgAlvo(img)) return;
+                const chave = img.dataset.apImgId;
+                if (!chave) return;
+                const reg = {};
+                if (img.style.width || img.style.height || img.dataset.apTx || img.dataset.apTy) {
+                    reg.w = img.style.width || null;
+                    reg.h = img.style.height || null;
+                    reg.tx = img.dataset.apTx || '0';
+                    reg.ty = img.dataset.apTy || '0';
+                }
+                if (img.dataset.apImgTrocada === '1') reg.src = img.getAttribute('src') || '';
+                if (img.hasAttribute('alt')) { reg.alt = img.getAttribute('alt'); img.setAttribute('data-ap-img-alt', reg.alt); }
+                if (img.dataset.apImgRemovida === '1') { reg.removida = true; reg.display = img.dataset.apImgDisplay || ''; }
+                if (Object.keys(reg).length) edts[chave] = reg;
             });
             return edts;
         }
 
         function aplicarImgEdits(edts) {
             if (!edts || typeof edts !== 'object') return;
+            garantirIdsImagem();
             document.querySelectorAll('#pageContainer img').forEach(img => {
-                if (img.closest('.ap-layer')) return;
-                const chave = apImgChave(img);
-                if (!edts[chave]) return;
+                if (!apImgAlvo(img)) return;
+                const chave = img.dataset.apImgId;
+                if (!chave) return;
                 const d = edts[chave];
+                if (!d) return;
+                if (d.src) { img.setAttribute('src', d.src); img.dataset.apImgTrocada = '1'; }
+                if (typeof d.alt === 'string') { img.setAttribute('alt', d.alt); img.setAttribute('data-ap-img-alt', d.alt); }
                 if (d.w) img.style.width = d.w;
                 if (d.h) img.style.height = d.h;
                 if (d.tx || d.ty) { img.dataset.apTx = d.tx || '0'; img.dataset.apTy = d.ty || '0'; img.style.transform = `translate(${parseFloat(d.tx) || 0}px, ${parseFloat(d.ty) || 0}px)`; }
+                if (d.removida) {
+                    img.dataset.apImgRemovida = '1';
+                    img.dataset.apImgDisplay = d.display || '';
+                    img.style.display = 'none';
+                }
             });
+        }
+
+        /* ================================================
+           ORDEM / EXCLUSÃO / DUPLICAÇÃO DAS SEÇÕES
+           moverSecao(), apagarSecao() e duplicarSecao() só mexiam no DOM da
+           sessão: ao recarregar, tudo voltava na ordem do teste.html e as
+           seções apagadas ou duplicadas sumiam. Aqui a posição de cada
+           [data-ap-section] vira estado.
+
+           A lista de referência (AP_SECOES_BASE) é montada uma vez, no
+           carregamento, a partir do teste.html intacto — é ela que permite
+           distinguir "seção apagada" de "seção duplicada".
+        ================================================ */
+        const AP_SECOES_BASE = new Set();
+        function registrarSecoesBase() {
+            if (AP_SECOES_BASE.size) return;
+            document.querySelectorAll('#pageContainer [data-ap-section]').forEach(sec => {
+                if (sec.id) AP_SECOES_BASE.add(sec.id);
+            });
+        }
+
+        function capturarEstruturaSecoes() {
+            registrarSecoesBase();
+            const ordem = [];
+            const extras = [];
+            document.querySelectorAll('#pageContainer [data-ap-section]').forEach(sec => {
+                if (!sec.id) return;
+                ordem.push(sec.id);
+                if (!AP_SECOES_BASE.has(sec.id)) extras.push({ id: sec.id, html: sec.outerHTML });
+            });
+            const removidas = [];
+            AP_SECOES_BASE.forEach(id => {
+                if (!document.getElementById(id)) removidas.push(id);
+            });
+            return { ordem: ordem, removidas: removidas, extras: extras };
+        }
+
+        function ocultarLinkSecao(id) {
+            document.querySelectorAll('.nav-menu a[data-secao="' + id + '"], .footer-list a[href="#' + id + '"]')
+                .forEach(a => {
+                    const item = a.closest('li') || a;
+                    item.style.display = 'none';
+                });
+        }
+
+        function aplicarEstruturaSecoes(est) {
+            if (!est || !Array.isArray(est.ordem)) return;
+            const pc = document.getElementById('pageContainer');
+            if (!pc) return;
+
+            (est.removidas || []).forEach(id => {
+                const el = document.getElementById(id);
+                if (el) el.remove();
+                ocultarLinkSecao(id);
+            });
+
+            (est.extras || []).forEach(x => {
+                if (!x || !x.id || !x.html) return;
+                if (document.getElementById(x.id)) return;
+                const tmp = document.createElement('template');
+                tmp.innerHTML = x.html;
+                const node = tmp.content.firstElementChild;
+                if (!node) return;
+                ligarTogglesA11y(node);
+                pc.appendChild(node);
+            });
+
+            // Reordena: appendChild move cada seção para o fim, na ordem dada.
+            est.ordem.forEach(id => {
+                const el = document.getElementById(id);
+                if (el && el.parentElement === pc) pc.appendChild(el);
+            });
+
+            try { apRender(); } catch (err) { console.error('Camada de apresentação:', err); }
+            try { desenharArvore(); } catch (err) { console.error('Árvore da cadeia:', err); }
         }
 
         function coletarEstadoCompleto(forcarExpandido) {
             return {
-                versao: 4,
+                versao: 5,
                 salvoEm: new Date().toISOString(),
                 map: state,
                 editMode: editMode,
                 atores: capturarAtores(forcarExpandido),
                 etapas: capturarEtapas(),
+                cadeia: capturarCadeia(),
                 textos: capturarTextosEditaveis(),
                 secoes: capturarSecoes(),
+                estrutura: capturarEstruturaSecoes(),
                 estiloSecoes: capturarEstilosSecoes(),
                 cvMpCores: cvMpCores,
                 apresentacao: Array.isArray(state.apresentacao) ? state.apresentacao : [],
@@ -2877,11 +3897,15 @@
             if (!Array.isArray(state.apresentacao)) state.apresentacao = [];
             apSelecionados = [];
 
+            // Ordem importa: textos e estrutura reescrevem innerHTML / recriam
+            // seções, então as edições de imagem só podem vir depois — senão
+            // tamanho, deslocamento e remoção eram aplicados a <img> que logo
+            // depois seria substituído.
             if (Array.isArray(parsed.atores) && parsed.atores.length) {
                 document.getElementById('actorsList').innerHTML = parsed.atores.map(criarLinhaAtorHTML).join('');
                 instalarTogglesAtores();
             }
-            if (parsed.imgEdits) aplicarImgEdits(parsed.imgEdits);
+            if (parsed.cadeia && Array.isArray(parsed.cadeia)) aplicarCadeia(parsed.cadeia);
             if (parsed.etapas && Array.isArray(parsed.etapas.itens) && parsed.etapas.itens.length) {
                 // Deduplica por stepKey: estados salvos corrompidos podem conter etapas
                 // repetidas (ex.: acúmulo no autosave) e são corrigidos ao restaurar.
@@ -2926,10 +3950,13 @@
                 try { instalarTogglesEtapas(); } catch (err) { console.error('Toggles das etapas:', err); }
             }
             if (parsed.textos) aplicarTextosEditaveis(parsed.textos);
+            if (parsed.estrutura) aplicarEstruturaSecoes(parsed.estrutura);
+            if (parsed.imgEdits) aplicarImgEdits(parsed.imgEdits);
             if (parsed.secoes) aplicarSecoes(parsed.secoes);
             if (parsed.estiloSecoes) aplicarEstilosSecoes(parsed.estiloSecoes);
             if (parsed.cvMpCores) aplicarCoresCvMp(parsed.cvMpCores);
 
+            instalarControlesCadeia();
             aplicarEstadoEditavel();
             vincularCliquesAtores();
             atualizarSelectAtores();
@@ -2974,31 +4001,125 @@
         }
 
         const CHAVE_SAVE_MANUAL = 'utfpr_fluxo_estagio';
+        const CHAVE_PREF_RESTAURAR = 'utfpr_restaurar_ao_abrir';
 
-        // O auto-save NAO e aplicado no carregamento. Ele sobrescrevia textos,
-        // secoes, cores e estilos vindos do teste.html/style.css, fazendo o
-        // navegador mostrar a versao antiga em vez do codigo recem salvo.
-        // O unico caminho de restauracao e o botao "Restaurar" (manual).
+        /* O auto-save interno nunca é aplicado sozinho no carregamento: ele
+           sobrescrevia textos, seções, cores e estilos vindos do
+           teste.html/style.css, e o navegador passava a mostrar a versão
+           antiga em vez do código recém salvo. O botão "Restaurar" continua
+           sendo o caminho padrão.
+
+           "Restaurar ao abrir" é a exceção explícita: o usuário liga uma vez
+           e passa a ter o trabalho de volta sozinho, com um aviso e um botão
+           para voltar ao conteúdo do arquivo. O estado é aplicado a partir
+           do botão Salvar, nunca do auto-save de 30 s. */
         function limparAutoSave() {
             try { localStorage.removeItem(CHAVE_SAVE_MANUAL + '_autosave'); } catch (err) { /* silencioso */ }
         }
 
-        function salvarEstadoLocal() {
-            try {
-                localStorage.setItem(CHAVE_SAVE_MANUAL, JSON.stringify(coletarEstadoCompleto()));
-                toast('Trabalho salvo com sucesso!');
-            } catch (err) {
-                toast('Falha ao salvar: armazenamento do navegador indisponível ou cheio.', 'erro');
+        function lerPreferenciaRestaurar() {
+            try { return localStorage.getItem(CHAVE_PREF_RESTAURAR) === '1'; } catch (err) { return false; }
+        }
+
+        function gravarPreferenciaRestaurar(v) {
+            try { localStorage.setItem(CHAVE_PREF_RESTAURAR, v ? '1' : '0'); } catch (err) { /* silencioso */ }
+            atualizarBotaoRestaurarAoAbrir();
+        }
+
+        function atualizarBotaoRestaurarAoAbrir() {
+            const btn = document.getElementById('btnRestaurarAoAbrir');
+            if (!btn) return;
+            const on = lerPreferenciaRestaurar();
+            btn.setAttribute('aria-pressed', String(on));
+            btn.classList.toggle('ativo', on);
+            btn.title = on
+                ? 'Ligado: ao abrir a página, o último trabalho salvo no navegador é restaurado automaticamente.'
+                : 'Desligado: você precisa clicar em "Restaurar" para recuperar o trabalho salvo.';
+        }
+
+        function alternarRestaurarAoAbrir() {
+            const novo = !lerPreferenciaRestaurar();
+            gravarPreferenciaRestaurar(novo);
+            if (novo) {
+                toast('Restauração automática ligada. Da próxima vez que abrir a página, o último trabalho salvo volta sozinho.', 'ok', null, 6000);
+                // Liga já no estado salvo, para o usuário não ter que esperar.
+                let raw = null;
+                try { raw = localStorage.getItem(CHAVE_SAVE_MANUAL); } catch (err) { /* silencioso */ }
+                if (raw) restaurarEstadoLocal(true);
+                else toast('Nenhum trabalho salvo ainda. Use "Salvar" para guardar o estado atual.', 'info');
+            } else {
+                toast('Restauração automática desligada. O botão "Restaurar" continua funcionando.', 'info');
             }
         }
 
-        function restaurarEstadoLocal() {
+        function gravarEstadoLocalSilencioso() {
+            try {
+                localStorage.setItem(CHAVE_SAVE_MANUAL, JSON.stringify(coletarEstadoCompleto()));
+                return true;
+            } catch (err) { return false; }
+        }
+
+        function salvarEstadoLocal() {
+            if (gravarEstadoLocalSilencioso()) {
+                toast('Trabalho salvo com sucesso!');
+                return;
+            }
+            const msg = isQuotaLocalStorage()
+                ? 'Não coube no armazenamento do navegador. Remova alguma imagem ou use "Exportar JSON" para guardar o trabalho num arquivo.'
+                : 'Falha ao salvar: armazenamento do navegador indisponível.';
+            toast(msg, 'erro', null, 9000);
+        }
+
+        /* Quota estourada costuma ser imagem base64 grande demais; a mensagem
+           genérica deixava o usuário sem saber o que fazer. */
+        function isQuotaLocalStorage() {
+            const testes = ['__ap_t1', '__ap_t2'];
+            try {
+                localStorage.setItem(testes[0], 'x');
+                localStorage.setItem(testes[1], 'x');
+                return false;
+            } catch (err) {
+                return err && (err.name === 'QuotaExceededError' || err.name === 'NS_ERROR_DOM_QUOTA_REACHED' || err.code === 22 || err.code === 1014);
+            } finally {
+                try { testes.forEach(t => localStorage.removeItem(t)); } catch (err) { /* silencioso */ }
+            }
+        }
+
+        function descartarEstadoSalvo() {
+            if (!confirm('Descartar o trabalho salvo no navegador?\n\nA página volta a mostrar exatamente o que está no teste.html. Exporte o JSON antes se quiser guardar.')) return;
+            try {
+                localStorage.removeItem(CHAVE_SAVE_MANUAL);
+                localStorage.removeItem(CHAVE_SAVE_MANUAL + '_autosave');
+            } catch (err) { /* silencioso */ }
+            toast('Trabalho salvo descartado. Reabra a página para ver o conteúdo do arquivo.', 'info', null, 6000);
+        }
+
+        function restaurarEstadoLocal(silencioso) {
             let data = null;
             try { data = localStorage.getItem(CHAVE_SAVE_MANUAL); } catch (err) { alert('Não foi possível acessar o armazenamento do navegador.'); return; }
             if (!data) { alert('Nenhum estado salvo foi encontrado. Use o botão 💾 Salvar primeiro.'); return; }
             let parsed;
             try { parsed = JSON.parse(data); } catch (err) { alert('Os dados salvos estão corrompidos.'); return; }
-            if (aplicarEstadoCompleto(parsed)) toast('Estado restaurado!');
+            if (aplicarEstadoCompleto(parsed) && !silencioso) toast('Estado restaurado!');
+        }
+
+        function importarJSON() {
+            const input = document.getElementById('inputFileJSON');
+            if (!input) return;
+            input.value = '';
+            input.onchange = function () {
+                const file = this.files && this.files[0];
+                if (!file) return;
+                const reader = new FileReader();
+                reader.onload = function (ev) {
+                    let parsed;
+                    try { parsed = JSON.parse(ev.target.result); }
+                    catch (err) { toast('Esse arquivo não é um JSON válido.', 'erro'); return; }
+                    if (aplicarEstadoCompleto(parsed)) toast('Arquivo JSON importado!');
+                };
+                reader.readAsText(file);
+            };
+            input.click();
         }
 
         /* ================================================
@@ -3213,7 +4334,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
             // Remove toda a interface de edição para que o usuário do arquivo exportado
             // não veja nem consiga ativar o modo Editar (botão da navbar, pilha lateral de
             // ações, toolbar flutuante e o input de arquivo de imagem).
-            ['#btnToggleEdit', '#globalActionsBar', '#editFloatToolbar', '#inputFileImagem', '#apPalette', '#apPropsPanel', '#sectionPropsPanel'].forEach(sel => {
+            ['#btnToggleEdit', '#globalActionsBar', '#editFloatToolbar', '#inputFileImagem', '#inputFileImgApresentacao', '#inputFileJSON', '#apPalette', '#apPropsPanel', '#sectionPropsPanel'].forEach(sel => {
                 cloneDoc.querySelectorAll(sel).forEach(el => el.remove());
             });
             // Esconde o contêiner de ações da navbar (que abrigava o botão "Editar") mesmo
@@ -3259,6 +4380,134 @@ const FALLBACK_IMAGENS_CDN_404 = {
             cloneDoc.querySelectorAll('[data-editable="true"]').forEach(el => normalizarCaixaRica(el));
         }
 
+        /* Caminho absoluto local é o pior resultado possível numa exportação:
+           o arquivo vai para outro computador e a imagem não existe mais.
+           Vale tanto para <img src> quanto para atributos data-img. Caminhos
+           relativos (imagens/foo.png) e URLs http(s)/data: são normais. */
+        function caminhoLocalAbsoluto(src) {
+            if (!src) return null;
+            const s = String(src).trim();
+            if (!s) return null;
+            if (/^(data|https?|blob|mailto|tel|javascript):/i.test(s)) return null;
+            if (/^file:\/\//i.test(s)) return s;                       // file:///C:/..., file:///home/...
+            if (/^[a-z]:[\\/]/i.test(s)) return s;                    // C:\Users\... , D:/...
+            if (/^\\\\/.test(s)) return s;                             // \\servidor\compartilhado
+            if (/^\/(Users|home|var|tmp|opt|private|mnt|media)\//i.test(s)) return s; // /Users/..., /home/...
+            if (/^\/(Users|home|var|tmp|opt)\b/i.test(s)) return s;
+            return null;
+        }
+
+        function varrerCaminhosAbsolutos(cloneDoc) {
+            const achados = new Set();
+            cloneDoc.querySelectorAll('[data-img], img[src], [data-ap-img-src]').forEach(el => {
+                const attr = el.tagName === 'IMG' ? 'src' : 'data-img';
+                const src = el.getAttribute(attr);
+                const abs = caminhoLocalAbsoluto(src);
+                if (abs) achados.add(abs);
+            });
+            return Array.from(achados);
+        }
+
+        /* Legenda a partir do texto alternativo da imagem.
+
+           A imagem NÃO é movida para dentro de um <figure>: `openJornada`
+           busca a miniatura com `e.currentTarget.querySelector('img')` e
+           `abrirImgCadeia(this.src)` depende do <img> continuar onde está.
+           Por isso a legenda entra como irmão logo depois da imagem. */
+        function inserirLegendasNoClone(cloneDoc) {
+            const UI = '.modal-overlay, .lightbox-overlay, .jornada-lightbox, .ator-preview, .ap-layer, .footer-logo';
+            cloneDoc.querySelectorAll('img').forEach(img => {
+                if (img.closest(UI)) return;
+                const texto = (img.getAttribute('data-ap-img-alt') || img.getAttribute('alt') || '').trim();
+                if (!texto) return;
+                // Miniaturas de jornada já trazem "Clique na imagem para ampliar".
+                const pai = img.parentNode;
+                if (pai && (pai.querySelector('.jornada-caption') || img.nextElementSibling?.classList.contains('jornada-caption'))) return;
+                if (img.nextElementSibling && img.nextElementSibling.classList.contains('ap-figcaption')) return;
+                const fig = document.createElement('div');
+                fig.className = 'ap-figcaption';
+                fig.textContent = texto;
+                pai.insertBefore(fig, img.nextSibling);
+            });
+        }
+
+        /* ================================================
+           RUNTIME DE EXPORTAÇÃO (página estática e autocontida)
+
+           Em Chrome aberto via file:// o navegador bloqueia a leitura de
+           script.js, e o arquivo exportado saía com todas as funções
+           quebradas (o <script src> apontava para um script.js que não
+           via junto). Este runtime mínimo cobre o que a página exportada
+           realmente usa — sanfona das seções, lightbox da cadeia, modais
+           da Seção 3, zoom, placeholder de imagem quebrada e menu — sem
+           carregar o editor inteiro.
+        ================================================ */
+        function runtimeDeExportacao() {
+            return [
+                'function toggleSection(cid,tid){var c=document.getElementById(cid),b=document.getElementById(tid);',
+                'if(!c||!b)return;var abre=c.style.display==="none";c.style.display=abre?"block":"none";',
+                'b.innerText=abre?"[−] Ocultar":"[+] Expandir";b.setAttribute("aria-expanded",String(abre));',
+                'var h=b.closest(".section-header");if(h)h.setAttribute("aria-expanded",String(abre));}',
+                'function abrirImgCadeia(src){var lb=document.getElementById("jornadaLightbox");if(!lb||!src)return;',
+                'var i=lb.querySelector(".jornada-lightbox-img");if(i){i.src=src;lb.classList.add("active");}}',
+                'function openJornada(e){if(e){e.preventDefault();e.stopPropagation();}',
+                'var t=e.currentTarget.querySelector("img"),i=document.querySelector("#jornadaLightbox .jornada-lightbox-img");',
+                'if(t&&i)i.src=t.src;document.getElementById("jornadaLightbox").classList.add("active");}',
+                'function closeJornada(e){var lb=document.getElementById("jornadaLightbox");if(!lb)return;',
+                'if(!e||e.target===lb||(e.target&&e.target.classList&&e.target.classList.contains("jornada-lightbox-close")))',
+                'lb.classList.remove("active");}',
+                'function tratarErroImagem3(img){if(!img||img.dataset.apFallback)return;img.dataset.apFallback="1";img.onerror=null;',
+                'img.src="data:image/svg+xml;charset=utf-8,"+encodeURIComponent(\'<svg xmlns="http://www.w3.org/2000/svg" width="160" height="120" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="1.5"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><polyline points="21 15 16 10 5 21"/></svg>\');}',
+                'var __z=1,__x=0,__y=0,__drag=false,__didDrag=false,__sx=0,__sy=0;',
+                'function __aplicar3(){var i=document.getElementById("lightboxImg3"),t=document.getElementById("zoomScaleText3"),',
+                'v=document.getElementById("lightboxViewport3");if(i)i.style.transform="translate("+__x+"px,"+__y+"px) scale("+__z+")";',
+                'if(t)t.innerText=Math.round(__z*100)+"%";if(v){if(__z>1)v.classList.add("zoomed");else{__x=0;__y=0;}}',
+                'if(i)i.style.transform="translate("+__x+"px,"+__y+"px) scale("+__z+")";}',
+                'function zoomIn3(){__z=Math.min(4.5,__z+0.35);__aplicar3();}',
+                'function zoomOut3(){__z=Math.max(1,__z-0.35);if(__z===1){__x=0;__y=0;}__aplicar3();}',
+                'function resetZoom3(){__z=1;__x=0;__y=0;__aplicar3();}',
+                'function abrirImagemCompleta3(){resetZoom3();var i=document.getElementById("lightboxImg3"),',
+                'c=document.getElementById("lightboxCaption3"),b=document.getElementById("lightboxImg3");',
+                'var src=(document.getElementById("cardDiagramImg3")||{}).src||(b&&b.src)||"";',
+                'if(i)i.src=src;if(c)c.innerText="Mapeamento Completo: "+(document.getElementById("cardTitle3")||{}).innerText;',
+                'var m=document.getElementById("lightboxModal3");if(m)m.classList.add("active");}',
+                'function fecharCard3(){var m=document.getElementById("modalCard3");if(m)m.classList.remove("active");}',
+                'function fecharCardFora3(e){if(e.target.id==="modalCard3")fecharCard3();}',
+                'function fecharLightbox3(){var m=document.getElementById("lightboxModal3");if(m)m.classList.remove("active");resetZoom3();}',
+                'function fecharLightboxFora3(e){if(e.target.id==="lightboxModal3"||e.target.id==="lightboxViewport3"){if(!__didDrag)fecharLightbox3();__didDrag=false;}}',
+                'function abrirCardDetalhes3(etapa,itens,cor,src){var m=document.getElementById("modalCard3");',
+                'var t=document.getElementById("cardTitle3");if(t)t.innerText=etapa;',
+                'var hb=document.getElementById("cardHeaderBar3");if(hb)hb.style.backgroundColor=cor;',
+                'var bd=document.getElementById("cardBadge3");if(bd){bd.style.backgroundColor=cor;bd.innerText="Detalhes da Etapa";}',
+                'var tg=document.getElementById("cardTags3");if(tg){tg.innerHTML="";(itens||"").split(",").forEach(function(s){',
+                'if(!s.trim())return;var d=document.createElement("span");d.className="info-tag";d.innerText=s.trim();tg.appendChild(d);});}',
+                'var ci=document.getElementById("cardDiagramImg3"),ic=document.getElementById("diagramImgContainer3");',
+                'if(src&&src.trim()!==""){if(ci)ci.src=src;if(ic)ic.style.display="block";}else if(ic){ic.style.display="none";}',
+                'if(m)m.classList.add("active");}',
+                'function abrirCardDetalhesEl(el){var card=el.querySelector(".actor-card"),',
+                'desc=el.querySelector(".actor-description > div"),',
+                'titulo=card?card.innerText.trim():"",txt=desc?desc.innerText.trim():"",',
+                'cor=el.dataset.color||(card&&getComputedStyle(card).borderColor)||"#6366f1";',
+                'abrirCardDetalhes3(titulo,txt,cor,el.getAttribute("data-img")||"");}',
+                'function tratarTeclado3(e,el){if(e.key==="Enter"||e.key===" "){e.preventDefault();el.click();}}',
+                'document.addEventListener("error",function(e){var t=e.target;if(t&&t.tagName==="IMG")tratarErroImagem3(t);},true);',
+                'document.addEventListener("keydown",function(e){if(e.key==="Escape"){closeJornada();fecharLightbox3();fecharCard3();}});',
+                'document.addEventListener("DOMContentLoaded",function(){',
+                'document.querySelectorAll("[data-img][onclick*=\\"abrirCardDetalhesEl\\"],.actor-card-wrapper").forEach(function(el){',
+                'if(el.getAttribute("data-ap-card"))return;el.setAttribute("data-ap-card","1");el.addEventListener("click",function(ev){abrirCardDetalhesEl(el);});});',
+                'var v=document.getElementById("lightboxViewport3");if(v){',
+                'v.addEventListener("wheel",function(e){e.preventDefault();__z=e.deltaY<0?Math.min(4.5,__z+0.2):Math.max(1,__z-0.2);if(__z===1){__x=0;__y=0;}__aplicar3();},{passive:false});',
+                'v.addEventListener("dblclick",function(){if(__z>1)resetZoom3();else{__z=2;__aplicar3();}});',
+                'v.addEventListener("mousedown",function(e){if(e.target.closest(".lightbox-toolbar"))return;if(__z>1){__drag=true;__didDrag=false;',
+                '__sx=e.clientX-__x;__sy=e.clientY-__y;v.classList.add("dragging");}});',
+                'window.addEventListener("mousemove",function(e){if(!__drag)return;__didDrag=true;__x=e.clientX-__sx;__y=e.clientY-__sy;__aplicar3();});',
+                'window.addEventListener("mouseup",function(){if(__drag){__drag=false;v.classList.remove("dragging");}});}',
+                'var t=document.getElementById("navToggle"),m=document.getElementById("navMenu");if(t&&m)t.addEventListener("click",function(){m.classList.toggle("show");});',
+                'document.querySelectorAll(\'#navMenu a[href^="#"]\').forEach(function(a){a.addEventListener("click",function(){if(m)m.classList.remove("show");});});',
+                '});'
+            ].join('\n');
+        }
+
         async function gerarHTMLCompleto() {
             const cloneDoc = document.documentElement.cloneNode(true);
 
@@ -3276,6 +4525,15 @@ const FALLBACK_IMAGENS_CDN_404 = {
             // Expande todos os atores para que as descrições completas apareçam no arquivo exportado
             expandirTodosAtores(cloneDoc);
 
+            // Imagens marcadas como removidas saem de vez do arquivo: no editor
+            // elas só ficavam escondidas (data-ap-img-removida) para permitir
+            // o Desfazer.
+            cloneDoc.querySelectorAll('img[data-ap-img-removida="1"]').forEach(el => el.remove());
+
+            // Texto alternativo vira legenda: sem o editor, uma imagem sem
+            // texto por perto não comunica nada.
+            inserirLegendasNoClone(cloneDoc);
+
             // Embute as imagens locais no próprio arquivo
             await embutirImagens(cloneDoc);
 
@@ -3285,6 +4543,8 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 const src = el.tagName === 'IMG' ? el.getAttribute('src') : el.getAttribute('data-img');
                 return !!src && /^imagens\//.test(src) && !src.startsWith('data:');
             });
+
+            const caminhosAbsolutos = varrerCaminhosAbsolutos(cloneDoc);
 
             // CSS: embute o style.css lido das regras carregadas e remove o link externo.
             // Tenta ler via fetch primeiro (funciona em http e file:// no Firefox);
@@ -3299,16 +4559,30 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 linkCss.replaceWith(styleEl);
             }
 
-            // JS: tenta embutir o script.js; se o navegador bloquear a leitura, mantém a referência externa
+            // JS: tenta embutir o script.js; se o navegador bloquear a leitura
+            // (Chrome em file://), embute o runtime mínimo em vez de deixar o
+            // <script src> apontando para um arquivo que não viaja junto.
             let jsEmbutido = false;
             const jsTexto = await lerScriptApp();
             const scriptTag = cloneDoc.querySelector('script[src="script.js"]');
-            if (jsTexto && scriptTag) scriptTag.remove();
             if (jsTexto) {
+                if (scriptTag) scriptTag.remove();
                 const scriptEl = document.createElement('script');
                 scriptEl.textContent = jsTexto.replace(/<\/script/gi, '<\\/script');
                 clonedBody.appendChild(scriptEl);
                 jsEmbutido = true;
+            } else if (scriptTag) {
+                scriptTag.remove();
+                // Sem o editor, o menu de exportação não teria para onde levar.
+                cloneDoc.querySelectorAll('.dropdown-menu-export, #exportDropdownMenu, #exportDropdownBtn, [onclick="toggleExportDropdown()"]')
+                    .forEach(el => el.remove());
+                // html2pdf e JSZip só serviam ao editor (PDF e pacote ZIP): na
+                // página estática eles viram duas requisições que falham.
+                cloneDoc.querySelectorAll('script[src*="html2pdf"], script[src*="jszip"], script[src*="JSZip"]')
+                    .forEach(el => el.remove());
+                const runtimeEl = document.createElement('script');
+                runtimeEl.textContent = runtimeDeExportacao();
+                clonedBody.appendChild(runtimeEl);
             }
 
             // Estado atual embutido como JSON
@@ -3320,7 +4594,12 @@ const FALLBACK_IMAGENS_CDN_404 = {
             tagEstado.textContent = JSON.stringify(coletarEstadoCompleto(true)).replace(/<\//g, '<\\/');
             clonedBody.appendChild(tagEstado);
 
-            return { html: "<!DOCTYPE html>\n" + cloneDoc.outerHTML, jsEmbutido: jsEmbutido, imagensEmbutidas: !restamImagensLocais };
+            return {
+                html: "<!DOCTYPE html>\n" + cloneDoc.outerHTML,
+                jsEmbutido: jsEmbutido,
+                imagensEmbutidas: !restamImagensLocais,
+                caminhosAbsolutos: caminhosAbsolutos
+            };
         }
 
         async function exportarComoHTML() {
@@ -3333,11 +4612,22 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 a.download = 'processo_estagio_utfpr_' + new Date().toISOString().slice(0, 10) + '.html';
                 a.click();
                 setTimeout(() => URL.revokeObjectURL(a.href), 3000);
+
+                const abs = resultado.caminhosAbsolutos || [];
+                if (abs.length) {
+                    toast('Exportado, mas ' + abs.length + ' imagem(ns) apontam para caminho absoluto do seu computador e não vão funcionar em outro lugar: ' + abs.slice(0, 3).join(', ') + (abs.length > 3 ? '…' : '') + ' — troque por "⇄" na imagem ou por um caminho relativo.', 'erro', null, 16000);
+                    return;
+                }
                 if (resultado.jsEmbutido) {
                     if (resultado.imagensEmbutidas) toast('Página completa exportada! HTML + CSS + JS + imagens num único arquivo.');
                     else toast('Exportado! Mas este navegador bloqueou a leitura dos arquivos de imagem locais (imagens/) — mantenha a pasta imagens/ ao lado deste .html (ou abra a página pelo Firefox para vir tudo embutido num só arquivo).', 'info', null, 12000);
                 }
-                else toast('Exportado! Mas este navegador bloqueou a leitura do script.js — envie o .html JUNTO com o script.js, o style.css e a pasta imagens/ (ou abra a página pelo Firefox para vir tudo num só).', 'info', null, 10000);
+                else if (resultado.imagensEmbutidas) {
+                    toast('Exportado! O navegador bloqueou a leitura do script.js, então o arquivo saiu como página estática com o runtime embutido (sanfonas, lightbox e zoom funcionando, sem o modo Editar). Para exportar com o editor embutido, abra a página pelo Firefox ou por um servidor local.', 'info', null, 14000);
+                }
+                else {
+                    toast('Exportado, com duas limitações do navegador em file://: (1) o script.js não pôde ser lido, então o arquivo saiu como página estática com o runtime embutido e sem o modo Editar; (2) a pasta imagens/ também não pôde ser lida — envie o .html JUNTO com a pasta imagens/. Para vir tudo num só arquivo, abra a página pelo Firefox ou por um servidor local.', 'info', null, 18000);
+                }
             } catch (err) {
                 console.error(err);
                 toast('Falha ao exportar a página. Verifique o console para detalhes.', 'erro');
@@ -3604,21 +4894,84 @@ const FALLBACK_IMAGENS_CDN_404 = {
             } catch (err) { console.warn('Estado embutido no HTML exportado é inválido:', err); }
         }
 
+        /* Estado gravado no próprio arquivo pelo botão "Salvar" (mapa e camada
+           de layout livre). Roda antes de renderizarMapa()/apRender() e é
+           conteúdo do arquivo, não rascunho do navegador — por isso é
+           aplicado sem perguntar, ao contrário do localStorage. */
+        function carregarEstadoSalvoNoArquivo() {
+            const tag = document.getElementById('estadoPersistencia');
+            if (!tag) return;
+            if (carregarEstadoDoArquivo()) {
+                const quando = (function () {
+                    try {
+                        const s = JSON.parse(tag.textContent);
+                        return s.salvoEm ? new Date(s.salvoEm).toLocaleString('pt-BR') : null;
+                    } catch (e) { return null; }
+                })();
+                if (quando) document.body.setAttribute('data-conteudo-salvo-em', quando);
+            }
+        }
+
+        /* Só age se o usuário tiver ligado "Restaurar ao abrir". Nunca usa o
+           auto-save de 30 s: apenas o estado do botão "Salvar". O aviso fica
+           na tela com a saída para o conteúdo do arquivo, que é exatamente o
+           que faltava quando o AGENTS.md proibiu qualquer auto-restore. */
+        function restaurarAoAbrirSePreferido() {
+            if (!lerPreferenciaRestaurar()) return;
+            let raw = null;
+            try { raw = localStorage.getItem(CHAVE_SAVE_MANUAL); } catch (err) { return; }
+            if (!raw) return;
+            let parsed;
+            try { parsed = JSON.parse(raw); } catch (err) { console.warn('Estado salvo no navegador está corrompido:', err); return; }
+            if (!aplicarEstadoCompleto(parsed)) return;
+            const quando = parsed.salvoEm ? new Date(parsed.salvoEm).toLocaleString('pt-BR') : 'data desconhecida';
+            toast('Trabalho de ' + quando + ' restaurado automaticamente.', 'ok', [
+                {
+                    label: 'Usar o conteúdo do arquivo', fn: () => {
+                        try { localStorage.removeItem(CHAVE_SAVE_MANUAL); } catch (err) { /* silencioso */ }
+                        toast('Estado salvo descartado. Recarregue a página (F5) para ver o conteúdo do teste.html.', 'info', null, 7000);
+                    }
+                }
+            ], 14000);
+        }
+
+        // Fecha a aba com alterações: grava o estado para a opção "Restaurar ao
+        // abrir" trazer tudo de volta na próxima visita.
+        window.addEventListener('pagehide', () => {
+            if (lerPreferenciaRestaurar()) gravarEstadoLocalSilencioso();
+        });
+        document.addEventListener('visibilitychange', () => {
+            if (document.visibilityState === 'hidden' && lerPreferenciaRestaurar()) gravarEstadoLocalSilencioso();
+        });
+
         document.addEventListener('DOMContentLoaded', () => {
             // A pagina sempre mostra o que esta no HTML/CSS. O auto-save do
             // localStorage e apenas gravado em segundo plano e nunca aplicado
             // automaticamente, para nao sobrescrever o codigo recem salvo.
             carregarEstadoExportado();
+            carregarEstadoSalvoNoArquivo();
             limparAutoSave();
+            // Referencia de quais secoes existem no arquivo: sem isso nao da
+            // para distinguir "apagada" de "duplicada" ao restaurar.
+            registrarSecoesBase();
+            // Chaves estaveis de texto e de imagem precisam existir antes de
+            // qualquer captura.
+            garantirCamposEditaveis();
+            garantirIdsImagem();
             prepararTitulosSecoes();
             salvarHistorico(); renderizarMapa();
             apRender();
             vincularCliquesAtores();
             instalarTogglesAtores();
             instalarTogglesEtapas();
+            instalarControlesCadeia();
+            instalarImagensInseridas();
             atualizarSelectAtores();
+            atualizarBotaoRestaurarAoAbrir();
             try { iniciarDragEtapas(); } catch (err) { console.error('Arraste das etapas:', err); }
             try { instalarPreviewsEtapas(); } catch (err) { console.error('Prévias das etapas:', err); }
+
+            restaurarAoAbrirSePreferido();
 
             document.addEventListener('click', (e) => {
                 if (!editMode) return;

@@ -1,11 +1,13 @@
-﻿<!DOCTYPE html>
-<html lang="pt-br">
+<!DOCTYPE html>
+<html lang="pt-BR">
 
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Atores do Processo e Mapeamento Interativo - UTFPR</title>
-    <meta name="description" content="Portfólio institucional UTFPR: atores, fluxos, documentos e mapeamento interativo da gestão de estágios internos e externos.">
+    <title>Estágio — Portfólio de Processos | UTFPR</title>
+    <meta name="description" content="Portfólio institucional UTFPR: hierarquia do processo de estágio, contextualização, atores, documentos, sistemas, fluxos e bases legais da gestão de estágios internos e externos.">
+    <meta name="author" content="UTFPR — Escritório de Processos (EPROC), Reitoria">
+    <meta name="theme-color" content="#2563eb">
     <link rel="icon" type="image/png" href="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_Processos_UTFPR@master/Portfolio_Processos_UTFPR/logo_utfpr.png">
 
     <link rel="stylesheet" href="style.css">
@@ -48,6 +50,9 @@
             Sair da Edição</button>
         <button class="btn-custom btn-custom-outline" onclick="salvarEstadoLocal()" aria-label="Salvar trabalho no navegador">Salvar</button>
         <button class="btn-custom btn-custom-outline" onclick="restaurarEstadoLocal()" aria-label="Restaurar último trabalho salvo">Restaurar</button>
+        <button class="btn-custom btn-custom-outline ap-toggle" id="btnRestaurarAoAbrir" onclick="alternarRestaurarAoAbrir()"
+            aria-pressed="false" title="Desligado: você precisa clicar em Restaurar para recuperar o trabalho salvo.">⟳ Restaurar ao abrir</button>
+        <button class="btn-custom btn-custom-outline ap-toggle-danger" onclick="descartarEstadoSalvo()" title="Apagar o trabalho salvo no navegador e voltar ao conteúdo do arquivo">Descartar salvo</button>
         <div class="dropdown dropdown-stack" id="exportDropdown">
             <button class="btn-custom btn-custom-outline" type="button" id="dropdownExport"
                 onclick="toggleExportDropdown()" aria-haspopup="true" aria-expanded="false">Exportar</button>
@@ -58,6 +63,8 @@
                     (HTML + CSS + JS separados)</a>
                 <a class="dropdown-item" href="#" onclick="exportarComoPDF(); closeExportDropdown(); return false;">PDF</a>
                 <a class="dropdown-item" href="#" onclick="exportarJSON(); closeExportDropdown(); return false;">JSON</a>
+                <a class="dropdown-item" href="#" onclick="importarJSON(); closeExportDropdown(); return false;">Importar JSON
+                    (abrir trabalho)</a>
             </div>
         </div>
     </aside>
@@ -67,7 +74,7 @@
         <header class="page-hero" id="hero" data-ap-section="hero">
             <div class="hero-content">
                 <h1 class="hero-title" contenteditable="false" data-editable="true" data-field="hero_titulo">Estágio</h1>
-                <p class="hero-subtitle" contenteditable="false" data-editable="true" data-field="hero_subtitle">Conheça o Portfólio de Processos e Dados da UTFPR: a contextualização do processo, o macroprocesso do estágio externo (da disponibilização ao encerramento e à gestão), o suporte tecnológico com o SEI, os atores envolvidos, os documentos utilizados e o mapa interativo das etapas.</p>
+                <p class="hero-subtitle" contenteditable="false" data-editable="true" data-field="hero_subtitle">Na forma da Lei nº 11.788/2008, Estágio é ato educativo escolar supervisionado, desenvolvido no ambiente de trabalho, que visa à preparação para o trabalho produtivo de educandos que estejam frequentando o ensino regular em instituições de educação superior, de educação profissional. Faz parte do projeto pedagógico do curso, além de integrar o itinerário formativo do estudante. Visa ao aprendizado de competências próprias da atividade profissional e à contextualização curricular, objetivando o desenvolvimento do estudante para a vida cidadã e para o trabalho.</p>
             </div>
         </header>
 
@@ -75,10 +82,16 @@
         <div class="section-box" id="hierarquiaBox" data-ap-section="hierarquiaBox">
             <div class="section-header" onclick="toggleSection('hierarquiaContent', 'hierarquiaToggle')">
                 <span class="section-title-text" role="heading" aria-level="2"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3v4"></path><path d="M5 21v-4"></path><path d="M19 21v-4"></path><rect x="9" y="3" width="6" height="4" rx="1"></rect><rect x="2" y="17" width="6" height="4" rx="1"></rect><rect x="16" y="17" width="6" height="4" rx="1"></rect><path d="M12 7v4"></path><path d="M5 17v-2a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v2"></path></svg> Hierarquia do Processo</span>
-                <span id="hierarquiaToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Hierarquia do Processo">[−] Ocultar</span>
+                <span id="hierarquiaToggle" class="btn-custom btn-custom-outline section-toggle" aria-label="Ocultar ou expandir Hierarquia do Processo">[−] Ocultar</span>
             </div>
-            <div id="hierarquiaContent">
+            <div id="hierarquiaContent" class="sec-content">
+                <div class="sec-lead" contenteditable="false" data-editable="true" data-field="hierarquia_lead">
+                    <p>
+                        O estágio, como parte da vida acadêmica do estudante, é um processo transversal da instituição de ensino que envolve tanto o Ensino como a Extensão, uma vez que o estudante desenvolve suas atividades em empresas ou instituições (chamadas de Unidade Concedente de Estágio — UCE) conveniadas. Quando o estágio acontece na própria UTFPR, envolve as áreas de Gestão de Pessoas e Administração, responsáveis, respectivamente, pela contratação e pelo pagamento, se houver.
+                    </p>
+                </div>
                 <div class="sec-intro" contenteditable="false" data-editable="true" data-field="hierarquia_intro" data-placeholder="Escreva aqui o texto da Hierarquia do Processo..."></div>
+
                 <!-- Cadeia de Valor (Hierarquia de Processo) -->
                 <div class="cadeia-container" id="cadeiaContainer">
                     <!-- Raia: ENSINO (macroprocesso) e as etapas principais, na mesma linha -->
@@ -111,7 +124,7 @@
                             <div class="cv-branch-estagio">
                                 <div class="cv-step bg-blue-mid bg-sei">
                                     <strong data-editable="true">Estágio</strong>
-                                    <span data-editable="true">(Realização)</span>
+                                    <span data-editable="true">(Validação, Realização)</span>
                                 </div>
                             </div>
                             <div class="cv-branch-validacao">
@@ -126,39 +139,6 @@
                                     <span data-editable="true">(Disponibilização, Seleção, Contratação, Vigência, Encerramento)</span>
                                 </div>
                             </div>
-                            <!--
-                                ============================================================================
-                                ETAPAS DO MACROPROCESSO SOB A REALIZAÇÃO — COMENTADO
-                                (Disponibilização, Contratação, Vigência, Encerramento e Gestão do Estágio)
-                                ============================================================================
-                                Para restaurar: apague este bloco de comentário.
-                                Nenhuma alteração em script.js é necessária. O código já trata a
-                                ausência deste bloco:
-                                  - preencherPropsSecao() (L285) esconde o painel de cores #secpCvMpBlock
-                                    porque .cv-branch-filhos-realizacao não é encontrado;
-                                  - desenharArvore() (L3871) só desenha o conector da Realização até
-                                    as etapas dentro de `if (filhos)`, então ele simplesmente não aparece;
-                                  - mudarCorCvMp(), aplicarCoresCvMp() e removerCvMp() retornam cedo
-                                    com `if (!alvo)` / `if (chip)`.
-                                O CSS das classes abaixo (.cv-branch-filhos-realizacao, .cv-filhos-inner,
-                                .cv-mp-pipeline, .cv-mp-chevron, .cv-mp-bar e os tons .cv-mp-disp /
-                                .cv-mp-contrat / .cv-mp-vig / .cv-mp-enc) continua no style.css.
-                                Observação: o .cv-branch tem 4 linhas e este bloco está pronto para
-                                a linha 4 (grid-row 4/5), então descomentar basta — não precisa
-                                mexer em mais nada.
-                                <div class="cv-branch-filhos-realizacao">
-                                    <div class="cv-filhos-inner">
-                                        <div class="cv-mp-pipeline">
-                                            <div class="cv-mp-chevron cv-mp-disp"><span contenteditable="false" data-editable="true">Disponibilização</span></div>
-                                            <div class="cv-mp-chevron cv-mp-contrat"><span contenteditable="false" data-editable="true">Contratação</span></div>
-                                            <div class="cv-mp-chevron cv-mp-vig"><span contenteditable="false" data-editable="true">Vigência</span></div>
-                                            <div class="cv-mp-chevron cv-mp-enc"><span contenteditable="false" data-editable="true">Encerramento</span></div>
-                                        </div>
-                                        <div class="cv-mp-bar"><span contenteditable="false" data-editable="true">Gestão do Estágio</span></div>
-                                    </div>
-                                </div>
-                                ============================================================================
-                            -->
                             <div class="cv-branch-resultados">
                                 <div class="cadeia-card-resultados">
                                     <div class="cadeia-card-titulo">Resultados</div>
@@ -191,9 +171,26 @@
         <div class="section-box" id="contextBox" data-ap-section="contextBox">
             <div class="section-header" onclick="toggleSection('contextContent', 'contextToggle')">
                 <span class="section-title-text" role="heading" aria-level="2"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="15.5" width="6" height="4.5" rx="1"></rect><rect x="15" y="15.5" width="6" height="4.5" rx="1"></rect><rect x="9" y="4" width="6" height="4.5" rx="1"></rect><path d="M12 8.5V13"></path><path d="M6 15.5v-2h12v2"></path><path d="M10 9.25H6.5"></path><path d="M14 9.25h3.5"></path></svg> Contextualização</span>
-                <span id="contextToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Contextualização">[−] Ocultar</span>
+                <span id="contextToggle" class="btn-custom btn-custom-outline section-toggle" aria-label="Ocultar ou expandir Contextualização">[−] Ocultar</span>
             </div>
-            <div id="contextContent">
+            <div id="contextContent" class="sec-content">
+                <div class="sec-lead" contenteditable="false" data-editable="true" data-field="context_lead">
+                    <p>
+                        O estágio poderá ser obrigatório ou não obrigatório, conforme determinação das diretrizes curriculares da etapa, da modalidade e da área de ensino e do projeto pedagógico do curso.
+                    </p>
+                    <h3>Estágio: Validação</h3>
+                    <ul class="sub-list">
+                        <li><strong>Estágio obrigatório</strong> é aquele definido como tal no projeto do curso, cuja carga horária é requisito para aprovação e obtenção de diploma.</li>
+                        <li><strong>Estágio não obrigatório</strong> é aquele desenvolvido como atividade opcional, acrescida à carga horária regular e obrigatória.</li>
+                    </ul>
+                    <p>
+                        O estágio pode ser comprovado a partir de atividades desenvolvidas como Atividade Profissional — por exemplo, quando o estudante já exerce atividades relacionadas profissionalmente, tanto em andamento quanto já realizadas. Da mesma forma, a participação em projetos como Bolsista ou Voluntário, desenvolvendo atividades, pode validar o estágio, desde que as atividades e a carga horária atendam aos critérios acadêmicos do curso.
+                    </p>
+                    <h3>Estágio: Realização</h3>
+                    <p>
+                        O estágio é realizado em uma Unidade Concedente de Estágio (UCE), que pode ser uma empresa, instituição, organização ou outro ambiente adequado, inclusive empresas ou instituições estrangeiras. Quando o estudante da UTFPR realiza o estágio na própria universidade, a UTFPR passa a ser tanto a Instituição de Ensino (IE) quanto a UCE.
+                    </p>
+                </div>
                 <!-- Campo de texto introdutório editável (modo edição) -->
                 <div class="context-intro" contenteditable="false" data-editable="true" data-field="context_intro" data-placeholder="Escreva aqui o texto de contextualização..."></div>
                 <div class="slide-body">
@@ -268,10 +265,15 @@
         <div class="section-box" id="sec3Box" data-ap-section="sec3Box">
             <div class="section-header" onclick="toggleSection('sec3Content', 'sec3Toggle')">
                 <span class="section-title-text" role="heading" aria-level="2"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="5" width="7" height="7" rx="1"></rect><rect x="14" y="5" width="7" height="7" rx="1"></rect><rect x="3" y="16" width="7" height="4" rx="1"></rect><rect x="14" y="16" width="7" height="4" rx="1"></rect><path d="M10 8.5h4"></path><path d="M10 18h4"></path></svg> Fluxos dos processos</span>
-                <span id="sec3Toggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Fluxos dos processos">[−] Ocultar</span>
+                <span id="sec3Toggle" class="btn-custom btn-custom-outline section-toggle" aria-label="Ocultar ou expandir Fluxos dos processos">[−] Ocultar</span>
             </div>
-            <div id="sec3Content">
-                <img class="sec3-imagem" src="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_EPROC@master/imagem_fluxo_processos.png" alt="Fluxos dos processos" draggable="false">
+            <div id="sec3Content" class="sec-content">
+                <div class="sec-lead" contenteditable="false" data-editable="true" data-field="sec3_lead">
+                    <p>
+                        A realização do estágio percorre quatro etapas — <strong>Disponibilização</strong>, <strong>Contratação</strong>, <strong>Vigência</strong> e <strong>Encerramento</strong> — acompanhadas transversalmente pela <strong>Gestão do Estágio</strong>. Cada etapa abaixo traz o que acontece, quem participa e o mapeamento do fluxo em diagrama: clique na miniatura para ampliar.
+                    </p>
+                </div>
+                <img class="sec3-imagem" src="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_EPROC@master/imagem_fluxo_processos.png" alt="Fluxo geral dos processos de estágio: disponibilização, contratação, vigência e encerramento" draggable="false" loading="lazy" decoding="async">
                 <div class="sec-intro" contenteditable="false" data-editable="true" data-field="sec3_intro" data-placeholder="Escreva aqui o texto dos Fluxos dos processos..."></div>
                 <div class="etapas-atores-list" id="etapasList3">
 
@@ -416,9 +418,14 @@
         <div class="section-box" id="suporteBox" data-ap-section="suporteBox">
             <div class="section-header" onclick="toggleSection('suporteContent', 'suporteToggle')">
                 <span class="section-title-text" role="heading" aria-level="2"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"></circle><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path></svg> Sistemas</span>
-                <span id="suporteToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Sistemas">[−] Ocultar</span>
+                <span id="suporteToggle" class="btn-custom btn-custom-outline section-toggle" aria-label="Ocultar ou expandir Sistemas">[−] Ocultar</span>
             </div>
-            <div id="suporteContent" style="padding: 20px;">
+            <div id="suporteContent" class="sec-content">
+                <div class="sec-lead" contenteditable="false" data-editable="true" data-field="suporte_lead">
+                    <p>
+                        Os novos contratos de estágio — a partir de 05/10/2026 — são iniciados pelo Portal do Aluno e pelo Sistema de Estágio Externo, ambos integrantes dos Sistemas Corporativos da UTFPR. Os estágios em andamento permanecem nos sistemas em que foram iniciados.
+                    </p>
+                </div>
                 <div class="sec-intro" contenteditable="false" data-editable="true" data-field="suporte_intro" data-placeholder="Escreva aqui o texto dos Sistemas..."></div>
                 <div class="sup-container">
 <!-- ESTÁGIO EXTERNO: título e imagem do painel lateral.
@@ -434,8 +441,16 @@
                         </div>
                         <img src="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_EPROC@master/imagem_sistemas.png" alt="Sistemas corporativos - Estágio Externo" class="sup-sistemas-img" draggable="false">
                     </div>
-                    <!-- Caixa editável com subtítulos e bullets: acima da logo do SEI,
-                         abaixo do macroprocesso (Estágio Externo). -->
+                    <!-- Caixa de texto introdutória com subtítulos e bullets: acima do
+                         cabeçalho do SEI, abaixo do painel Estágio Externo. -->
+                    <div class="sec-note" contenteditable="false" data-editable="true" data-field="suporte_acesso">
+                        <p>Para acessar o sistema corporativo:</p>
+                        <ul class="sub-list">
+                            <li>Sistema de Estágio Externo: <a href="https://sistemas2.utfpr.edu.br/home" target="_blank" rel="noopener noreferrer">SCI-UTFPR</a></li>
+                            <li>Cadastro de UCE (Unidade Concedente de Estágio): <a href="https://sistemas2.utfpr.edu.br/spa/estagion/cadastro-publico-empresa/index.html#" target="_blank" rel="noopener noreferrer">Autocadastro-UCE</a></li>
+                            <li>Portal do Aluno: <a href="https://sistemas2.utfpr.edu.br/portal-aluno" target="_blank" rel="noopener noreferrer">Estudante</a></li>
+                        </ul>
+                    </div>
                     <div class="sec-intro sec-intro-rico" contenteditable="false" data-editable="true" data-field="suporte_detalhes" data-placeholder="Escreva aqui o texto de apoio da seção. No painel Estilos da Seção você pode adicionar Subtítulo e Bullets"></div>
                     <!-- Logo e título do SEI: abaixo do macroprocesso, acima da lista -->
                     <div class="sup-header">
@@ -470,9 +485,14 @@
         <div class="section-box" id="sec1Box" data-ap-section="sec1Box">
             <div class="section-header" onclick="toggleSection('sec1Content', 'sec1Toggle')">
                 <span class="section-title-text" role="heading" aria-level="2"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg> Atores e Jornada</span>
-                <span id="sec1Toggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Atores e Jornada">[−] Ocultar</span>
+                <span id="sec1Toggle" class="btn-custom btn-custom-outline section-toggle" aria-label="Ocultar ou expandir Atores e Jornada">[−] Ocultar</span>
             </div>
-            <div id="sec1Content" style="padding: 20px;">
+            <div id="sec1Content" class="sec-content">
+                <div class="sec-lead" contenteditable="false" data-editable="true" data-field="sec1_lead">
+                    <p>
+                        Os atores listados abaixo fazem parte do processo de estágio. Além da descrição do papel de cada ator, são apresentadas as jornadas — uma visão gráfica dos principais passos que o ator percorre ao realizar o estágio. Com a implantação do novo sistema, são disponibilizados também tutoriais de uso.
+                    </p>
+                </div>
                 <div class="sec-intro" contenteditable="false" data-editable="true" data-field="sec1_intro" data-placeholder="Escreva aqui o texto dos Atores..."></div>
                 <div class="search-container" id="searchContainer">
                     <input type="text" id="filterInput" class="search-input" oninput="filterActors()"
@@ -629,7 +649,7 @@
                                 onclick="removerAtor(this)">✕</button>
                         </div>
                         <div class="actor-card" contenteditable="false" data-editable="true">Professor Responsável
-                            pelas<br>Atividades de Estágio<br><span style="font-size: 18px;">PRAE</span></div>
+                            pelas<br>Atividades de Estágio<br><span class="ator-card-sigla">PRAE</span></div>
                         <div class="actor-description">
                             <div contenteditable="false" data-editable="true"><strong>Professor Responsável pelas
                                     Atividades de Estágio (PRAE):</strong> Professor da UTFPR designado pela coordenação
@@ -660,9 +680,14 @@
         <div class="section-box" id="sec1bBox" data-ap-section="sec1bBox">
             <div class="section-header" onclick="toggleSection('sec1bContent', 'sec1bToggle')">
                 <span class="section-title-text" role="heading" aria-level="2"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="9" x2="8" y2="9"></line></svg> Documentos do Estágio</span>
-                <span id="sec1bToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Documentos do Estágio">[−] Ocultar</span>
+                <span id="sec1bToggle" class="btn-custom btn-custom-outline section-toggle" aria-label="Ocultar ou expandir Documentos do Estágio">[−] Ocultar</span>
             </div>
-            <div id="sec1bContent" style="padding: 20px;">
+            <div id="sec1bContent" class="sec-content">
+                <div class="sec-lead" contenteditable="false" data-editable="true" data-field="sec1b_lead">
+                    <p>
+                        Os documentos de estágio podem ser gerados no novo Sistema de Estágio ou editados externamente, usando os modelos disponíveis em <a href="https://www.utfpr.edu.br/estagios" target="_blank" rel="noopener noreferrer">Modelos dos Documentos</a>. Eles podem ser usados nas diferentes etapas e modalidades de estágio. De acordo com o documento, podem ser assinados externamente ou depois de inseridos no novo sistema (upload), ou assinados no próprio sistema pelos atores envolvidos. Para estágios em instituições estrangeiras, os modelos sugeridos podem ser adaptados. Abaixo estão indicados os principais documentos do processo padrão do Estágio e qual ator é responsável por assinar, editar, consultar ou executar cada operação, conforme a legenda.
+                    </p>
+                </div>
                 <div class="sec-intro" contenteditable="false" data-editable="true" data-field="sec1b_intro" data-placeholder="Escreva aqui o texto dos Documentos do Estágio..."></div>
                 <div class="doc-layout">
                     <div class="doc-matrix-container" id="docMatrixContainer">
@@ -671,7 +696,7 @@
                             <div contenteditable="false" data-editable="true"><strong>* PE</strong> – Plano de
                                 Estágio</div>
                             <div contenteditable="false" data-editable="true"><strong>* TCE</strong> – Termo de
-                                Contratação de Estágio</div>
+                                Compromisso de Estágio</div>
                             <div contenteditable="false" data-editable="true"><strong>* TA</strong> – Termo Aditivo</div>
                             <div contenteditable="false" data-editable="true"><strong>* TR</strong> – Termo de Rescisão</div>
                             <div contenteditable="false" data-editable="true"><strong>* RPE</strong> – Relatório Parcial
@@ -694,9 +719,14 @@
         <div class="section-box" id="sec2Box" data-ap-section="sec2Box">
             <div class="section-header" onclick="toggleSection('sec2Content', 'sec2Toggle')">
                 <span class="section-title-text" role="heading" aria-level="2"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect width="8" height="8" x="3" y="3" rx="2"></rect><path d="M7 11v4a2 2 0 0 0 2 2h4"></path><rect width="8" height="8" x="13" y="13" rx="2"></rect></svg> Infográfico</span>
-                <span id="sec2Toggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Infográfico">[−] Ocultar</span>
+                <span id="sec2Toggle" class="btn-custom btn-custom-outline section-toggle" aria-label="Ocultar ou expandir Infográfico">[−] Ocultar</span>
             </div>
-            <div id="sec2Content">
+            <div id="sec2Content" class="sec-content sec-content-flush">
+                <div class="sec-lead" contenteditable="false" data-editable="true" data-field="sec2_lead">
+                    <p>
+                        O estudante procura o estágio e, uma vez selecionado em uma vaga, encaminha os documentos ao sistema junto com o orientador e o PRAE. Após as assinaturas e a conferência administrativa, o estágio inicia sua vigência, podendo ser prorrogado ou encerrado.
+                    </p>
+                </div>
                 <div class="sec-intro" contenteditable="false" data-editable="true" data-field="sec2_intro" data-placeholder="Escreva aqui o texto do Infográfico..."></div>
                 <div class="editor-toolbar" id="editorToolbar">
                     <div class="toolbar-group">
@@ -738,8 +768,8 @@
                         </div>
                     </div>
                     <div class="properties-panel" id="propertiesPanel">
-                        <h3 style="font-size: 0.9rem; font-weight: 700;">Propriedades do Elemento</h3>
-                        <div id="noSelectionMsg" style="font-size: 0.8rem; color: var(--text-secondary);">Selecione um
+                        <h3 class="prop-painel-titulo">Propriedades do Elemento</h3>
+                        <div id="noSelectionMsg" class="prop-painel-vazio">Selecione um
                             elemento no mapa para editar suas propriedades.</div>
                         <div id="propForm" style="display: none; flex-direction: column; gap: 12px;">
                             <div class="prop-group"><label>Título</label><input type="text" id="propTitle"
@@ -780,10 +810,15 @@
         <div class="section-box" id="secBaseLegalBox" data-ap-section="secBaseLegalBox">
             <div class="section-header" onclick="toggleSection('secBaseLegalContent', 'secBaseLegalToggle')">
                 <span class="section-title-text" role="heading" aria-level="2"><svg class="section-title-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M16 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="M2 16l3-8 3 8c-.87.65-1.92 1-3 1s-2.13-.35-3-1Z"></path><path d="M7 21h10"></path><path d="M12 3v18"></path><path d="M3 7h2c2 0 5-1 7-2 2 1 5 2 7 2h2"></path></svg> Base Legal</span>
-                <span id="secBaseLegalToggle" class="btn-custom btn-custom-outline" style="padding: 2px 8px;" aria-label="Ocultar ou expandir Base Legal">[−] Ocultar</span>
+                <span id="secBaseLegalToggle" class="btn-custom btn-custom-outline section-toggle" aria-label="Ocultar ou expandir Base Legal">[−] Ocultar</span>
             </div>
-            <div id="secBaseLegalContent" style="padding: 20px;">
-                <div class="sec-intro" contenteditable="false" data-editable="true" data-field="secBaseLegal_intro" data-placeholder="Escreva aqui a Base Legal..."></div>
+            <div id="secBaseLegalContent" class="sec-content">
+                <div class="sec-lead" contenteditable="false" data-editable="true" data-field="secBaseLegal_lead">
+                    <p>
+                        A legislação que fundamenta a gestão de estágios na UTFPR abrange a Lei federal, os regulamentos institucionais e os normativos aplicáveis ao estágio obrigatório e não obrigatório, bem como ao estágio na condição de UCE.
+                    </p>
+                </div>
+                <div class="sec-intro" contenteditable="false" data-editable="true" data-field="secBaseLegal_intro" data-placeholder="Escreva aqui os dispositivos, normas, resoluções e links da Base Legal..."></div>
             </div>
         </div>
 
@@ -964,7 +999,7 @@
         <div class="footer-top">
             <div class="footer-col footer-brand-col">
                 <img src="https://cdn.jsdelivr.net/gh/thiagoo-honorio/Portfolio_Processos_UTFPR@master/Portfolio_Processos_UTFPR/logo_utfpr.png" alt="UTFPR" class="footer-logo">
-                <p class="footer-about">Universidade Tecnológica Federal do Paraná Reitoria. Portfólio institucional dos processos que envolvem a gestão de estágios internos e externos.</p>
+                <p class="footer-about">Universidade Tecnológica Federal do Paraná — Reitoria. Portfólio institucional dos processos que envolvem a gestão de estágios internos e externos.</p>
             </div>
             <div class="footer-col">
                 <h3 class="footer-heading">Navegação</h3>
@@ -980,19 +1015,19 @@
                 </ul>
             </div>
             <div class="footer-col">
-                <h3 class="footer-heading">Links Úteis</h3>
+                <h3 class="footer-heading">Links úteis</h3>
                 <ul class="footer-list">
-                    <li><a href="https://www.utfpr.edu.br" target="_blank" rel="noopener">Portal UTFPR</a></li>
-                    <li><a href="https://www.utfpr.edu.br/" target="_blank" rel="noopener">UTFPR</a></li>
-                    <li><a href="https://academico.utfpr.edu.br" target="_blank" rel="noopener">Portal Acadêmico</a></li>
+                    <li><a href="https://www.utfpr.edu.br" target="_blank" rel="noopener noreferrer">Portal UTFPR</a></li>
+                    <li><a href="https://academico.utfpr.edu.br" target="_blank" rel="noopener noreferrer">Portal Acadêmico</a></li>
+                    <li><a href="https://sistemas2.utfpr.edu.br/portal-aluno" target="_blank" rel="noopener noreferrer">Portal do Aluno</a></li>
                 </ul>
             </div>
             <div class="footer-col">
-                <h3 class="footer-heading">Contato</h3>
+                <h3 class="footer-heading">Atalhos</h3>
                 <ul class="footer-list footer-contact">
-                    <li>📍 Reitoria — UTFPR</li>
-                    <li>✉️ <a href="https://www.utfpr.edu.br/estrutura/reitoria" target="_blank" rel="noopener">utfpr.edu.br</a></li>
-                    <li>📞 <a href="https://www.utfpr.edu.br/estrutura/reitoria" target="_blank" rel="noopener">Reitoria</a></li>
+                    <li>📄 <a href="https://www.utfpr.edu.br/estagios" target="_blank" rel="noopener noreferrer">Modelos dos documentos</a></li>
+                    <li>🗂️ <a href="https://portalsei.utfpr.edu.br" target="_blank" rel="noopener noreferrer">Sistema Eletrônico de Informações (SEI)</a></li>
+                    <li>🏛️ <a href="https://www.utfpr.edu.br/estrutura/reitoria" target="_blank" rel="noopener noreferrer">Reitoria da UTFPR</a></li>
                 </ul>
             </div>
         </div>
@@ -1006,9 +1041,14 @@
 
     <div class="edit-float-toolbar" id="editFloatToolbar">
         <button class="edit-float-btn" onclick="inserirImagemEditavel()" title="Inserir imagem (URL ou upload)" aria-label="Inserir imagem">📷</button>
-        <button class="edit-float-btn" onclick="inserirLinkEditavel()" title="Inserir link com nome personalizado (sem mostrar a URL)" aria-label="Inserir link com nome personalizado">🔗</button>
+        <button class="edit-float-btn" onclick="inserirLinkEditavel()" title="Inserir link — ou editar o link sob o cursor" aria-label="Inserir ou editar link">🔗</button>
+        <button class="edit-float-btn" onclick="removerLinkEditavel()" title="Remover o link sob o cursor, mantendo o texto" aria-label="Remover link">✂️</button>
+        <button class="edit-float-btn" id="btnRestaurarImgCaixa" onclick="restaurarImagensRemovidas()" style="display:none"
+            title="Reexibir as imagens removidas desta caixa" aria-label="Restaurar imagens removidas">↩️</button>
     </div>
     <input type="file" id="inputFileImagem" accept="image/*" style="display:none">
+    <input type="file" id="inputFileImgApresentacao" accept="image/*" style="display:none">
+    <input type="file" id="inputFileJSON" accept="application/json,.json" style="display:none">
 
     <script src="script.js"></script>
 </body>
