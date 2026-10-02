@@ -378,16 +378,20 @@ body.editing .nav-actions {
     }
 }
 
+/* Miniatura do diagrama ao lado do texto da etapa. Os PNGs de imagens/ têm
+   1060–1118px de largura, então 32px desperdiçava a resolução e deixava a
+   miniatura quase invisível entre o texto; 60px ainda é uma redução enorme e
+   o clique continua abrindo o lightbox com a imagem cheia. */
 .jornada-thumb {
-    border-radius: 6px;
-    height: 32px;
-    width: 32px;
+    border-radius: 8px;
+    height: 60px;
+    width: 60px;
     object-fit: cover;
     box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
     transition: box-shadow 0.3s ease, transform 0.2s ease;
     cursor: pointer;
     vertical-align: middle;
-    margin-right: 8px;
+    margin-right: 10px;
 }
 
 .jornada-thumb:hover {
@@ -572,12 +576,14 @@ body.editing .nav-actions {
 
 .ator-preview:hover { background: #e2e8f0; }
 
+/* Mesma ideia da .jornada-thumb: as fontes das prévias têm 509–649px, então
+   64×46 era pequeno demais para reconhecer o fluxo. */
 .ator-preview img {
-    height: 46px;
-    width: 64px;
+    height: 80px;
+    width: 110px;
     object-fit: cover;
     object-position: top left;
-    border-radius: 4px;
+    border-radius: 5px;
     box-shadow: 0 2px 6px rgba(0, 0, 0, 0.18);
     transition: transform 0.2s ease;
 }
@@ -2254,13 +2260,26 @@ body:not(.editing) [data-editable] a:not(.jornada-link)::before {
     text-align: left;
 }
 
-/* No modo de edição o bloco de abertura ganha a mesma affordance das demais
-   caixas de texto; a borda esquerda tracejada avisa que o texto é editável.
-   Com a caixa selecionada, o contorno âmbar de .sec-caixa-ativa tem
-   precedência (seletor mais específico) e substitui este. */
-body.editing .sec-lead,
-body.editing .sec-note {
-    border-left-style: dashed;
+/* Modo de edição: as caixas de texto NÃO ganham tracejado ao ligar o Editar.
+   Aparecem com a formatação padrão de leitura (faixa azul da .sec-lead +
+   placeholder em cinza). O tracejado azul é o estado de digitação, e quem
+   pinta ele é a regra genérica `body.editing [contenteditable="true"]:focus`.
+   Aqui só se resolve uma consequência dela: ela impõe border-radius: 3px,
+   que arredondava o canto de cima da faixa — o anel do contorno ficava
+   diferente da caixa que ele está contornando. O raio volta a ser o da faixa. */
+body.editing .sec-lead:focus,
+body.editing .sec-note:focus,
+body.editing .sec-intro:focus,
+body.editing .context-intro:focus {
+    border-radius: 0 10px 10px 0;
+}
+
+/* Com o cursor dentro da caixa, o âmbar de .sec-caixa-ativa (que marca a caixa
+   selecionada para o painel de propriedades) diria duas vezes a mesma coisa,
+   então o azul assume. O âmbar continua aparecendo na seleção sem cursor. */
+body.editing [data-ap-section] [data-editable="true"].sec-caixa-ativa:focus {
+    outline: 2px dashed var(--primary);
+    outline-offset: 2px;
 }
 
 /* Telas estreitas: só o respiro e o corpo do texto mudam. A largura já é
@@ -2275,21 +2294,28 @@ body.editing .sec-note {
 
 /* Caixa de texto introdutória de cada seção.
    Fora do modo de edição, se estiver vazia some; se tiver texto, aparece
-   como texto normal. No modo de edição ganha borda tracejada e placeholder. */
+   como texto normal. No modo de edição aparece vazia, com a formatação
+   padrão e o placeholder — o tracejado azul só entra no :focus (ver regra
+   de :focus acima). */
+/* Caixa de texto introdutória de cada seção — a SEGUNDA caixa da seção
+   (a primeira é a .sec-lead). Mesma linguagem visual dela: barra azul na
+   vertical à esquerda e faixa com o degrade. Sem isto, ao editar, a segunda
+   caixa ficava com cara diferente da primeira.
+   As outras três laterais ficam tracejadas e transparentes, prontas para
+   receber o tracejado azul do :focus.
+   Fora do modo de edição, vazia some; com texto, aparece normal. */
 .sec-intro,
 .context-intro {
     min-height: 24px;
-    padding: 10px 14px;
+    padding: 16px 20px;
     margin-bottom: 18px;
-    border-radius: 10px;
+    border-radius: 0 10px 10px 0;
     border: 1.5px dashed transparent;
-    line-height: 1.6;
-    font-size: 1rem;
-}
-body.editing .sec-intro,
-body.editing .context-intro {
-    border-color: #cbd5e1;
-    background: rgba(37, 99, 235, 0.04);
+    border-left: 4px solid var(--primary);
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.06) 0%, rgba(37, 99, 235, 0) 100%);
+    color: var(--text-primary);
+    line-height: 1.72;
+    font-size: 1.02rem;
 }
 .sec-intro:empty::before,
 .context-intro:empty::before {
@@ -2325,13 +2351,17 @@ body:not(.editing) .context-intro:empty {
 }
 
 /* Subtítulos e bullets dentro das caixas de texto (opções do Estilos da Seção).
-   Qualquer caixa editável pode receber h3 (subtítulo), ul/li (bullets) e p. */
+   Qualquer caixa editável pode receber h3 (subtítulo), ul/li (bullets) e p.
+   Mesma tipografia da .sec-lead, para o que for digitado na segunda caixa ter
+   a mesma cara do texto-base da primeira. */
 .sec-intro h3,
 .context-intro h3 {
-    font-size: 1.38rem;
+    font-size: 1rem;
     font-weight: 700;
-    color: #1d72b8;
-    margin: 10px 0 6px;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+    color: var(--primary);
+    margin: 1.15em 0 0.45em;
     line-height: 1.35;
 }
 .sec-intro h3:first-child,
@@ -2340,17 +2370,21 @@ body:not(.editing) .context-intro:empty {
 }
 .sec-intro p,
 .context-intro p {
-    margin: 4px 0;
+    margin: 0 0 0.75em;
+}
+.sec-intro p:last-child,
+.context-intro p:last-child {
+    margin-bottom: 0;
 }
 .sec-intro ul,
 .context-intro ul {
-    margin: 4px 0 8px 22px;
+    margin: 0.55em 0 0.55em 1.15em;
     padding: 0;
     list-style: disc;
 }
 .sec-intro li,
 .context-intro li {
-    margin: 2px 0;
+    margin: 0.3em 0;
 }
 
 .left-col {
