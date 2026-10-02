@@ -1270,8 +1270,13 @@
             if (url == null) return;
             const texto = url.trim();
             if (!texto) { escolherArquivoImagemApresentacao(el); return; }
-            el.imagem = texto;
-            salvarHistorico(); apRender();
+            // Também vira binário: o estado do mapa é exportado junto com a página.
+            toast('Baixando a imagem para embutir no site...', 'info');
+            garantirDataUrl(texto).then(function (bin) {
+                el.imagem = bin;
+                salvarHistorico(); apRender();
+                toast(/^data:/i.test(bin) ? 'Imagem adicionada em binário.' : 'Imagem adicionada.');
+            });
         }
 
         /* Upload da camada de apresentação: o arquivo vira data URL e entra no
@@ -2082,12 +2087,20 @@
             const img = apImgEdit.img;
             const url = prompt('Cole a URL da nova imagem (deixe vazio para escolher um arquivo do computador):', img.getAttribute('src') || '');
             if (url === null) return;
+
+            // Trocar por URL: baixa e embute em base64, senão a página passa a
+            // depender de um endereço externo que pode sair do ar.
             if (url && url.trim()) {
                 const alt = prompt('Texto alternativo (descreva a imagem; usado por leitores de tela):', img.getAttribute('alt') || '');
                 if (alt === null) return;
-                apImgAplicarTroca(img, url.trim(), alt);
+                toast('Baixando a imagem para embutir no site...', 'info');
+                garantirDataUrl(url.trim()).then(function (bin) {
+                    apImgAplicarTroca(img, bin, alt);
+                    if (/^data:/i.test(bin)) toast('Imagem trocada em binário.');
+                });
                 return;
             }
+
             const input = document.getElementById('inputFileImagem');
             if (!input) return;
             input.value = '';
@@ -2576,7 +2589,15 @@
             if (!alvoToolbarEl) return;
             const url = prompt('Cole a URL da imagem (deixe vazio para fazer upload do computador):');
             if (url && url.trim()) {
-                inserirImgNoAlvo(url.trim());
+                // Guarda a caixa de destino: a conversão é assíncrona e o usuário
+                // pode clicar em outra caixa enquanto o base64 é gerado.
+                const caixa = alvoToolbarEl;
+                toast('Baixando a imagem para embutir no site...', 'info');
+                garantirDataUrl(url.trim()).then(function (src) {
+                    if (caixa !== alvoToolbarEl) return;   // trocou de caixa no meio
+                    inserirImgNoAlvo(src);
+                    if (/^data:/i.test(src)) toast('Imagem inserida em binário.');
+                });
             } else {
                 const input = document.getElementById('inputFileImagem');
                 input.value = '';
@@ -4188,7 +4209,14 @@
                 reader.readAsDataURL(blob);
             });
         }
-        function arquivoParaDataUrl(src, tipo) {
+        /* Nome propositalmente diferente de arquivoParaDataUrl().
+           As duas funções já coexistem no arquivo: uma lê um File escolhido no
+           computador (FileReader + canvas, reduz a imagem), esta outra busca
+           uma URL por XHR. Sendo as duas declarações de função no mesmo escopo,
+           a valia por último — e era ESTA que vencia. Aí arquivoParaDataUrl()
+           recebia um File, fazia xhr.open('GET', <File>) e falhava devolvendo
+           null; o upload do usuário não inseria imagem nenhuma, em silêncio. */
+        function urlParaDataUrl(src, tipo) {
             return new Promise((resolve) => {
                 const falha = () => resolve(null);
                 try {
@@ -4263,13 +4291,37 @@ const FALLBACK_IMAGENS_CDN_404 = {
             const tipo = /\.jpe?g$/i.test(src) ? 'image/jpeg'
                 : (/\.gif$/i.test(src) ? 'image/gif'
                     : (/\.svg$/i.test(src) ? 'image/svg+xml' : 'image/png'));
-            const url = await arquivoParaDataUrl(src, tipo);
+            const url = await urlParaDataUrl(src, tipo);
             if (url) { cacheDataUrl.set(src, url); return url; }
             // Fallback: base64 embutido (FALLBACK_IMAGENS) garante exportações standalone
             // mesmo sem acesso à pasta imagens/ (ex.: Chrome via file:// bloqueia a leitura).
             const fb = (typeof FALLBACK_IMAGENS !== 'undefined') ? FALLBACK_IMAGENS[src] : null;
             if (fb) { cacheDataUrl.set(src, fb); return fb; }
             return null;
+        }
+
+        /* Garante que uma imagem que o usuário acabou de inserir ou trocar
+           vire BINÁRIO (data URL base64), e não uma referência externa.
+
+           Por que importa: uma URL colada só carrega para quem consegue
+           alcançar aquele endereço — e depende de o arquivo continuar no lugar
+           e o servidor permitir. Quem abrir o site depois não veria nada. Com o
+           base64 dentro do HTML, a imagem viaja junto com a página.
+
+           Quando a URL não pode ser lida (CORS, link morto, arquivo local sem
+           permissão), devolve a URL original em vez de falhar: é melhor
+           manter a referência — que pode funcionar para o autor — do que trocar
+           por um placeholder. Quem já vier como data URL passa reto. */
+        function garantirDataUrl(url) {
+            const txt = String(url || '').trim();
+            if (!txt) return Promise.resolve('');
+            if (/^data:/i.test(txt)) return Promise.resolve(txt);
+            return paraDataUrlBase64(txt).then(function (bin) {
+                if (bin) return bin;
+                console.warn('[imagem] não foi possível embutir em base64; mantendo a URL:', txt);
+                toast('Não consegui converter a imagem em binário. A URL foi mantida, mas ela pode não aparecer para quem abrir o site.', 'erro');
+                return txt;
+            });
         }
 
         // Lê um arquivo local/relativo como Blob (fetch com fallback XHR),
