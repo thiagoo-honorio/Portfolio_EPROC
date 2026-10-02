@@ -196,9 +196,7 @@ body {
     font-size: 1rem;
     line-height: 1.6;
     color: rgba(255, 255, 255, 0.88);
-    /* Um parágrafo corrido na largura toda da caixa fica difícil de ler:
-       limitar a medida e equilibrar as quebras. */
-    max-width: 78ch;
+    /* Ocupa a largura toda do hero: o texto não para no meio da caixa. */
     text-wrap: pretty;
 }
 
@@ -2192,18 +2190,18 @@ body:not(.editing) [data-editable] a:not(.jornada-link)::before {
     font-size: 1.02rem;
     line-height: 1.72;
     color: var(--text-primary);
-    background: linear-gradient(90deg, rgba(37, 99, 235, 0.06) 0%, rgba(37, 99, 235, 0) 72%);
+    background: linear-gradient(90deg, rgba(37, 99, 235, 0.06) 0%, rgba(37, 99, 235, 0) 100%);
     border-left: 4px solid var(--primary);
     border-radius: 0 10px 10px 0;
     padding: 16px 20px;
     margin: 0 0 22px;
-    text-align: justify;
+    /* Texto até o fim da seção: sem max-width, para o parágrafo não parar
+       na metade da largura do contêiner. E alinhado à esquerda em vez de
+       justificado — em 1200px, justify abre "rios" de espaço em branco
+       entre as palavras. O gradiente vai até 100% para acompanhar o texto. */
+    text-align: left;
     hyphens: auto;
     -webkit-hyphens: auto;
-    /* A página tem 1200px de largura útil, mas um parágrafo justificado com
-       140 caracteres por linha é ilegível. 40em ≈ 80 caracteres: é a medida
-       confortável para leitura em bloco corrido. */
-    max-width: 40em;
 }
 
 /* Primeiro bloco da seção: o padding do .sec-content já faz a separação. */
@@ -2212,11 +2210,9 @@ body:not(.editing) [data-editable] a:not(.jornada-link)::before {
     margin-top: 0;
 }
 
-/* O Infográfico mantém a barra de ferramentas e o canvas em largura total,
-   então é o texto de abertura que recebe a margem lateral. */
-#sec2Content > .sec-lead {
-    margin: 22px 24px;
-}
+/* O Infográfico não precisa mais de margem lateral própria: a barra de
+   ferramentas é um bloco no fluxo normal, abaixo do texto, então o recuo de
+   24px só fazia este lead sair mais estreito que o das outras seções. */
 
 .sec-lead > p,
 .sec-note > p {
@@ -2267,19 +2263,13 @@ body.editing .sec-note {
     border-left-style: dashed;
 }
 
-/* Telas estreitas: justificação com hifenização cria "rios" de espaço. */
+/* Telas estreitas: só o respiro e o corpo do texto mudam. A largura já é
+   total e o alinhamento já é à esquerda na regra base. */
 @media (max-width: 700px) {
     .sec-lead,
     .sec-note {
-        text-align: left;
-        hyphens: manual;
-        -webkit-hyphens: manual;
         font-size: 1rem;
         padding: 14px 16px;
-        max-width: none;
-    }
-    #sec2Content > .sec-lead {
-        margin: 18px 16px;
     }
 }
 

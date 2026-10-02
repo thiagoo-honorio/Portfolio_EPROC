@@ -48,7 +48,8 @@
         <span class="edit-mode-indicator" id="editIndicator" aria-live="polite">Modo Edição Ativo</span>
         <button class="btn-custom btn-custom-outline btn-edit-current" onclick="toggleEditMode()" aria-label="Sair do modo de edição">
             Sair da Edição</button>
-        <button class="btn-custom btn-custom-outline" onclick="salvarEstadoLocal()" aria-label="Salvar trabalho no navegador">Salvar</button>
+        <button class="btn-custom btn-custom-outline" id="btnSalvar" onclick="salvarEstadoLocal()"
+            aria-label="Salvar o trabalho no teste.html">Salvar</button>
         <button class="btn-custom btn-custom-outline" onclick="restaurarEstadoLocal()" aria-label="Restaurar último trabalho salvo">Restaurar</button>
         <button class="btn-custom btn-custom-outline ap-toggle" id="btnRestaurarAoAbrir" onclick="alternarRestaurarAoAbrir()"
             aria-pressed="false" title="Desligado: você precisa clicar em Restaurar para recuperar o trabalho salvo.">⟳ Restaurar ao abrir</button>

@@ -13,7 +13,9 @@
 - `Portfolio_Processos_UTFPR/` — páginas nivel_1…nivel_3 (repositório isolado embutido; `.git` interno foi removido). Contém as cópias locais de `logo_utfpr.png` e `logo_escritorio_processos.png`, referenciadas localmente por ele.
 
 ## Texto e título editáveis (modo Editar)
-- **Abertura da seção (`.sec-lead`) — primeiro filho do `*Content`:** todo `*Content` abre com `<div class="sec-lead" data-editable="true" data-field="<id>_lead" data-placeholder="...">`. É o parágrafo de apresentação da seção: borda esquerda azul, fundo em gradiente, `text-align: justify` e `max-width: 40em` (≈ 80 caracteres por linha; sem esse limite o parágrafo saía com ~140). No celular o `@media (max-width: 700px)` troca para `text-align: left` e `max-width: none`. A Hierarquia tem 3 e a Contextualização tem 3 (`context_lead`).
+- **Abertura da seção (`.sec-lead`) — primeiro filho do `*Content`:** todo `*Content` abre com `<div class="sec-lead" data-editable="true" data-field="<id>_lead" data-placeholder="...">`. É o parágrafo de apresentação da seção: borda esquerda azul, fundo em gradiente e `text-align: left`. A Hierarquia tem 3 e a Contextualização tem 3 (`context_lead`).
+- **O texto de abertura ocupa a LARGURA TODA da seção — não reintroduzir `max-width`.** Havia um `max-width: 40em` (≈650px dentro de um contêiner de 1200px, ou seja, o parágrafo parava em ~54% da largura e deixava a metade direita vazia) e `text-align: justify`. Ambos foram removidos a pedido do usuário: sem o `max-width` o texto vai até o fim, e o alinhado à esquerda substitui o justificado porque em 1200px o `justify` abre "rios" de espaço em branco entre as palavras. O gradiente de fundo foi esticado de 72% para **100%** para acompanhar o texto até a borda. O `@media (max-width: 700px)` só mexe em `font-size` e `padding`. Vale o mesmo para o `.hero-subtitle` (tinha `max-width: 78ch`) e para o `.sec-note`.
+- **`#sec2Content > .sec-lead` não tem margem lateral própria** (tinha `margin: 22px 24px`). O recuo não protegia nada — a `.editor-toolbar` é um bloco no fluxo normal, abaixo do texto — e só fazia o lead do Infográfico sair mais estreito que o das outras seções. Todos os leads alinham na mesma largura.
 - **Ordem dentro do `*Content`:** `.sec-lead` → `.sec-intro`/`.context-intro` → conteúdo. A `.sec-lead` é o texto-base do arquivo; a `.sec-intro` é a caixa livre do usuário. Ficam em campos separados de propósito: se o texto-base morasse dentro do `<id>_intro`, um estado salvo antigo sobrescreveria a abertura ao ser restaurado.
 - **Caixa de texto por seção:** logo depois da `.sec-lead` vem `<div class="sec-intro" data-editable="true" data-field="<id>_intro" data-placeholder="...">`. A Contextualização usa a classe legada `.context-intro` (mesmas regras). O CSS generalizado usa `content: attr(data-placeholder)`, então **cada seção tem seu próprio texto de dica**. Comportamento: vazia + fora do modo edição → `display: none`; vazia + editando → borda tracejada e placeholder; com texto → aparece normal.
 - `.sec-note` (campo `suporte_acesso`, no Suporte) é a mesma caixa de abertura, para a observação que não é a apresentação principal da seção.
@@ -38,6 +40,20 @@
 - **Uploads:** sempre `arquivoParaDataUrl()` (FileReader + canvas, reduz o lado maior para 1600/1400 px) — nunca guardar caminho absoluto. Usado por `inserirImgNoAlvo()` e por `escolherArquivoImagemApresentacao()` (camada de apresentação, `state.apresentacao`).
 - **Ordem importa em `aplicarEstadoCompleto()`:** atores → cadeia → etapas → textos → estrutura → **`imgEdits`** → seções/estilos. `imgEdits` vem depois porque `textos` e `estrutura` reescrevem `innerHTML` e recriam `<img>`; aplicado antes, as edições iam para o elemento que em seguida seria substituído.
 - **Duplicar seção:** `duplicarSecao()` prefixa os `id`s internos e os `data-field` (`<novoId>_<id>`), reescrevendo `onclick`, `aria-controls`, `aria-labelledby`, `aria-describedby`, `aria-owns`, `for`, `list` e `href`. `idsColidindoForaDe()` monta a lista do que precisa ser renomeado.
+
+## Persistência no próprio `teste.html` (o botão "Salvar")
+- **O botão "Salvar" (`#btnSalvar`) grava no arquivo**, não só no navegador: `salvarEstadoLocal()` é um wrapper fino que chama `salvarTrabalho()`. O atalho **Ctrl+S** faz o mesmo e **Ctrl+Shift+S** mostra o aviso detalhado de onde salvou (`explicarPersistencia()`). O `localStorage` continua sendo só a cópia de segurança lida pelo botão "Restaurar" (`gravarEstadoLocalSilencioso()` roda dentro de `salvarTrabalho()`).
+- **Cascata na hora do salvamento** (`salvarTrabalho()`): 1) handle já autorizado no IndexedDB `utfpr_persistencia`/loja `arquivos`; 2) `servidor-local.js` (`POST api/salvar`, resultado cacheado em `servidorLocalCache`); 3) `showSaveFilePicker`; 4) download do `teste.html` atualizado. `temFileSystemAccess()` + `ondeVaiGravar()` + `atualizarTituloSalvar()` alimentam o `title`/`aria-label` do botão, para o usuário saber onde vai gravar antes de clicar.
+- **`servidor-local.js` NÃO existe no repositório** — o passo 2 sempre falha e cai no 3/4. O nome aparece nas mensagens; se o arquivo for criado depois, o passo 2 passa a funcionar sem tocar no resto.
+- `gerarHTMLEditavel()` monta o arquivo a partir do DOM vivo via `limparCloneParaSalvar(cloneDoc)`, mantendo `<script src="script.js">` e `<link href="style.css">` — o exportado continua sendo o mesmo projeto, editável. Grava só o estado de sessão do mapa num `<script type="application/json" id="estadoPersistencia">` no formato `{versao, salvoEm, state:{nodes, conexoes, apresentacao}}`. É `carregarEstadoDoArquivo()` que lê esse `state`, **não** o topo do objeto.
+- `carregarEstadoSalvoNoArquivo()` roda no `DOMContentLoaded` e aplica esse JSON sozinho (é conteúdo do arquivo, não rascunho), ao contrário do `localStorage`.
+
+### Armadilha: a chave `}` que fecha uma função
+- **Toda função do `script.js` é declarada no escopo do arquivo com indentação de 8 espaços.** Uma chave `}` faltando **não** quebra o `node --check` (a sintaxe continua válida): ela apenas empurra todo o bloco seguinte para dentro da função anterior, deixando as declarações inacessíveis globalmente.
+- Foi o que aconteceu com `inserirImagemEditavel()`: faltava o `}` que fechava a função, e o que sobrava foi parar no fim de `explicarPersistencia()`, ~335 linhas depois. `carregarEstadoDoArquivo()` sumiu do escopo, `carregarEstadoSalvoNoArquivo()` passou a estourar `ReferenceError` e — por estar no meio do `DOMContentLoaded` — abortava o resto da inicialização (mapa vazio, títulos não editáveis, toggles/arraste não instalados).
+- **Como detectar:** `node --check` **não** basta. Cheque a indentação: uma declaração de topo tem **exatamente 8 espaços**; se aparecer com 12+, há uma chave faltando acima. Confirme com `Select-String -Pattern '^ {8}function <nome>'` para cada função pública.
+- **Corrija sempre os dois lados:** devolva a chave que fecha a função no lugar certo **e** apague a chave órfã que ficou no fim do bloco deslocado — senão o arquivo deixa de parsear.
+
 
 
 ## Imagens
@@ -64,8 +80,11 @@
 - **Cadeia de valor no celular:** existe um `@media (max-width: 768px)` **antigo** (perto de `.slide-body`) que força `.cv-transversal { grid-column: 1 / 7 }`. Como o `grid-column` cria Tracks mesmo com `grid-template-columns: 1fr`, a `.cv-branch` continuava com 6 colunas abaixo de 768px e o card de Resultados saía da caixa. O `@media` da cadeia (mais abaixo no arquivo) agora reseta `grid-column/grid-row: auto` e `transform` de `.cv-transversal` e `.cv-branch-resultados`. **Se tocar no grid da cadeia, meça em 430/768/900/1500px.**
 
 ## Validar código JavaScript
-- `node --check "script.js"` (`node` v22 disponível).
+- `node --check "script.js"` (`node` v22 disponível). **Só garante que o arquivo parseia** — não detecta função aninhada por chave faltante (ver "Armadilha: a chave `}` que fecha uma função").
+- Checagem de escopo, rápida e sem navegador: toda função pública tem que aparecer com **8 espaços** de indentação.
+  `Select-String -Path script.js -Pattern '^ {8}(async )?function '` — se alguma sair com 12+, olhe a chave acima dela.
 - Suíte de regressão headless (temporária, remover antes de entregar): `_ap_teste.js` roda dentro do Chrome com `_ap_run_tests.ps1`, que espelha o projeto num caminho **sem espaços** em `%TEMP%\opencode\proj` — chamada direta do Chrome com acento/espaço no path devolve `exit=13` e DOM vazio. Cobre campos, textos, imagens, links, cadeia, estrutura de seções, preferências, JSON e runtime de exportação.
+- A suíte também **falha se sobrar erro de console no carregamento** — é assim que se pega um `ReferenceError` que aborta o `DOMContentLoaded` na metade. Vale manter essa asserção depois de mexer na inicialização.
 
 ## Dependências externas (CDN)
 - html2pdf (cdnjs), JSZip (cdnjs), Google Fonts Open Sans.

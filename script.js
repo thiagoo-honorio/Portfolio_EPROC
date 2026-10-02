@@ -2590,7 +2590,8 @@
                         .catch(err => toast(err.message || 'Não foi possível ler a imagem.', 'erro'));
                 };
                 input.oncancel = function () { inserindoImagem = false; };
-            input.click();
+                input.click();
+            }
         }
 
         /* ================================================
@@ -2606,7 +2607,7 @@
              1. File System Access API — a página escreve direto no
                 teste.html, sem diálogo, usando o handle autorizado que a
                 supervisora escolheu uma vez (guardado em IndexedDB).
-             2. servidor.js — POST api/salvar. O Node grava o arquivo no
+             2. servidor-local.js — POST api/salvar. O Node grava o arquivo no
                 disco. É o caminho que funciona com a página aberta por
                 http://localhost e o único que grava sem nenhum diálogo.
              3. showSaveFilePicker — a supervisora escolhe o arquivo.
@@ -2686,7 +2687,7 @@
             return handle.name || ARQUIVO_PAGINA;
         }
 
-        /* --- servidor.js: escrita real no disco, sem diálogo --------------- */
+        /* --- servidor-local.js: escrita real no disco, sem diálogo ---------- */
         let servidorLocalCache = null; // null = não testado, true/false = resposta
         async function servidorLocalDisponivel() {
             if (servidorLocalCache !== null) return servidorLocalCache;
@@ -2880,7 +2881,7 @@
             } catch (err) {
                 await idbEsquecerHandleArquivo();
             }
-            // 2) servidor.js — escrita no disco sem diálogo
+            // 2) servidor-local.js — escrita no disco sem diálogo
             if (!destino.length && !forcarEscolha && await servidorLocalDisponivel()) {
                 try {
                     destino.push('arquivo "' + (await salvarPeloServidor(html)) + '"');
@@ -2907,8 +2908,11 @@
                 destino.push('download de "' + ARQUIVO_PAGINA + '"');
             }
 
-            const avisoCopia = backup ? ''
-                : ' (a cópia no navegador não coube por causa do tamanho das imagens — o arquivo foi salvo normalmente)';
+            const avisoCopia = !backup
+                ? (isQuotaLocalStorage()
+                    ? ' (a cópia no navegador não coube por causa do tamanho das imagens — o arquivo foi salvo normalmente)'
+                    : ' (não deu para guardar a cópia de segurança no navegador — o arquivo foi salvo normalmente)')
+                : '';
             if (destino.length === 1 && destino[0].indexOf('download') === 0) {
                 toast('Página salva como ' + ARQUIVO_PAGINA + '. Substitua o arquivo original por esse download para a alteração valer no código.' + avisoCopia, 'ok', null, 12000);
             } else {
@@ -2920,15 +2924,32 @@
         async function explicarPersistencia() {
             const linhas = [];
             linhas.push('Onde o "Salvar" grava:');
-            if (temFileSystemAccess()) linhas.push('• File System Access API disponível neste navegador.');
-            else linhas.push('• Este navegador não tem File System Access API (comum ao abrir via file://).');
+            linhas.push(temFileSystemAccess()
+                ? '• File System Access API disponível: grava direto no teste.html, sem diálogo depois da primeira vez.'
+                : '• Este navegador não tem File System Access API (comum ao abrir via file://).');
             linhas.push(await servidorLocalDisponivel()
-                ? '• servidor.js detectado: o Salvar escreve direto no teste.html do disco.'
-                : '• servidor.js não está rodando (abra com "node servidor.js" para salvar sem diálogo).');
+                ? '• servidor-local.js detectado: o Salvar escreve direto no teste.html do disco.'
+                : '• servidor-local.js não está rodando (abra com "node servidor-local.js" para salvar sem diálogo).');
             linhas.push('• Sem nenhum dos dois, o Salvar baixa o teste.html atualizado para você substituir o original.');
             linhas.push('• O localStorage guarda só uma cópia de segurança do botão "Restaurar".');
             toast(linhas.join('\n'), 'info', null, 12000);
         }
+
+        /* Resumo em uma linha do mesmo aviso, para o title do botão: sem isso
+           o usuário só descobre onde salvou depois do toast, e no caminho do
+           download precisa substituir o arquivo na mão. */
+        async function ondeVaiGravar() {
+            if (await servidorLocalDisponivel()) return 'grava direto no teste.html deste computador, pelo servidor local.';
+            if (temFileSystemAccess()) return 'grava direto no teste.html deste computador (File System Access API).';
+            return 'baixa o teste.html atualizado: substitua o arquivo original pelo download.';
+        }
+
+        async function atualizarTituloSalvar() {
+            const btn = document.getElementById('btnSalvar');
+            if (!btn) return;
+            const onde = await ondeVaiGravar();
+            btn.title = 'Salvar o trabalho: ' + onde + ' Ctrl+Shift+S mostra os detalhes.';
+            btn.setAttribute('aria-label', 'Salvar o trabalho. ' + onde);
         }
 
         /* Converte um arquivo de imagem em data URL, reduzindo o lado maior
@@ -4059,15 +4080,19 @@
             } catch (err) { return false; }
         }
 
+        /* Botão "Salvar" da navbar (e Ctrl+S). A gravação no teste.html é o
+           caminho padrão; a cópia de segurança no navegador é feita dentro
+           de salvarTrabalho() e é o que o botão "Restaurar" continua lendo.
+           Antes, salvarEstadoLocal() só gravava no localStorage e a camada
+           de persistência no arquivo ficava sem nenhum caminho de entrada. */
         function salvarEstadoLocal() {
-            if (gravarEstadoLocalSilencioso()) {
-                toast('Trabalho salvo com sucesso!');
-                return;
-            }
-            const msg = isQuotaLocalStorage()
-                ? 'Não coube no armazenamento do navegador. Remova alguma imagem ou use "Exportar JSON" para guardar o trabalho num arquivo.'
-                : 'Falha ao salvar: armazenamento do navegador indisponível.';
-            toast(msg, 'erro', null, 9000);
+            // O onclick é "fire and forget": sem este catch, uma falha fora dos
+            // try/catch internos de salvarTrabalho() viraria unhandled rejection
+            // silenciosa e o usuário acharia que salvou.
+            salvarTrabalho().catch(err => {
+                console.error('Falha ao salvar o trabalho:', err);
+                toast('Não consegui salvar o trabalho. Veja o console para detalhes.', 'erro', null, 9000);
+            });
         }
 
         /* Quota estourada costuma ser imagem base64 grande demais; a mensagem
@@ -4968,6 +4993,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
             instalarImagensInseridas();
             atualizarSelectAtores();
             atualizarBotaoRestaurarAoAbrir();
+            try { atualizarTituloSalvar(); } catch (err) { /* título é cosmético */ }
             try { iniciarDragEtapas(); } catch (err) { console.error('Arraste das etapas:', err); }
             try { instalarPreviewsEtapas(); } catch (err) { console.error('Prévias das etapas:', err); }
 
@@ -5067,10 +5093,10 @@ const FALLBACK_IMAGENS_CDN_404 = {
 
             });
 
-            // Atalhos: Ctrl+S salva no navegador · Ctrl+Z/Y desfaz/refaz · Del exclui nó · Esc cancela conexão
+            // Atalhos: Ctrl+S salva (grava no teste.html) · Ctrl+Shift+S explica onde salvou · Ctrl+Z/Y desfaz/refaz · Del exclui nó · Esc cancela conexão
             document.addEventListener('keydown', (e) => {
                 const k = (e.key || '').toLowerCase();
-                if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); salvarEstadoLocal(); return; }
+                if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); if (e.shiftKey) explicarPersistencia(); else salvarEstadoLocal(); return; }
                 const alvo = e.target;
                 const digitando = alvo.isContentEditable || ['input', 'textarea', 'select'].includes((alvo.tagName || '').toLowerCase());
                 if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) refazer(); else desfazer(); if (editMode) { apSelecionados = []; apRender(); } return; }
