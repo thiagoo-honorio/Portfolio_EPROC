@@ -2687,6 +2687,96 @@
             return (await op) === 'granted';
         }
 
+        /* --- Leitura de arquivos auxiliares pela File System Access API ---
+           O Chrome servido de file:// bloqueia XHR/fetch para arquivos locais,
+           então o script.js não pode ser lido por rede. Com um handle guardado
+           no IndexedDB dá para ler o arquivo do disco de verdade — o usuário
+           escolhe uma vez e as próximas exportações saem sem diálogo.
+           As chaves são distintas da do teste.html para não se confundirem. */
+        const IDB_CHAVE_SCRIPT = 'script.js';
+        const IDB_CHAVE_CSS = 'style.css';
+
+        /* O IndexedDB pode ficar preso: transactions do mesmo banco rodam em
+           fila, e uma transação de escrita que nunca termina (usuário ainda na
+           frente de um diálogo de salvar, outra aba com o banco aberto) segura
+           as leituras seguintes indefinidamente. Sem este limite, exportar
+           ficava pendurado para sempre, sem arquivo e sem aviso.
+           Aqui o IDB é só um atalho — falhar é normal e aceitável: o texto vem
+           do XHR ou do seletor. */
+        function comTempoLimite(promessa, ms, padrao) {
+            return new Promise(resolve => {
+                let respondeu = false;
+                const t = setTimeout(() => { if (!respondeu) { respondeu = true; resolve(padrao); } }, ms);
+                promessa.then(
+                    v => { if (!respondeu) { respondeu = true; clearTimeout(t); resolve(v); } },
+                    () => { if (!respondeu) { respondeu = true; clearTimeout(t); resolve(padrao); } }
+                );
+            });
+        }
+
+        async function idbLerHandle(chave) {
+            try { return await comTempoLimite(idbOperar('readonly', loja => loja.get(chave)), 1200, null); }
+            catch (err) { return null; }
+        }
+        async function idbGuardarHandle(chave, handle) {
+            try { return await comTempoLimite(idbOperar('readwrite', loja => loja.put(handle, chave)), 2500, false); }
+            catch (err) { return false; }
+        }
+
+        async function permissaoLeitura(handle, pedir) {
+            try {
+                const op = pedir ? handle.requestPermission({ mode: 'read' }) : handle.queryPermission({ mode: 'read' });
+                return (await op) === 'granted';
+            } catch (err) { return false; }
+        }
+
+        async function lerTextoDoHandle(handle) {
+            const arquivo = await handle.getFile();
+            return await arquivo.text();
+        }
+
+        /* Abre o seletor para o usuário apontar um arquivo do projeto. Devolve o
+           texto, ou null se ele cancelar (AbortError) / o browser não suportar. */
+        async function escolherArquivoDoProjeto(chave, descricao) {
+            if (typeof window.showOpenFilePicker !== 'function' || window.isSecureContext === false) return null;
+            let handle = null;
+            try {
+                handle = await window.showOpenFilePicker({
+                    types: [{ description: descricao, accept: { 'text/plain': ['.js', '.css'] } }]
+                });
+            } catch (err) { return null; }   // cancelou
+            if (!handle) return null;
+            await idbGuardarHandle(chave, handle);
+            if (!(await permissaoLeitura(handle, true))) return null;
+            try { return await lerTextoDoHandle(handle); }
+            catch (err) { return null; }
+        }
+
+        /* Tenta ler um arquivo do projeto em três degraus: XHR (http e Firefox),
+           handle já autorizado, e por fim o seletor (uma vez). */
+        async function lerArquivoDoProjeto(caminho, chave, descricao) {
+            const porXhr = await new Promise((resolve) => {
+                try {
+                    const xhr = new XMLHttpRequest();
+                    xhr.open('GET', caminho, true);
+                    xhr.onload = () => resolve(xhr.responseText || null);
+                    xhr.onerror = () => resolve(null);
+                    xhr.onabort = () => resolve(null);
+                    xhr.send(null);
+                } catch (e) { resolve(null); }
+            });
+            if (porXhr) return porXhr;
+
+            const handle = await idbLerHandle(chave);
+            if (handle && (await permissaoLeitura(handle, false))) {
+                try {
+                    const texto = await lerTextoDoHandle(handle);
+                    if (texto) return texto;
+                } catch (err) { /* handle stale: segue para o seletor */ }
+            }
+            return await escolherArquivoDoProjeto(chave, descricao);
+        }
+
         async function escreverComHandle(handle, texto) {
             const writable = await handle.createWritable();
             await writable.write(texto);
@@ -4383,21 +4473,22 @@ const FALLBACK_IMAGENS_CDN_404 = {
             return css;
         }
 
-        // Tenta ler o texto de script.js (bloqueado no Chrome via file://; funciona em http(s) e Firefox)
+        // Lê o texto de script.js. Cascade de três degraus: XHR funciona em
+        // http(s) e no Firefox via file://; no Chrome via file:// o navegador
+        // bloqueia a leitura, e aí entra o handle guardado no IndexedDB ou o
+        // seletor de arquivo (o usuário aponta uma vez e fica resolvido).
         function lerScriptApp() {
-            return new Promise((resolve) => {
-                const falha = () => resolve(null);
-                try {
-                    const xhr = new XMLHttpRequest();
-                    xhr.open('GET', 'script.js', true);
-                    xhr.onload = () => {
-                        if (xhr.responseText) resolve(xhr.responseText);
-                        else falha();
-                    };
-                    xhr.onerror = falha;
-                    xhr.send(null);
-                } catch (e) { falha(); }
-            });
+            return lerArquivoDoProjeto('script.js', IDB_CHAVE_SCRIPT, 'Arquivo script.js do projeto');
+        }
+
+        // Lê o texto de style.css. Antes isso dependia só de coletarCSSLocal(),
+        // que lê document.styleSheets — e isso LANÇA SecurityError no Chrome
+        // aberto por file:// (cada arquivo vira uma origem opaca). O resultado
+        // era um style.css de 0 KB e o <link> externo continuava no exportado, que
+        // saía sem estilo nenhum. Agora usa a mesma cascata do script.js.
+        function lerCSSApp() {
+            return lerArquivoDoProjeto('style.css', IDB_CHAVE_CSS, 'Arquivo style.css do projeto')
+                .then(css => css || coletarCSSLocal());
         }
 
         // Limpa a UI de edição e expande todas as seções para gerar um arquivo "final" limpo
@@ -4588,6 +4679,13 @@ const FALLBACK_IMAGENS_CDN_404 = {
         async function gerarHTMLCompleto() {
             const cloneDoc = document.documentElement.cloneNode(true);
 
+            /* script.js e style.css são resolvidos AQUI, no começo, e não lá embaixo:
+               quando o Chrome precisa abrir o seletor de arquivo, ele só aceita
+               ser chamado durante o clique do usuário. Embutir as imagens leva
+               vários awaits e esgotaria essa permissão. */
+            const jsTexto = await lerScriptApp();
+            const css = await lerCSSApp();
+
             // Limpa resíduos da sessão atual
             limparCloneParaExportacao(cloneDoc);
             cloneDoc.querySelectorAll('.modal-overlay, .lightbox-overlay, .jornada-lightbox').forEach(el => el.classList.remove('active'));
@@ -4623,24 +4721,20 @@ const FALLBACK_IMAGENS_CDN_404 = {
 
             const caminhosAbsolutos = varrerCaminhosAbsolutos(cloneDoc);
 
-            // CSS: embute o style.css lido das regras carregadas e remove o link externo.
-            // Tenta ler via fetch primeiro (funciona em http e file:// no Firefox);
-            // se falhar (Chrome em file://), usa as regras já carregadas no navegador.
-            let css = '';
-            try { const r = await fetch('style.css'); if (r.ok) css = await r.text(); } catch (e) {}
-            if (!css) css = coletarCSSLocal();
+            // CSS: já lido no início desta função (ver comentário).
             const linkCss = cloneDoc.querySelector('link[rel="stylesheet"][href="style.css"]');
             if (css && linkCss) {
                 const styleEl = document.createElement('style');
                 styleEl.textContent = css;
                 linkCss.replaceWith(styleEl);
             }
+            /* Sem o texto do CSS o <link> é MANTIDO de propósito: um arquivo
+               que viaja sem o style.css ao lado sai sem estilo nenhum, e essa
+               é a única forma de ele ainda funcionar caso o usuário guarde a
+               pasta junto. O aviso da exportação diz o que fazer. */
 
-            // JS: tenta embutir o script.js; se o navegador bloquear a leitura
-            // (Chrome em file://), embute o runtime mínimo em vez de deixar o
-            // <script src> apontando para um arquivo que não viaja junto.
+            // JS: o texto já foi lido no início desta função (ver comentário).
             let jsEmbutido = false;
-            const jsTexto = await lerScriptApp();
             const scriptTag = cloneDoc.querySelector('script[src="script.js"]');
             if (jsTexto) {
                 if (scriptTag) scriptTag.remove();
@@ -4674,6 +4768,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
             return {
                 html: "<!DOCTYPE html>\n" + cloneDoc.outerHTML,
                 jsEmbutido: jsEmbutido,
+                cssEmbutido: !!css,
                 imagensEmbutidas: !restamImagensLocais,
                 caminhosAbsolutos: caminhosAbsolutos
             };
@@ -4700,10 +4795,16 @@ const FALLBACK_IMAGENS_CDN_404 = {
                     else toast('Exportado! Mas este navegador bloqueou a leitura dos arquivos de imagem locais (imagens/) — mantenha a pasta imagens/ ao lado deste .html (ou abra a página pelo Firefox para vir tudo embutido num só arquivo).', 'info', null, 12000);
                 }
                 else if (resultado.imagensEmbutidas) {
-                    toast('Exportado! O navegador bloqueou a leitura do script.js, então o arquivo saiu como página estática com o runtime embutido (sanfonas, lightbox e zoom funcionando, sem o modo Editar). Para exportar com o editor embutido, abra a página pelo Firefox ou por um servidor local.', 'info', null, 14000);
+                    toast('Exportado como página estática (imagens embutidas, com o runtime no lugar). Faltou ler do disco: ' +
+                        (resultado.cssEmbutido ? '' : 'o style.css ') +
+                        (resultado.jsEmbutido ? '' : 'e o script.js ') +
+                        '— este navegador, aberto por file://, bloqueia a leitura de arquivos locais. Na próxima exportação, aceite as janelas para apontar ' +
+                        (resultado.cssEmbutido ? 'o script.js' : 'o script.js e o style.css') +
+                        ' uma vez; os handles ficam guardados e as próximas saem em arquivo único, com o editor. Sem isso, abra pelo Firefox ou por um servidor local.',
+                        'info', null, 16000);
                 }
                 else {
-                    toast('Exportado, com duas limitações do navegador em file://: (1) o script.js não pôde ser lido, então o arquivo saiu como página estática com o runtime embutido e sem o modo Editar; (2) a pasta imagens/ também não pôde ser lida — envie o .html JUNTO com a pasta imagens/. Para vir tudo num só arquivo, abra a página pelo Firefox ou por um servidor local.', 'info', null, 18000);
+                    toast('Exportado com limitações do navegador em file://: não deu para ler o script.js nem o style.css do disco (o navegador bloqueia), então o arquivo saiu como página estática e a pasta imagens/ também não pôde ser embutida — envie o .html JUNTO com a pasta imagens/. Para virar um único arquivo completo, aceite as janelas do seletor na próxima exportação (os handles ficam guardados), ou abra a página pelo Firefox ou por um servidor local.', 'info', null, 18000);
                 }
             } catch (err) {
                 console.error(err);
@@ -4822,13 +4923,11 @@ const FALLBACK_IMAGENS_CDN_404 = {
             }
             toast('Preparando pacote HTML + CSS + JS...', 'info', null, 4000);
             try {
-                // Tenta ler CSS/JS direto dos arquivos (funciona em http:// e file:// no Firefox/Chrome)
-                let css = '';
-                let jsTexto = null;
-                try { const r = await fetch('style.css'); if (r.ok) css = await r.text(); } catch (e) {}
-                if (!css) css = coletarCSSLocal();
-                try { const r = await fetch('script.js'); if (r.ok) jsTexto = await r.text(); } catch (e) {}
-                if (!jsTexto) jsTexto = await lerScriptApp();
+                // Mesma cascata da exportação de arquivo único (XHR → handle guardado →
+                // seletor), senão o pacote saía sem style.css e sem script.js
+                // justamente no Chrome em file://.
+                const css = await lerCSSApp();
+                const jsTexto = await lerScriptApp();
 
                 // Coleta ANTES de embutir, a partir do DOM vivo, os caminhos das imagens
                 // locais de imagens/ (que ainda estão como "imagens/diagrama_*.png" tanto em
