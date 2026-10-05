@@ -101,9 +101,6 @@
                 btn.classList.add('btn-custom-success');
                 btn.innerText = 'Concluir Edição';
                 indicator.classList.add('active');
-                apSelecionados = [];
-                apRender();
-                apZoomarCanvasDir();
                 apInstalarEdicaoImagens();
                 if (secHistorico.length === 0) secSalvarHistorico();
             } else {
@@ -111,14 +108,7 @@
                 btn.innerText = 'Editar';
                 indicator.classList.remove('active');
                 selecionarNode(null);
-                apCommitTexto();
-                apTextoEditando = null;
-                apSelecionados = [];
-                apDesenho = null;
                 apImgDeselecionar();
-                apZoom = 1;
-                apAplicarZoom();
-                apRender();
             }
             aplicarEstadoEditavel();
             if (editMode) { instalarSelecaoSecao(); if (secaoAtual) preencherPropsSecao(secaoAtual); }
@@ -136,7 +126,6 @@
             secaoListenerPronto = true;
             document.addEventListener('click', (e) => {
                 if (!editMode) return;
-                if (e.target && e.target.closest && e.target.closest('.ap-layer')) return;
                 if (e.target && e.target.closest && e.target.closest('#sectionPropsPanel')) return;
                 const sec = e.target && e.target.closest ? e.target.closest('[data-ap-section]') : null;
                 if (sec) {
@@ -274,7 +263,12 @@
             const cs = getComputedStyle(el);
             set('secpBg', rgbToHex(cs.backgroundColor));
             set('secpText', rgbToHex(cs.color));
-            set('secpFont', el.style.fontFamily || '');
+            const hTitle = el.querySelector('.section-title-text');
+            const content = el.querySelector('.sec-content');
+            const ftitle = document.getElementById('secpFontTitle');
+            const fbody2 = document.getElementById('secpFontBody');
+            if (ftitle) ftitle.value = (hTitle && hTitle.style.fontFamily) || 'inherit';
+            if (fbody2) fbody2.value = (content && content.style.fontFamily) || 'inherit';
             const fs = parseFloat(el.style.fontSize) || parseFloat(cs.fontSize) || 16;
             set('secpFontSize', Math.round(Math.min(Math.max(fs, 13), 22)));
             const pdTxt = el.style.padding || cs.padding || '0px';
@@ -302,25 +296,49 @@
             }
         }
 
-        function aplicarEstiloSecao() {
+                function aplicarEstiloSecao() {
             if (!secaoAtual) return;
             const el = secaoAtual;
-            const v = (id) => { const i = document.getElementById(id); return i ? i.value : ''; };
-            const t = v('secpTitulo').trim();
-            if (t) definirTituloSecao(el, t);
-            const bg = v('secpBg');
-            if (bg) el.style.background = bg; else el.style.removeProperty('background');
-            el.style.color = v('secpText');
-            el.style.fontFamily = v('secpFont');
-            const fs = parseFloat(v('secpFontSize'));
-            if (!isNaN(fs)) el.style.fontSize = fs + 'px';
-            const pd = parseFloat(v('secpPadding'));
-            if (!isNaN(pd)) el.style.padding = pd + 'px';
-            agendarHistorico();
+            const v = (id) => { const i = document.getElementById(id); return i ? i.value : null; };
+            const titulo = document.getElementById('secpTitulo');
+            if (titulo) {
+                const tspan = el.querySelector('.sec-titulo-edit');
+                if (tspan) tspan.textContent = titulo.value;
+                else {
+                    const h = el.querySelector('.section-title-text');
+                    if (h) h.textContent = titulo.value;
+                }
+                sincronizarMenuSecao(el.id, titulo.value);
+            }
+            el.style.backgroundColor = v('secpBg') || '';
+            const content = el.querySelector('.sec-content');
+            if (content) {
+                content.style.color = v('secpText') || '';
+                content.style.textAlign = v('secpAlign') && v('secpAlign') !== 'inherit' ? v('secpAlign') : '';
+                content.style.lineHeight = v('secpLine') || '';
+                const pad = v('secpPadding');
+                content.style.padding = pad ? pad + 'px' : '';
+                const fbody = v('secpFontBody');
+                if (fbody && fbody !== 'inherit') content.style.fontFamily = fbody;
+                else content.style.fontFamily = '';
+            }
+            const lead = el.querySelector('.sec-lead');
+            const intro = el.querySelector('.sec-intro, .context-intro');
+            [lead, intro].forEach(box => {
+                if (!box) return;
+                const fbody = v('secpFontBody');
+                if (fbody && fbody !== 'inherit') box.style.fontFamily = fbody;
+                else box.style.fontFamily = '';
+            });
+            const hTitle = el.querySelector('.section-title-text');
+            if (hTitle) {
+                const ft = v('secpFontTitle');
+                if (ft && ft !== 'inherit') hTitle.style.fontFamily = ft;
+                else hTitle.style.fontFamily = '';
+            }
+            if (editMode) secSalvarHistorico();
             secAgendarHistorico();
-        }
-
-        function resetarCorFundoSecao() {
+        }function resetarCorFundoSecao() {
             if (!secaoAtual) return;
             secaoAtual.style.removeProperty('background');
             const i = document.getElementById('secpBg');
@@ -543,7 +561,6 @@
             if (!pc || !snapshot || !snapshot.secs || !Array.isArray(snapshot.ordem)) return;
             document.querySelectorAll('#pageContainer [data-ap-section]').forEach(s => s.remove());
             const tmp = document.createElement('template');
-            const ref = document.getElementById('apLayer');
             snapshot.ordem.forEach(id => {
                 const html = snapshot.secs[id];
                 if (!html) return;
@@ -551,7 +568,7 @@
                 const novo = tmp.content.firstElementChild;
                 if (novo) {
                     tmp.content.removeChild(novo);
-                    if (ref) pc.insertBefore(novo, ref); else pc.appendChild(novo);
+                    pc.appendChild(novo);
                 }
             });
             aplicarEstadoEditavel();
@@ -1182,704 +1199,12 @@
         }
 
         /* ================================================
-           ELEMENTOS DE LAYOUT LIVRE (estilo PowerPoint)
-           Camada sobre a própria página: formas, setas, texto,
-           imagens e links adicionados no modo edição. Durante a
-           edição há alças, paleta de ferramentas e propriedades;
-           para os visitantes viram conteúdo fixo na página (os
-           links continuam clicáveis). O estilo da página não muda
-           — apenas estes elementos são somados aos conteúdos.
-        ================================================ */
-        const AP_PALETA_CORES = ['#2563eb', '#16a34a', '#dc2626', '#f59e0b', '#7c3aed', '#0ea5e9', '#334155', '#ffffff'];
-        let apSelecionados = [];
-        let apArrasto = null;
-        let apTextoEditando = null;
-        let apLastClick = null;
-        let apListenersProntos = false;
-        let apZoom = 1;
-        let apDesenho = null;
-        let apClipboard = [];
-        let apImg = null;
-        const TIPOS_FORMAS = ['retangulo', 'circulo', 'triangulo', 'losango', 'hexagono', 'estrela', 'balao', 'chevron', 'card'];
-        const TIPOS_COM_TEXTO = ['texto', 'retangulo', 'circulo', 'triangulo', 'losango', 'hexagono', 'estrela', 'balao', 'chevron', 'card'];
-
-        function apLayer() { return document.getElementById('apLayer'); }
-
-        function garantirApLayer() {
-            let layer = apLayer();
-            if (!layer) {
-                layer = document.createElement('div');
-                layer.id = 'apLayer';
-                layer.className = 'ap-layer';
-                const container = document.getElementById('pageContainer');
-                if (container) container.appendChild(layer);
-            }
-            if (!apListenersProntos) {
-                apListenersProntos = true;
-                apInstalarListeners(layer);
-            }
-            return layer;
-        }
-
-        function apDados() {
-            if (!Array.isArray(state.apresentacao)) state.apresentacao = [];
-            return state.apresentacao;
-        }
-        function apBuscar(id) { return apDados().find(el => el.id === id); }
-
-        function apNovo(tipo, x, y) {
-            const layer = garantirApLayer();
-            if (x == null || y == null) {
-                if (apLastClick) { x = apLastClick.x - 75; y = apLastClick.y - 45; }
-                else { const r = layer.getBoundingClientRect(); x = (r.width / apZoom) / 2 - 80; y = (r.height / apZoom) * 0.4 - 50; }
-            }
-            const cor = AP_PALETA_CORES[apDados().length % AP_PALETA_CORES.length];
-            const base = { id: gerarId('ape'), tipo, x: Math.round(x), y: Math.round(y), w: 150, h: 90, rot: 0, opacidade: 1, link: '' };
-            switch (tipo) {
-                case 'retangulo': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, raio: 10, w: 160, h: 100 };
-                case 'circulo': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, raio: 50, w: 120, h: 120 };
-                case 'triangulo': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 120, h: 110 };
-                case 'losango': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 130, h: 100 };
-                case 'hexagono': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 140, h: 120 };
-                case 'estrela': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 150, h: 140 };
-                case 'balao': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 200, h: 130, raio: 18 };
-                case 'chevron': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, w: 170, h: 110 };
-                case 'card': return { ...base, fill: cor, stroke: '#1e293b', strokeWidth: 2, raio: 12, w: 170, h: 120, cabecario: true };
-                case 'linha': return { ...base, stroke: '#1e293b', strokeWidth: 3, w: 200, h: 10 };
-                case 'seta': return { ...base, stroke: '#dc2626', strokeWidth: 3, w: 200, h: 12 };
-                case 'texto': return { ...base, texto: 'Digite seu texto aqui', fontSize: 20, color: '#0f172a', fontFamily: 'Open Sans, sans-serif', negrito: false, italico: false, sublinhado: false, alinhamento: 'left', w: 240, h: 90, fill: 'transparent', stroke: 'transparent', strokeWidth: 0 };
-                case 'imagem': return { ...base, imagem: '', w: 180, h: 120, strokeWidth: 0 };
-                default: return base;
-            }
-        }
-
-        function apAdd(tipo, x, y) {
-            apSelecionados = [];
-            const novo = apNovo(tipo, x, y);
-            apDados().push(novo);
-            apSelecionados = [novo.id];
-            salvarHistorico();
-            apRender();
-        }
-
-        function apInserirImagem() {
-            if (!apSelecionados.length) { apAdd('imagem'); return; }
-            const el = apBuscar(apSelecionados[apSelecionados.length - 1]);
-            if (!el) { apAdd('imagem'); return; }
-            const url = prompt('URL da imagem — deixe vazio para escolher um arquivo do computador:', el.imagem || 'https://');
-            if (url == null) return;
-            const texto = url.trim();
-            if (!texto) { escolherArquivoImagemApresentacao(el); return; }
-            // Também vira binário: o estado do mapa é exportado junto com a página.
-            toast('Baixando a imagem para embutir no site...', 'info');
-            garantirDataUrl(texto).then(function (bin) {
-                el.imagem = bin;
-                salvarHistorico(); apRender();
-                toast(/^data:/i.test(bin) ? 'Imagem adicionada em binário.' : 'Imagem adicionada.');
-            });
-        }
-
-        /* Upload da camada de apresentação: o arquivo vira data URL e entra no
-           estado (state.apresentacao), então sobrevive a salvar/reabrir e não
-           depende de caminho absoluto. */
-        function escolherArquivoImagemApresentacao(el) {
-            const input = document.getElementById('inputFileImgApresentacao');
-            if (!input || !el) return;
-            input.value = '';
-            input.onchange = function () {
-                const file = this.files && this.files[0];
-                if (!file) return;
-                arquivoParaDataUrl(file, 1400, 0.85)
-                    .then(src => {
-                        el.imagem = src;
-                        salvarHistorico();
-                        apRender();
-                        toast('Imagem adicionada.');
-                    })
-                    .catch(err => toast(err.message || 'Não foi possível ler a imagem.', 'erro'));
-            };
-            input.click();
-        }
-
-        function apDefinirLink() {
-            if (!apSelecionados.length) { toast('Selecione um elemento para adicionar link.', 'info'); return; }
-            const el = apBuscar(apSelecionados[0]);
-            if (!el) return;
-            const url = prompt('URL do link (ou #ancora):', el.link || 'https://');
-            if (url == null) return;
-            apSelecionados.forEach(id => { const e = apBuscar(id); if (e) e.link = url.trim(); });
-            salvarHistorico(); apRender();
-        }
-
-        function apCriarDOM(el) {
-            const div = document.createElement('div');
-            div.className = 'ap-el-page';
-            if (el.link) div.className += ' ap-link';
-            div.dataset.id = el.id;
-            div.style.cssText = `left:${el.x}px;top:${el.y}px;width:${el.w}px;height:${el.h}px;transform:rotate(${el.rot || 0}deg);opacity:${el.opacidade == null ? 1 : el.opacidade};`;
-
-            if (el.tipo === 'texto') {
-                const t = document.createElement('div');
-                t.className = 'ap-el-text';
-                t.textContent = el.texto || '';
-                t.style.fontFamily = el.fontFamily || 'Open Sans, sans-serif';
-                t.style.fontSize = (el.fontSize || 20) + 'px';
-                t.style.color = el.color || '#0f172a';
-                t.style.fontWeight = el.negrito ? '700' : '400';
-                t.style.fontStyle = el.italico ? 'italic' : 'normal';
-                t.style.textDecoration = el.sublinhado ? 'underline' : 'none';
-                t.style.textAlign = el.alinhamento || 'left';
-                t.style.background = (el.fill && el.fill !== 'transparent') ? el.fill : 'transparent';
-                if (editMode && apTextoEditando === el.id) t.contentEditable = 'true';
-                div.appendChild(t);
-                return div;
-            }
-            if (el.tipo === 'imagem') {
-                const img = document.createElement('img');
-                img.className = 'ap-el-img';
-                img.alt = '';
-                img.draggable = false;
-                if (el.imagem) img.src = el.imagem;
-                img.onerror = () => { img.style.opacity = '0.15'; };
-                div.appendChild(img);
-                return div;
-            }
-            const formaSvg = { triangulo: '50,3 97,97 3,97', losango: '50,3 97,50 50,97 3,50', hexagono: '50,2 93,25 93,75 50,98 7,75 7,25', estrela: '50,5 61,37 95,38 68,62 78,95 50,72 22,95 32,62 5,38 39,37', chevron: '8,50 35,8 92,8 65,50 92,92 35,92' };
-            if (el.tipo === 'retangulo' || el.tipo === 'circulo') {
-                const shape = document.createElement('div');
-                shape.style.cssText = 'position:absolute;inset:0;';
-                shape.style.background = (el.fill && el.fill !== 'transparent') ? el.fill : 'transparent';
-                shape.style.border = (el.stroke && el.stroke !== 'transparent') ? `${el.strokeWidth || 1}px solid ${el.stroke}` : 'none';
-                shape.style.borderRadius = el.tipo === 'circulo' ? '50%' : (el.raio || 0) + 'px';
-                div.appendChild(shape);
-            } else if (el.tipo === 'card') {
-                const shape = document.createElement('div');
-                shape.style.cssText = 'position:absolute;inset:0;overflow:hidden;';
-                shape.style.background = (el.fill && el.fill !== 'transparent') ? el.fill : 'transparent';
-                shape.style.border = (el.stroke && el.stroke !== 'transparent') ? `${el.strokeWidth || 1}px solid ${el.stroke}` : 'none';
-                shape.style.borderRadius = (el.raio || 12) + 'px';
-                const cab = document.createElement('div');
-                cab.style.cssText = 'height:34%;background:rgba(255,255,255,0.18);';
-                shape.appendChild(cab);
-                div.appendChild(shape);
-            } else if (['triangulo', 'losango', 'hexagono', 'estrela', 'chevron'].includes(el.tipo)) {
-                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                svg.setAttribute('class', 'ap-el-svg');
-                svg.setAttribute('viewBox', '0 0 100 100');
-                svg.setAttribute('preserveAspectRatio', 'none');
-                const poly = document.createElementNS('http://www.w3.org/2000/svg', 'polygon');
-                poly.setAttribute('points', formaSvg[el.tipo]);
-                poly.setAttribute('fill', (el.fill && el.fill !== 'transparent') ? el.fill : 'transparent');
-                poly.setAttribute('stroke', (el.stroke && el.stroke !== 'transparent') ? el.stroke : 'none');
-                poly.setAttribute('stroke-width', el.strokeWidth || 1);
-                svg.appendChild(poly);
-                div.appendChild(svg);
-            } else if (el.tipo === 'balao') {
-                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                svg.setAttribute('class', 'ap-el-svg');
-                svg.setAttribute('viewBox', '0 0 100 100');
-                svg.setAttribute('preserveAspectRatio', 'none');
-                const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                path.setAttribute('d', 'M18,6 H82 C90,6 94,12 94,22 V62 C94,72 90,79 82,79 H50 L30,96 L33,79 C18,75 6,67 6,54 V22 C6,12 10,6 18,6 Z');
-                path.setAttribute('fill', (el.fill && el.fill !== 'transparent') ? el.fill : 'transparent');
-                path.setAttribute('stroke', (el.stroke && el.stroke !== 'transparent') ? el.stroke : 'none');
-                path.setAttribute('stroke-width', el.strokeWidth || 1);
-                path.setAttribute('stroke-linejoin', 'round');
-                svg.appendChild(path);
-                div.appendChild(svg);
-            } else if (el.tipo === 'linha' || el.tipo === 'seta') {
-                const svg = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
-                svg.setAttribute('class', 'ap-el-svg');
-                svg.setAttribute('viewBox', '0 0 100 100');
-                svg.setAttribute('preserveAspectRatio', 'none');
-                const cor = el.stroke || (el.tipo === 'seta' ? '#dc2626' : '#1e293b');
-                const larg = el.strokeWidth || 3;
-                if (el.tipo === 'seta') {
-                    const mid = 'mapeid_' + el.id;
-                    const defs = document.createElementNS('http://www.w3.org/2000/svg', 'marker');
-                    defs.setAttribute('id', mid);
-                    defs.setAttribute('viewBox', '0 0 10 10');
-                    defs.setAttribute('refX', '8'); defs.setAttribute('refY', '5');
-                    defs.setAttribute('markerWidth', '6'); defs.setAttribute('markerHeight', '6');
-                    defs.setAttribute('orient', 'auto-start-reverse');
-                    const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
-                    path.setAttribute('d', 'M 0 0 L 10 5 L 0 10 z');
-                    path.setAttribute('fill', cor);
-                    defs.appendChild(path);
-                    svg.appendChild(defs);
-                    const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    ln.setAttribute('x1', '2'); ln.setAttribute('y1', '50');
-                    ln.setAttribute('x2', '94'); ln.setAttribute('y2', '50');
-                    ln.setAttribute('stroke', cor); ln.setAttribute('stroke-width', larg);
-                    ln.setAttribute('marker-end', 'url(#' + mid + ')');
-                    svg.appendChild(ln);
-                } else {
-                    const ln = document.createElementNS('http://www.w3.org/2000/svg', 'line');
-                    ln.setAttribute('x1', '2'); ln.setAttribute('y1', '50');
-                    ln.setAttribute('x2', '98'); ln.setAttribute('y2', '50');
-                    ln.setAttribute('stroke', cor); ln.setAttribute('stroke-width', larg);
-                    svg.appendChild(ln);
-                }
-                div.appendChild(svg);
-            }
-            if (TIPOS_COM_TEXTO.includes(el.tipo) && el.tipo !== 'texto' && (el.texto || apTextoEditando === el.id)) {
-                const t = document.createElement('div');
-                t.className = 'ap-el-text ap-el-text-shape';
-                t.textContent = el.texto || '';
-                t.style.fontFamily = el.fontFamily || 'Open Sans, sans-serif';
-                t.style.fontSize = (el.fontSize || 16) + 'px';
-                t.style.color = el.color || '#ffffff';
-                t.style.fontWeight = el.negrito ? '700' : '400';
-                t.style.fontStyle = el.italico ? 'italic' : 'normal';
-                t.style.textDecoration = el.sublinhado ? 'underline' : 'none';
-                t.style.textAlign = el.alinhamento || 'center';
-                if (editMode && apTextoEditando === el.id) t.contentEditable = 'true';
-                div.appendChild(t);
-            }
-            return div;
-        }
-
-        function apRender() {
-            const layer = garantirApLayer();
-            apCommitTexto();
-            layer.querySelectorAll('.ap-el-page, .ap-sel-box').forEach(el => el.remove());
-            apDados().forEach(el => layer.appendChild(apCriarDOM(el)));
-            apAtualizarSelecao();
-            apAtualizarProps();
-        }
-
-        function apBBox(ids) {
-            let x1 = Infinity, y1 = Infinity, x2 = -Infinity, y2 = -Infinity;
-            ids.forEach(id => {
-                const el = apBuscar(id);
-                if (!el) return;
-                x1 = Math.min(x1, el.x); y1 = Math.min(y1, el.y);
-                x2 = Math.max(x2, el.x + el.w); y2 = Math.max(y2, el.y + el.h);
-            });
-            if (x1 === Infinity) return null;
-            return { x: x1, y: y1, w: x2 - x1, h: y2 - y1 };
-        }
-
-        function apSelecionar(id, multi) {
-            if (!editMode) return;
-            if (multi) {
-                if (apSelecionados.includes(id)) apSelecionados = apSelecionados.filter(s => s !== id);
-                else apSelecionados.push(id);
-            } else {
-                apSelecionados = id ? [id] : [];
-            }
-            apAtualizarSelecao();
-            apAtualizarProps();
-        }
-
-        function apAtualizarSelecao() {
-            const layer = apLayer(); if (!layer) return;
-            layer.querySelectorAll('.ap-sel-box').forEach(el => el.remove());
-            if (!editMode || !apSelecionados.length) return;
-            const bbox = apBBox(apSelecionados);
-            if (!bbox) return;
-            const box = document.createElement('div');
-            box.className = 'ap-sel-box';
-            box.style.cssText = `left:${bbox.x - 5}px;top:${bbox.y - 5}px;width:${bbox.w + 10}px;height:${bbox.h + 10}px;`;
-            if (apSelecionados.length === 1) {
-                const el = apBuscar(apSelecionados[0]);
-                if (el && el.rot) {
-                    box.style.transform = `rotate(${el.rot}deg)`;
-                    box.style.transformOrigin = `${bbox.w / 2 + 5}px ${bbox.h / 2 + 5}px`;
-                }
-            }
-            layer.appendChild(box);
-            ['nw', 'n', 'ne', 'e', 'se', 's', 'sw', 'w'].forEach(dir => {
-                const h = document.createElement('div');
-                h.className = 'ap-sel-handle ap-handle-' + dir;
-                h.dataset.dir = dir;
-                h.addEventListener('mousedown', (e) => { e.stopPropagation(); e.preventDefault(); apIniciarResize(e, dir); });
-                box.appendChild(h);
-            });
-            if (apSelecionados.length === 1) {
-                const rot = document.createElement('div');
-                rot.className = 'ap-sel-rot';
-                rot.title = 'Rotacionar';
-                rot.addEventListener('mousedown', (e) => { e.stopPropagation(); e.preventDefault(); apIniciarRotacao(e); });
-                box.appendChild(rot);
-                const rl = document.createElement('div');
-                rl.className = 'ap-sel-rotline';
-                box.appendChild(rl);
-            }
-        }
-
-        function apAtualizarProps() {
-            const panel = document.getElementById('apPropsPanel');
-            if (!panel) return;
-            const noSel = document.getElementById('apPropsNoSel');
-            const form = document.getElementById('apPropsForm');
-            panel.classList.toggle('show', !!(editMode && apSelecionados.length));
-            if (noSel) noSel.style.display = apSelecionados.length ? 'none' : '';
-            if (form) form.style.display = apSelecionados.length === 1 ? 'flex' : 'none';
-            if (apSelecionados.length !== 1) return;
-            const el = apBuscar(apSelecionados[0]);
-            if (!el) return;
-            apSet('apPX', el.x); apSet('apPY', el.y); apSet('apPW', el.w); apSet('apPH', el.h); apSet('apPRot', el.rot || 0);
-            apSet('apPFill', apCor(el.fill)); apSet('apPStroke', apCor(el.stroke));
-            apSet('apPStrokeW', el.strokeWidth || 0); apSet('apPRai', el.raio || 0);
-            apSet('apPOp', el.opacidade == null ? 1 : el.opacidade);
-            apSet('apPTexto', el.texto || ''); apSet('apPFontS', el.fontSize || 20);
-            apSet('apPTextC', apCor(el.color)); apSet('apPFontF', el.fontFamily || 'Open Sans, sans-serif');
-            apSet('apPAlign', el.alinhamento || 'left'); apSet('apPImg', el.imagem || ''); apSet('apPLink', el.link || '');
-            const onlyTxt = document.querySelector('.ap-only-text');
-            const onlyImg = document.querySelector('.ap-only-img');
-            if (onlyTxt) onlyTxt.style.display = (el.tipo !== 'imagem' && el.tipo !== 'linha' && el.tipo !== 'seta') ? 'flex' : 'none';
-            if (onlyImg) onlyImg.style.display = el.tipo === 'imagem' ? 'flex' : 'none';
-        }
-        function apSet(id, v) { const i = document.getElementById(id); if (i) i.value = v == null ? '' : v; }
-        function apCor(c) { return (c && c !== 'transparent') ? c : '#ffffff'; }
-
-        function apApplyProp() {
-            if (apSelecionados.length !== 1) return;
-            const el = apBuscar(apSelecionados[0]);
-            if (!el) return;
-            const num = (id, cur) => { const i = document.getElementById(id); const v = i ? parseFloat(i.value) : NaN; return isNaN(v) ? cur : v; };
-            el.x = num('apPX', el.x); el.y = num('apPY', el.y); el.w = num('apPW', el.w); el.h = num('apPH', el.h); el.rot = num('apPRot', el.rot || 0);
-            const bg = document.getElementById('apPFill'); if (bg) el.fill = bg.value;
-            const st = document.getElementById('apPStroke'); if (st) el.stroke = st.value;
-            el.strokeWidth = num('apPStrokeW', el.strokeWidth || 0);
-            el.raio = num('apPRai', el.raio || 0);
-            el.opacidade = num('apPOp', el.opacidade == null ? 1 : el.opacidade);
-            const txt = document.getElementById('apPTexto'); if (txt) el.texto = txt.value;
-            el.fontSize = num('apPFontS', el.fontSize || 20);
-            const tc = document.getElementById('apPTextC'); if (tc) el.color = tc.value;
-            const ff = document.getElementById('apPFontF'); if (ff) el.fontFamily = ff.value;
-            const al = document.getElementById('apPAlign'); if (al) el.alinhamento = al.value;
-            const im = document.getElementById('apPImg'); if (im) el.imagem = im.value.trim();
-            const lk = document.getElementById('apPLink'); if (lk) el.link = lk.value.trim();
-            agendarHistorico();
-            apRender();
-        }
-
-        function apFormato(tipo) {
-            if (!apSelecionados.length) return;
-            apSelecionados.forEach(id => { const el = apBuscar(id); if (el) el[tipo] = !el[tipo]; });
-            salvarHistorico(); apRender();
-        }
-
-        function apExcluir() {
-            if (!apSelecionados.length) return;
-            salvarHistorico();
-            const ids = [...apSelecionados];
-            state.apresentacao = apDados().filter(el => !ids.includes(el.id));
-            apSelecionados = [];
-            apRender();
-        }
-
-        function apDuplicar() {
-            if (!apSelecionados.length) return;
-            salvarHistorico();
-            const novos = [];
-            apSelecionados.forEach(id => {
-                const el = apBuscar(id);
-                if (!el) return;
-                const copia = JSON.parse(JSON.stringify(el));
-                copia.id = gerarId('ape'); copia.x = el.x + 24; copia.y = el.y + 24;
-                state.apresentacao.push(copia); novos.push(copia.id);
-            });
-            apSelecionados = novos;
-            apRender();
-        }
-
-        function apResetarFreeLayout() {
-            if (!apDados().length) { toast('Não há elementos no Layout Livre para resetar.', 'info'); return; }
-            if (!confirm('Remover todos os elementos do Layout Livre?')) return;
-            salvarHistorico();
-            state.apresentacao = [];
-            apSelecionados = [];
-            apRender();
-            toast('Layout Livre resetado.');
-        }
-
-        function apExcluirTodos() { apResetarFreeLayout(); }
-
-        /* ---- Zoom (varredor do "canvas") ---- */
-        function apAplicarZoom() {
-            const pc = document.getElementById('pageContainer');
-            if (!pc) return;
-            pc.style.zoom = apZoom;
-            const label = document.getElementById('apZoomLabel');
-            if (label) label.textContent = Math.round(apZoom * 100) + '%';
-        }
-        function apZoomMais() { apZoom = Math.min(3, +(apZoom + 0.25).toFixed(2)); apAplicarZoom(); }
-        function apZoomMenos() { apZoom = Math.max(0.4, +(apZoom - 0.25).toFixed(2)); apAplicarZoom(); }
-        function apZoomReset() { apZoom = 1; apAplicarZoom(); }
-        let apZoomCanvasListener = false;
-        function apZoomarCanvasDir() {
-            if (apZoomCanvasListener) return;
-            apZoomCanvasListener = true;
-            const pc = document.getElementById('pageContainer');
-            if (!pc) return;
-            pc.addEventListener('wheel', (e) => {
-                if (!editMode || !e.ctrlKey) return;
-                e.preventDefault();
-                if (e.deltaY < 0) apZoomMais(); else apZoomMenos();
-            }, { passive: false });
-        }
-
-        /* ---- Modo desenho: arrastar para criar linha/seta ---- */
-        function apIniciarDesenho(tipo) {
-            if (!editMode) { toast('Entre no modo edição primeiro.', 'info'); return; }
-            apDesenho = (apDesenho === tipo) ? null : tipo;
-            document.querySelectorAll('.ap-btn[data-ap-shape]').forEach(b => b.classList.remove('active'));
-            if (apDesenho) {
-                const btn = document.querySelector(`.ap-btn[data-ap-shape="${apDesenho}"]`);
-                if (btn) btn.classList.add('active');
-                toast('Arraste na página para desenhar a ' + (apDesenho === 'seta' ? 'seta' : 'linha') + '.', 'info');
-            }
-        }
-
-        /* ---- Copiar / colar / selecionar tudo ---- */
-        function apCopiar() {
-            if (!apSelecionados.length) return;
-            apClipboard = apSelecionados.map(id => {
-                const el = apBuscar(id);
-                return el ? JSON.parse(JSON.stringify(el)) : null;
-            }).filter(Boolean);
-            toast(apClipboard.length + ' elemento(s) copiado(s).', 'info');
-        }
-        function apColar() {
-            if (!apClipboard.length) return;
-            salvarHistorico();
-            const novos = [];
-            apClipboard.forEach(copia => {
-                const novo = JSON.parse(JSON.stringify(copia));
-                novo.id = gerarId('ape'); novo.x += 30; novo.y += 30;
-                state.apresentacao.push(novo); novos.push(novo.id);
-            });
-            apSelecionados = novos;
-            apRender();
-            toast(novos.length + ' elemento(s) colado(s).');
-        }
-        function apSelecionarTodos() {
-            if (!apDados().length) return;
-            apSelecionados = apDados().map(el => el.id);
-            apAtualizarSelecao();
-            apAtualizarProps();
-        }
-
-        /* ---- Nudge (setas do teclado) ---- */
-        function apNudge(dx, dy) {
-            if (!apSelecionados.length) return;
-            salvarHistorico();
-            apSelecionados.forEach(id => { const el = apBuscar(id); if (el) { el.x += dx; el.y += dy; } });
-            apRender();
-        }
-
-        function apOrdem(dir) {
-            if (!apSelecionados.length) return;
-            salvarHistorico();
-            const ids = [...apSelecionados];
-            if (dir === 'frente') {
-                ids.sort((a, b) => state.apresentacao.findIndex(e => e.id === a) - state.apresentacao.findIndex(e => e.id === b));
-                ids.forEach(id => { const i = state.apresentacao.findIndex(e => e.id === id); const [el] = state.apresentacao.splice(i, 1); state.apresentacao.push(el); });
-            } else {
-                ids.sort((a, b) => state.apresentacao.findIndex(e => e.id === b) - state.apresentacao.findIndex(e => e.id === a));
-                ids.forEach(id => { const i = state.apresentacao.findIndex(e => e.id === id); const [el] = state.apresentacao.splice(i, 1); state.apresentacao.unshift(el); });
-            }
-            apRender();
-        }
-
-        function apAlinhar(modo) {
-            if (apSelecionados.length < 2) return;
-            salvarHistorico();
-            const bbox = apBBox(apSelecionados);
-            if (!bbox) return;
-            apSelecionados.forEach(id => {
-                const el = apBuscar(id); if (!el) return;
-                if (modo === 'left') el.x = bbox.x;
-                else if (modo === 'center') el.x = bbox.x + (bbox.w - el.w) / 2;
-                else if (modo === 'top') el.y = bbox.y;
-                else if (modo === 'middle') el.y = bbox.y + (bbox.h - el.h) / 2;
-            });
-            apRender();
-        }
-
-        function apDistribuir() {
-            if (apSelecionados.length < 3) { toast('Selecione pelo menos 3 elementos para distribuir.', 'info'); return; }
-            salvarHistorico();
-            const els = apSelecionados.map(id => apBuscar(id)).filter(Boolean);
-            els.sort((a, b) => a.x - b.x);
-            const total = (els[els.length - 1].x + els[els.length - 1].w) - els[0].x;
-            const soma = els.reduce((s, e) => s + e.w, 0);
-            const gap = (total - soma) / (els.length - 1);
-            let cursor = els[0].x;
-            els.forEach(el => { el.x = cursor; cursor += el.w + gap; });
-            apRender();
-        }
-
-        function apDesfazer() { desfazer(); apSelecionados = []; apRender(); }
-        function apRefazer() { refazer(); apSelecionados = []; apRender(); }
-
-        function apBindArrasto(e) {
-            const move = (ev) => { if (apArrasto && apArrasto.move) apArrasto.move(ev); };
-            const up = () => {
-                if (apArrasto && apArrasto.up) apArrasto.up();
-                apArrasto = null;
-                window.removeEventListener('mousemove', move);
-                window.removeEventListener('mouseup', up);
-            };
-            window.addEventListener('mousemove', move);
-            window.addEventListener('mouseup', up);
-            e.preventDefault();
-        }
-
-        function apIniciarMover(e, ids, inicio) {
-            const layer = apLayer(); const r = layer ? layer.getBoundingClientRect() : null;
-            const base = ids.map(id => { const el = apBuscar(id); return el ? { id, x: el.x, y: el.y } : null; }).filter(Boolean);
-            let mexeu = false;
-            apArrasto = {
-                move: (ev) => {
-                    const dx = (ev.clientX - inicio.x) / apZoom, dy = (ev.clientY - inicio.y) / apZoom;
-                    base.forEach(p => { const el = apBuscar(p.id); if (el) { el.x = p.x + dx; el.y = p.y + dy; } });
-                    mexeu = true;
-                    apRender();
-                },
-                up: () => { if (mexeu) salvarHistorico(); }
-            };
-            apBindArrasto(e);
-        }
-
-        function apIniciarResize(e, dir) {
-            const ids = [...apSelecionados];
-            const caixa = apBBox(ids);
-            if (!caixa) return;
-            const start = { x: e.clientX, y: e.clientY };
-            let mexeu = false;
-            apArrasto = {
-                move: (ev) => {
-                    const dx = (ev.clientX - start.x) / apZoom, dy = (ev.clientY - start.y) / apZoom;
-                    let x = caixa.x, y = caixa.y, w = caixa.w, h = caixa.h;
-                    if (dir.includes('e')) w = Math.max(20, caixa.w + dx);
-                    if (dir.includes('s')) h = Math.max(20, caixa.h + dy);
-                    if (dir.includes('w')) { const nw = Math.max(20, caixa.w - dx); x = caixa.x + (caixa.w - nw); w = nw; }
-                    if (dir.includes('n')) { const nh = Math.max(20, caixa.h - dy); y = caixa.y + (caixa.h - nh); h = nh; }
-                    if (ids.length === 1) {
-                        const el = apBuscar(ids[0]);
-                        if (el) { el.x = x; el.y = y; el.w = w; el.h = h; }
-                    } else {
-                        const sx = w / caixa.w, sy = h / caixa.h;
-                        const cx = caixa.x + caixa.w / 2, cy = caixa.y + caixa.h / 2;
-                        const ncx = x + w / 2, ncy = y + h / 2;
-                        ids.forEach(id => {
-                            const el = apBuscar(id); if (!el) return;
-                            const dxl = el.x + el.w / 2 - cx, dyl = el.y + el.h / 2 - cy;
-                            el.x = ncx + dxl * sx - (el.w * sx) / 2;
-                            el.y = ncy + dyl * sy - (el.h * sy) / 2;
-                            el.w = el.w * sx; el.h = el.h * sy;
-                        });
-                    }
-                    apRender();
-                },
-                up: () => { if (mexeu) salvarHistorico(); apRender(); }
-            };
-            apBindArrasto(e);
-        }
-
-        function apIniciarRotacao(e) {
-            const el = apBuscar(apSelecionados[0]);
-            if (!el) return;
-            const layer = apLayer(); const r = layer ? layer.getBoundingClientRect() : { left: 0, top: 0 };
-            const centro = { x: r.left + el.x * apZoom + (el.w * apZoom) / 2, y: r.top + el.y * apZoom + (el.h * apZoom) / 2 };
-            const angIni = Math.atan2(e.clientY - centro.y, e.clientX - centro.x) * 180 / Math.PI;
-            let mexeu = false;
-            apArrasto = {
-                move: (ev) => {
-                    const ang = Math.atan2(ev.clientY - centro.y, ev.clientX - centro.x) * 180 / Math.PI;
-                    el.rot = (ang - angIni) % 360;
-                    mexeu = true;
-                    apRender();
-                },
-                up: () => { if (mexeu) salvarHistorico(); apRender(); }
-            };
-            apBindArrasto(e);
-        }
-
-        function apIniciarDesenhar(e, tipo) {
-            const layer = apLayer();
-            const r = layer.getBoundingClientRect();
-            const x = (e.clientX - r.left) / apZoom, y = (e.clientY - r.top) / apZoom;
-            const novo = apNovo(tipo, x, y);
-            novo.w = 4; novo.h = 4;
-            apDados().push(novo);
-            apSelecionados = [novo.id];
-            let mexeu = false;
-            apArrasto = {
-                move: (ev) => {
-                    const dx = (ev.clientX - e.clientX) / apZoom, dy = (ev.clientY - e.clientY) / apZoom;
-                    const w = Math.max(16, Math.abs(dx)), h = Math.max(16, Math.abs(dy));
-                    if (w > 16 || h > 16) mexeu = true;
-                    novo.w = w; novo.h = h;
-                    novo.x = Math.min(x, x + dx);
-                    novo.y = Math.min(y, y + dy);
-                    if (tipo === 'linha' || tipo === 'seta') {
-                        novo.rot = Math.atan2(dy, dx) * 180 / Math.PI;
-                        novo.w = Math.max(20, Math.sqrt(dx * dx + dy * dy));
-                        novo.h = 10;
-                    } else {
-                        novo.rot = 0;
-                    }
-                    apRender();
-                },
-                up: () => {
-                    if (!mexeu) {
-                        const padrao = apNovo(tipo, 0, 0);
-                        novo.w = padrao.w; novo.h = padrao.h;
-                        novo.x = x - novo.w / 2; novo.y = y - novo.h / 2;
-                        apRender();
-                    }
-                    apDesenho = null;
-                    document.querySelectorAll('.ap-btn[data-ap-shape]').forEach(b => b.classList.remove('active'));
-                    salvarHistorico();
-                    apRender();
-                }
-            };
-            apBindArrasto(e);
-        }
-
-        function apIniciarLasso(e) {
-            const layer = apLayer();
-            const r = layer.getBoundingClientRect();
-            const x0 = (e.clientX - r.left) / apZoom, y0 = (e.clientY - r.top) / apZoom;
-            apSelecionar(null, false);
-            const lasso = document.createElement('div');
-            lasso.className = 'ap-lasso';
-            layer.appendChild(lasso);
-            let fimX = x0, fimY = y0;
-            const atualizar = () => {
-                lasso.style.cssText = `left:${Math.min(x0, fimX)}px;top:${Math.min(y0, fimY)}px;width:${Math.abs(fimX - x0)}px;height:${Math.abs(fimY - y0)}px;`;
-            };
-            apArrasto = {
-                move: (ev) => {
-                    fimX = (ev.clientX - r.left) / apZoom; fimY = (ev.clientY - r.top) / apZoom;
-                    atualizar();
-                },
-                up: () => {
-                    if (Math.abs(fimX - x0) < 4 && Math.abs(fimY - y0) < 4) { lasso.remove(); return; }
-                    const esq = Math.min(x0, fimX), topo = Math.min(y0, fimY);
-                    const dir = Math.max(x0, fimX), base = Math.max(y0, fimY);
-                    const ids = apDados().filter(el =>
-                        el.x < dir && el.x + el.w > esq && el.y < base && el.y + el.h > topo
-                    ).map(el => el.id);
-                    apSelecionados = ids;
-                    if (ids.length) apRender();
-                    lasso.remove();
-                }
-            };
-            apBindArrasto(e);
-        }
-
-        /* ================================================
            FASE 3 — Editar imagens existentes do conteúdo
            Redimensionar com alças, mover arrastando, e
            controlar via mini toolbar flutuante.
         ================================================ */
         let apImgEdit = null;
+        const apZoom = 1;
 
         /* Identidade estável por imagem.
            A chave antiga era o índice do <img> na página mais o nome do
@@ -1903,7 +1228,6 @@
            duas imagens diferentes poderiam receber o mesmo data-ap-img-id. */
         function apImgAlvo(img) {
             if (!img || img.closest('#pageContainer') === null) return false;
-            if (img.closest('.ap-layer')) return false;
             if (img.closest('.ator-preview')) return false;
             if (img.closest('#jornadaLightbox')) return false;
             if (img.closest('.modal-overlay')) return false;
@@ -2211,7 +1535,6 @@
                 if (!editMode) { apImgDeselecionar(); return; }
                 const t = e.target;
                 if (!t || t.tagName !== 'IMG') return;
-                if (t.closest('.ap-layer')) return;
                 if (t.closest('.ap-img-overlay')) return;
                 if (t.closest('.jornada-lightbox') || t.closest('.footer')) return;
                 e.preventDefault();
@@ -2223,84 +1546,6 @@
 
         function apDesinstalarEdicaoImagens() {
             apImgDeselecionar();
-        }
-
-        function apCommitTexto() {
-            const layer = apLayer(); if (!layer) return;
-            const t = layer.querySelector('.ap-el-text[contenteditable="true"]');
-            if (!t) return;
-            const elDom = t.closest('.ap-el-page');
-            const id = elDom && elDom.dataset.id;
-            const el = id && apBuscar(id);
-            if (el) el.texto = t.textContent;
-            t.contentEditable = 'false';
-            apTextoEditando = null;
-        }
-
-        function apInstalarListeners(layer) {
-            layer.addEventListener('mousedown', (e) => {
-                const txtLive = e.target.closest('.ap-el-text');
-                if (txtLive && txtLive.isContentEditable) return;
-                apCommitTexto();
-                if (e.target.closest('.ap-sel-handle, .ap-sel-rot')) return;
-                if (!editMode) return;
-                const elDom = e.target.closest('.ap-el-page');
-                if (elDom && elDom.dataset.id) {
-                    const id = elDom.dataset.id;
-                    apSelecionar(id, e.shiftKey);
-                    const inicio = { x: e.clientX, y: e.clientY };
-                    if (apSelecionados.includes(id)) apIniciarMover(e, apSelecionados, inicio);
-                } else if (apDesenho) {
-                    apIniciarDesenhar(e, apDesenho);
-                } else {
-                    apIniciarLasso(e);
-                }
-            });
-            layer.addEventListener('dblclick', (e) => {
-                if (!editMode) return;
-                const layerR = layer.getBoundingClientRect();
-                const px = (e.clientX - layerR.left) / apZoom, py = (e.clientY - layerR.top) / apZoom;
-                const elDom = e.target.closest('.ap-el-page');
-                if (!elDom || !elDom.dataset.id) { apAdd('texto', Math.round(px - 80), Math.round(py - 20)); return; }
-                const el = apBuscar(elDom.dataset.id);
-                if (!el) return;
-                if (!TIPOS_COM_TEXTO.includes(el.tipo)) { apAdd('texto', Math.round(px - 80), Math.round(py - 20)); return; }
-                if (el.tipo !== 'texto' && el.texto == null) {
-                    el.texto = '';
-                    el.fill = el.fill || '#1e293b';
-                    el.color = el.color || '#ffffff';
-                    el.fontSize = el.fontSize || 16;
-                    el.alinhamento = el.alinhamento || 'center';
-                }
-                apTextoEditando = el.id;
-                apRender();
-                let t = layer.querySelector(`.ap-el-page[data-id="${el.id}"] .ap-el-text`);
-                if (!t && el.tipo === 'texto') {
-                    t = layer.querySelector(`.ap-el-page[data-id="${el.id}"] .ap-el-text`);
-                }
-                if (t) {
-                    t.contentEditable = 'true';
-                    t.focus();
-                    const s = window.getSelection();
-                    if (s) s.selectAllChildren(t);
-                }
-            });
-            layer.addEventListener('click', (e) => {
-                const elDom = e.target.closest('.ap-el-page');
-                if (!elDom || !elDom.dataset.id) return;
-                const el = apBuscar(elDom.dataset.id);
-                if (!el || !el.link) return;
-                if (!editMode) { e.preventDefault(); window.open(el.link, '_blank'); }
-            });
-            layer.addEventListener('focusout', () => apCommitTexto());
-            const pc = document.getElementById('pageContainer');
-            if (pc) {
-                pc.addEventListener('click', (e) => {
-                    if (!editMode) return;
-                    const r = layer.getBoundingClientRect();
-                    apLastClick = { x: Math.round((e.clientX - r.left) / apZoom), y: Math.round((e.clientY - r.top) / apZoom) };
-                });
-            }
         }
 
         const ROTULOS_CONEXAO = {
@@ -2846,7 +2091,7 @@
         function limparCloneParaSalvar(cloneDoc) {
             cloneDoc.querySelectorAll(
                 '.toast-msg, .edit-controls, .edit-step-bar, .edit-actor-bar, .add-actor-btn,' +
-                '.cadeia-row-edit, .ap-sel-box, .ap-img-overlay, .ap-sel-rotline,' +
+                '.cadeia-row-edit, .ap-img-overlay,' +
                 '.ator-toggle-btn, .ator-preview'
             ).forEach(el => el.remove());
 
@@ -2867,7 +2112,7 @@
 
             // Painéis, barra flutuante e formulários voltam ao neutro.
             cloneDoc.querySelectorAll('#editFloatToolbar').forEach(el => el.classList.remove('active'));
-            cloneDoc.querySelectorAll('#apPropsPanel').forEach(el => el.classList.remove('show'));
+            // sem painel do Layout Livre
             cloneDoc.querySelectorAll('#propForm, #apPropsForm').forEach(el => el.style.display = 'none');
             cloneDoc.querySelectorAll('#propertiesPanel, #sectionPropsPanel').forEach(el => el.style.display = '');
             cloneDoc.querySelectorAll('.page-container').forEach(el => el.style.removeProperty('zoom'));
@@ -2927,8 +2172,7 @@
                     salvoEm: new Date().toISOString(),
                     state: {
                         nodes: state.nodes,
-                        conexoes: state.conexoes,
-                        apresentacao: Array.isArray(state.apresentacao) ? state.apresentacao : []
+                        conexoes: state.conexoes
                     }
                 }).replace(/<\//g, '<\\/');
                 cloneBody.appendChild(tag);
@@ -2951,7 +2195,6 @@
                     state.nodes = st.nodes;
                     state.conexoes = st.conexoes;
                 }
-                if (Array.isArray(st.apresentacao)) state.apresentacao = st.apresentacao;
                 return true;
             } catch (err) {
                 console.warn('JSON de persistência inválido no arquivo:', err);
@@ -3974,7 +3217,6 @@
                 if (el && el.parentElement === pc) pc.appendChild(el);
             });
 
-            try { apRender(); } catch (err) { console.error('Camada de apresentação:', err); }
             try { desenharArvore(); } catch (err) { console.error('Árvore da cadeia:', err); }
         }
 
@@ -3992,7 +3234,6 @@
                 estrutura: capturarEstruturaSecoes(),
                 estiloSecoes: capturarEstilosSecoes(),
                 cvMpCores: cvMpCores,
-                apresentacao: Array.isArray(state.apresentacao) ? state.apresentacao : [],
                 imgEdits: capturarImgEdits()
             };
         }
@@ -4026,8 +3267,6 @@
             if (!mapa || !Array.isArray(mapa.nodes) || !Array.isArray(mapa.conexoes)) { alert('Os dados não são válidos.'); return false; }
             state = mapa;
             nodeSelecionadoId = null;
-            if (!Array.isArray(state.apresentacao)) state.apresentacao = [];
-            apSelecionados = [];
 
             // Ordem importa: textos e estrutura reescrevem innerHTML / recriam
             // seções, então as edições de imagem só podem vir depois — senão
@@ -4095,7 +3334,6 @@
             salvarHistorico();
             renderizarMapa();
             selecionarNode(null);
-            apRender();
             return true;
         }
 
@@ -4502,14 +3740,12 @@ const FALLBACK_IMAGENS_CDN_404 = {
             // Remove toda a interface de edição para que o usuário do arquivo exportado
             // não veja nem consiga ativar o modo Editar (botão da navbar, pilha lateral de
             // ações, toolbar flutuante e o input de arquivo de imagem).
-            ['#btnToggleEdit', '#globalActionsBar', '#editFloatToolbar', '#inputFileImagem', '#inputFileImgApresentacao', '#inputFileJSON', '#apPalette', '#apPropsPanel', '#sectionPropsPanel'].forEach(sel => {
+            ['#btnToggleEdit', '#globalActionsBar', '#editFloatToolbar', '#inputFileImagem', '#inputFileJSON', '#sectionPropsPanel'].forEach(sel => {
                 cloneDoc.querySelectorAll(sel).forEach(el => el.remove());
             });
             // Esconde o contêiner de ações da navbar (que abrigava o botão "Editar") mesmo
             // quando o seletor acima não bater (ex.: estruturas remotas/hospedadas).
             cloneDoc.querySelectorAll('.nav-actions').forEach(el => el.remove());
-            // Remove alças de seleção dos elementos de layout livre, se houver
-            cloneDoc.querySelectorAll('.ap-sel-box').forEach(el => el.remove());
             cloneDoc.querySelectorAll('.ap-img-overlay').forEach(el => el.remove());
             // Remove a classe 'editing' por segurança, garantindo que nenhum controle de
             // edição residual seja exibido no arquivo exportado.
@@ -4583,7 +3819,7 @@ const FALLBACK_IMAGENS_CDN_404 = {
            `abrirImgCadeia(this.src)` depende do <img> continuar onde está.
            Por isso a legenda entra como irmão logo depois da imagem. */
         function inserirLegendasNoClone(cloneDoc) {
-            const UI = '.modal-overlay, .lightbox-overlay, .jornada-lightbox, .ator-preview, .ap-layer, .footer-logo';
+            const UI = '.modal-overlay, .lightbox-overlay, .jornada-lightbox, .ator-preview, .footer-logo';
             cloneDoc.querySelectorAll('img').forEach(img => {
                 if (img.closest(UI)) return;
                 const texto = (img.getAttribute('data-ap-img-alt') || img.getAttribute('alt') || '').trim();
@@ -5066,14 +4302,13 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 const s = JSON.parse(tag.textContent);
                 const mapa = s && s.map ? s.map : s; // aceita formato novo (completo) e antigo (só o mapa)
                 if (mapa && Array.isArray(mapa.nodes) && Array.isArray(mapa.conexoes)) state = mapa;
-                if (!Array.isArray(state.apresentacao)) state.apresentacao = [];
             } catch (err) { console.warn('Estado embutido no HTML exportado é inválido:', err); }
         }
 
-        /* Estado gravado no próprio arquivo pelo botão "Salvar" (mapa e camada
-           de layout livre). Roda antes de renderizarMapa()/apRender() e é
-           conteúdo do arquivo, não rascunho do navegador — por isso é
-           aplicado sem perguntar, ao contrário do localStorage. */
+        /* Estado gravado no próprio arquivo pelo botão "Salvar" (mapa). Roda antes
+           de renderizarMapa() e é conteúdo do arquivo, não rascunho do
+           navegador — por isso é aplicado sem perguntar, ao contrário do
+           localStorage. */
         function carregarEstadoSalvoNoArquivo() {
             const tag = document.getElementById('estadoPersistencia');
             if (!tag) return;
@@ -5136,7 +4371,6 @@ const FALLBACK_IMAGENS_CDN_404 = {
             garantirIdsImagem();
             prepararTitulosSecoes();
             salvarHistorico(); renderizarMapa();
-            apRender();
             vincularCliquesAtores();
             instalarTogglesAtores();
             instalarTogglesEtapas();
@@ -5250,31 +4484,11 @@ const FALLBACK_IMAGENS_CDN_404 = {
                 if ((e.ctrlKey || e.metaKey) && k === 's') { e.preventDefault(); if (e.shiftKey) explicarPersistencia(); else salvarEstadoLocal(); return; }
                 const alvo = e.target;
                 const digitando = alvo.isContentEditable || ['input', 'textarea', 'select'].includes((alvo.tagName || '').toLowerCase());
-                if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) refazer(); else desfazer(); if (editMode) { apSelecionados = []; apRender(); } return; }
-                if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); refazer(); if (editMode) { apSelecionados = []; apRender(); } return; }
+                if ((e.ctrlKey || e.metaKey) && k === 'z') { e.preventDefault(); if (e.shiftKey) refazer(); else desfazer(); return; }
+                if ((e.ctrlKey || e.metaKey) && k === 'y') { e.preventDefault(); refazer(); return; }
                 if (digitando) return;
-                if (editMode) {
-                    if ((e.ctrlKey || e.metaKey) && k === 'd') { e.preventDefault(); apDuplicar(); return; }
-                    if ((e.ctrlKey || e.metaKey) && k === 'c') { e.preventDefault(); apCopiar(); return; }
-                    if ((e.ctrlKey || e.metaKey) && k === 'v') { e.preventDefault(); apColar(); return; }
-                    if ((e.ctrlKey || e.metaKey) && k === 'a') { e.preventDefault(); apSelecionarTodos(); return; }
-                    if ((e.ctrlKey || e.metaKey) && (k === '=' || k === '+')) { e.preventDefault(); apZoomMais(); return; }
-                    if ((e.ctrlKey || e.metaKey) && (k === '-' || k === '_')) { e.preventDefault(); apZoomMenos(); return; }
-                    if ((e.ctrlKey || e.metaKey) && (k === '0')) { e.preventDefault(); apZoomReset(); return; }
-                    if (apSelecionados.length && ['arrowup', 'arrowdown', 'arrowleft', 'arrowright'].includes(k)) {
-                        e.preventDefault();
-                        const passo = e.shiftKey ? 10 : 1;
-                        const dx = k === 'arrowleft' ? -passo : (k === 'arrowright' ? passo : 0);
-                        const dy = k === 'arrowup' ? -passo : (k === 'arrowdown' ? passo : 0);
-                        apNudge(dx, dy);
-                        return;
-                    }
-                }
-                if (editMode && k === 'delete' && apSelecionados.length) { apExcluir(); return; }
-                if (editMode && k === 'escape' && apDesenho) { apDesenho = null; document.querySelectorAll('.ap-btn[data-ap-shape]').forEach(b => b.classList.remove('active')); apRender(); return; }
                 if (k === 'delete' && nodeSelecionadoId) excluirSelecionado();
                 else if (k === 'escape') {
-                    if (editMode && apSelecionados.length) { apSelecionados = []; apRender(); return; }
                     if (modoConexao) cancelarModoConexao();
                     const lb = document.getElementById('jornadaLightbox');
                     if (lb) lb.classList.remove('active');

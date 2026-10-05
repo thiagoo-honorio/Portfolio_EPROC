@@ -825,99 +825,6 @@
 
     </div>
 
-    <!-- PAINEL "LAYOUT LIVRE" (estilo PowerPoint) — só aparece no modo edição -->
-    <div class="ap-palette" id="apPalette">
-        <span class="ap-palette-title">Layout Livre</span>
-        <span class="ap-group" title="Inserir formas, setas, texto e imagens">
-            <button class="ap-btn" data-ap-shape="retangulo" onclick="apAdd('retangulo')" aria-label="Retângulo">▭</button>
-            <button class="ap-btn" data-ap-shape="circulo" onclick="apAdd('circulo')" aria-label="Círculo">◯</button>
-            <button class="ap-btn" data-ap-shape="triangulo" onclick="apAdd('triangulo')" aria-label="Triângulo">△</button>
-            <button class="ap-btn" data-ap-shape="losango" onclick="apAdd('losango')" aria-label="Losango">◇</button>
-            <button class="ap-btn" data-ap-shape="hexagono" onclick="apAdd('hexagono')" aria-label="Hexágono">⬡</button>
-            <button class="ap-btn" data-ap-shape="estrela" onclick="apAdd('estrela')" aria-label="Estrela">★</button>
-            <button class="ap-btn" data-ap-shape="balao" onclick="apAdd('balao')" aria-label="Balão de fala">💬</button>
-            <button class="ap-btn" data-ap-shape="chevron" onclick="apAdd('chevron')" aria-label="Chevron (como na cadeia)">➤</button>
-            <button class="ap-btn" data-ap-shape="card" onclick="apAdd('card')" aria-label="Card (como etapas/atores)">▣</button>
-            <button class="ap-btn" data-ap-shape="linha" onclick="apIniciarDesenho('linha')" title="Arraste na página para desenhar" aria-label="Linha (arrastar)">╱</button>
-            <button class="ap-btn" data-ap-shape="seta" onclick="apIniciarDesenho('seta')" title="Arraste na página para desenhar" aria-label="Seta (arrastar)">➜</button>
-            <button class="ap-btn" data-ap-shape="texto" onclick="apAdd('texto')" aria-label="Caixa de texto">T</button>
-        </span>
-        <span class="ap-group" title="Ordem e organização">
-            <button class="ap-btn" onclick="apOrdem('tras')" aria-label="Enviar para trás">⬇</button>
-            <button class="ap-btn" onclick="apOrdem('frente')" aria-label="Trazer para frente">⬆</button>
-            <button class="ap-btn" onclick="apAlinhar('left')" aria-label="Alinhar esquerda">⭨</button>
-            <button class="ap-btn" onclick="apAlinhar('center')" aria-label="Alinhar centro">⭩</button>
-            <button class="ap-btn" onclick="apAlinhar('top')" aria-label="Alinhar topo">⭱</button>
-            <button class="ap-btn" onclick="apAlinhar('middle')" aria-label="Alinhar meio">⭰</button>
-            <button class="ap-btn" onclick="apDistribuir()" aria-label="Distribuir horizontalmente">⇆</button>
-        </span>
-        <span class="ap-group" title="Ampliar/reduzir a área de edição (PowerPoint)">Zoom
-            <button class="ap-btn" onclick="apZoomMenos()" aria-label="Reduzir zoom" title="Reduzir zoom">−</button>
-            <button class="ap-btn" onclick="apZoomReset()" aria-label="Zoom padrão" title="Zoom padrão (100%)"><span id="apZoomLabel">100%</span></button>
-            <button class="ap-btn" onclick="apZoomMais()" aria-label="Aumentar zoom" title="Aumentar zoom">+</button>
-        </span>
-        <span class="ap-group" title="Ações">
-            <button class="ap-btn" onclick="apDesfazer()" aria-label="Desfazer">↩</button>
-            <button class="ap-btn" onclick="apRefazer()" aria-label="Refazer">↪</button>
-            <button class="ap-btn" onclick="apDuplicar()" aria-label="Duplicar">📋</button>
-            <button class="ap-btn" onclick="apDefinirLink()" title="Adicionar/editar link com nome personalizado (sem mostrar a URL)" aria-label="Adicionar link">🔗</button>
-            <button class="ap-btn" onclick="apExcluir()" aria-label="Excluir">🗑</button>
-        </span>
-        <span class="ap-group" title="Ações">
-            <button class="ap-btn" onclick="apResetarFreeLayout()" aria-label="Resetar posição das seções" title="Restaurar posição original das seções">↺</button>
-            <button class="ap-btn" onclick="apExcluirTodos()" aria-label="Excluir tudo" title="Remover todos os elementos do Layout Livre">✕</button>
-        </span>
-    </div>
-
-    <!-- PROPRIEDADES DO ELEMENTO SELECIONADO (só no modo edição) -->
-    <div class="ap-props-panel" id="apPropsPanel">
-        <h3>Propriedades</h3>
-        <div id="apPropsNoSel">Clique em um elemento adicionado na página para editá-lo.</div>
-        <div class="ap-props-form" id="apPropsForm">
-            <label>Posição / Tamanho (px)
-                <span class="ap-row">
-                    <input type="number" id="apPX" title="X" oninput="apApplyProp()">
-                    <input type="number" id="apPY" title="Y" oninput="apApplyProp()">
-                    <input type="number" id="apPW" title="Largura" oninput="apApplyProp()">
-                    <input type="number" id="apPH" title="Altura" oninput="apApplyProp()">
-                    <input type="number" id="apPRot" title="Rotação (°)" step="1" oninput="apApplyProp()">
-                </span>
-            </label>
-            <label>Aparência
-                <span class="ap-row">
-                    <input type="color" id="apPFill" title="Cor de fundo" oninput="apApplyProp()">
-                    <input type="color" id="apPStroke" title="Cor da borda" oninput="apApplyProp()">
-                    <input type="number" id="apPStrokeW" title="Borda (px)" min="0" max="30" oninput="apApplyProp()">
-                    <input type="number" id="apPRai" title="Raio dos cantos" min="0" max="100" oninput="apApplyProp()">
-                </span>
-            </label>
-            <label>Opacidade <input type="range" id="apPOp" min="0" max="1" step="0.05" oninput="apApplyProp()"></label>
-            <label class="ap-only-text">Texto
-                <textarea id="apPTexto" rows="2" oninput="apApplyProp()"></textarea>
-                <span class="ap-row">
-                    <input type="number" id="apPFontS" title="Tamanho da fonte" min="8" max="120" style="width:62px" oninput="apApplyProp()">
-                    <input type="color" id="apPTextC" title="Cor do texto" oninput="apApplyProp()">
-                    <select id="apPFontF" onchange="apApplyProp()">
-                        <option value="Open Sans, sans-serif">Open Sans</option>
-                        <option value="Arial, sans-serif">Arial</option>
-                        <option value="Georgia, serif">Georgia</option>
-                        <option value="Courier New, monospace">Courier New</option>
-                    </select>
-                    <select id="apPAlign" onchange="apApplyProp()">
-                        <option value="left">Esquerda</option>
-                        <option value="center">Centro</option>
-                        <option value="right">Direita</option>
-                    </select>
-                    <button type="button" class="ap-btn" onclick="apFormato('negrito')" title="Negrito"><b>B</b></button>
-                    <button type="button" class="ap-btn" onclick="apFormato('italico')" title="Itálico"><i>I</i></button>
-                    <button type="button" class="ap-btn" onclick="apFormato('sublinhado')" title="Sublinhado"><u>U</u></button>
-                </span>
-            </label>
-            <label class="ap-only-img">Imagem (URL) <input type="text" id="apPImg" onchange="apApplyProp()" placeholder="https://..."></label>
-            <label>Link (URL) <input type="text" id="apPLink" onchange="apApplyProp()" placeholder="https://... ou #ancora"></label>
-        </div>
-    </div>
-
     <!-- PROPRIEDADES DA SEÇÃO (só no modo edição) -->
     <div class="section-props-panel" id="sectionPropsPanel">
         <h3 class="section-props-title">Estilos da Seção</h3>
@@ -935,15 +842,29 @@
             <label class="section-props-label">Cor do texto
                 <input type="color" id="secpText" value="#1e293b" oninput="aplicarEstiloSecao()">
             </label>
-            <label class="section-props-label">Fonte
-                <select id="secpFont" onchange="aplicarEstiloSecao()">
-                    <option value="">Padrão (Open Sans)</option>
+            <hr class="secp-divider">
+            <label class="section-props-label">Fonte do título
+                <select id="secpFontTitle" onchange="aplicarEstiloSecao()">
+                    <option value="inherit">Padrão</option>
+                    <option value="Open Sans, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">Open Sans</option>
                     <option value="Arial, sans-serif">Arial</option>
                     <option value="Georgia, serif">Georgia</option>
+                    <option value="Times New Roman, serif">Times New Roman</option>
                     <option value="Courier New, monospace">Courier New</option>
-                    <option value="Comic Sans MS, Comic Sans, cursive">Comic Sans MS</option>
                 </select>
             </label>
+            <label class="section-props-label">Fonte do conteúdo
+                <select id="secpFontBody" onchange="aplicarEstiloSecao()">
+                    <option value="inherit">Padrão</option>
+                    <option value="Open Sans, system-ui, -apple-system, Segoe UI, Roboto, sans-serif">Open Sans</option>
+                    <option value="Arial, sans-serif">Arial</option>
+                    <option value="Georgia, serif">Georgia</option>
+                    <option value="Times New Roman, serif">Times New Roman</option>
+                    <option value="Courier New, monospace">Courier New</option>
+                </select>
+            </label>
+            <hr class="secp-divider">
+            <hr class="secp-divider">
             <div class="secp-caixa-block" id="secpCaixaBlock" style="display:none;">
                 <span class="secp-caixa-title">Tamanho do texto da caixa</span>
                 <span class="secp-caixa-nome" id="secpCaixaNome"></span>
@@ -961,6 +882,7 @@
                     <button type="button" class="edit-ctrl-btn secp-rico-btn" id="secpRicoBulletsBtn" onclick="alternarRicoBullets()" title="Adicionar ou remover o bullet apenas do texto sob o cursor">• Adicionar Bullet</button>
                 </span>
             </div>
+            <hr class="secp-divider">
             <label class="section-props-label">Espaçamento interno
                 <input type="range" id="secpPadding" min="0" max="60" step="2" value="28" oninput="aplicarEstiloSecao()">
             </label>
@@ -1048,7 +970,6 @@
             title="Reexibir as imagens removidas desta caixa" aria-label="Restaurar imagens removidas">↩️</button>
     </div>
     <input type="file" id="inputFileImagem" accept="image/*" style="display:none">
-    <input type="file" id="inputFileImgApresentacao" accept="image/*" style="display:none">
     <input type="file" id="inputFileJSON" accept="application/json,.json" style="display:none">
 
     <script src="script.js"></script>

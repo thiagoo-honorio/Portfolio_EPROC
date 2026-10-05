@@ -886,56 +886,10 @@ body:not(.editing) .map-node { cursor: default; }
 body:not(.editing) .resize-handle { display: none; }
 
 /* ------------------------------------------------------------
-   LAYOUT LIVRE SOBRE A PÁGINA (estilo PowerPoint)
-   Camada de formas/setas/texto/imagens/links adicionados no modo
-   de edição. A página mantém o design; os elementos são
-   sobrepostos na posição escolhida e ficam salvos para visitantes.
------------------------------------------------------------- */
-.ap-layer {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    z-index: 400;
-}
-.ap-el-page {
-    position: absolute;
-    transform-origin: center center;
-    box-sizing: border-box;
-    user-select: none;
-    pointer-events: auto;
-    cursor: move;
-}
-body:not(.editing) .ap-el-page { pointer-events: none; cursor: default; }
-body:not(.editing) .ap-el-page.ap-link { pointer-events: auto; cursor: pointer; }
-.ap-el-page.ap-link { cursor: pointer; }
-.ap-el-svg { display: block; width: 100%; height: 100%; }
-.ap-el-img { width: 100%; height: 100%; object-fit: contain; }
-.ap-el-text {
-    position: absolute;
-    inset: 0;
-    overflow: hidden;
-    white-space: pre-wrap;
-    word-break: break-word;
-    line-height: 1.35;
-    outline: none;
-}
-.ap-el-text[contenteditable="true"] { cursor: text; }
-.ap-el-text-shape {
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    text-align: center;
-    padding: 8px;
-    pointer-events: auto;
-    z-index: 2;
-}
-.ap-lasso {
-    position: absolute;
-    border: 1.5px dashed #2563eb;
-    background: rgba(37, 99, 235, 0.08);
-    pointer-events: none;
-    z-index: 10;
-}
+   EDIÇÃO DE IMAGENS DO CONTEÚDO
+   Overlay de seleção com alças, mini toolbar flutuante e os
+   botões reaproveitados do antigo painel de Layout Livre.
+   ------------------------------------------------------------ */
 .ap-btn.active, .ap-btn[active] {
     background: #2563eb !important;
     color: #fff !important;
@@ -967,14 +921,7 @@ body:not(.editing) .ap-img-overlay { display: none !important; }
 }
 .ap-img-toolbar .ap-btn { padding: 3px 6px; font-size: 0.75rem; }
 
-/* Caixa de seleção e alças */
-.ap-sel-box {
-    position: absolute;
-    border: 1.5px solid #2563eb;
-    pointer-events: none;
-    box-sizing: border-box;
-    z-index: 5;
-}
+/* Alças de redimensionamento da imagem selecionada */
 .ap-sel-handle {
     position: absolute;
     width: 10px;
@@ -993,56 +940,8 @@ body:not(.editing) .ap-img-overlay { display: none !important; }
 .ap-sel-handle.ap-handle-s  { left: 50%; bottom: -6px; margin-left: -5px; cursor: ns-resize; }
 .ap-sel-handle.ap-handle-sw { left: -6px; bottom: -6px; cursor: nesw-resize; }
 .ap-sel-handle.ap-handle-w  { left: -6px; top: 50%; margin-top: -5px; cursor: ew-resize; }
-.ap-sel-rot {
-    position: absolute;
-    left: 50%;
-    top: -28px;
-    margin-left: -6px;
-    width: 12px;
-    height: 12px;
-    background: #2563eb;
-    border: 2px solid #fff;
-    border-radius: 50%;
-    pointer-events: auto;
-    cursor: grab;
-    z-index: 6;
-}
-.ap-sel-rotline {
-    position: absolute;
-    left: 50%;
-    top: -26px;
-    width: 1px;
-    height: 20px;
-    background: #2563eb;
-    pointer-events: none;
-}
 
-/* Paleta flutuante e painel de propriedades (só no modo edição) */
-.ap-palette {
-    position: fixed;
-    left: 50%;
-    bottom: 14px;
-    transform: translateX(-50%);
-    z-index: 9000;
-    max-width: 96vw;
-    display: none;
-    align-items: center;
-    gap: 8px;
-    padding: 8px 12px;
-    background: #0f172a;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.35);
-}
-body.editing .ap-palette { display: flex; flex-wrap: wrap; justify-content: center; }
-.ap-palette-title { font-weight: 700; font-size: 0.8rem; color: #94a3b8; margin-right: 4px; }
-.ap-group {
-    display: inline-flex;
-    gap: 4px;
-    align-items: center;
-    padding: 4px;
-    background: rgba(255, 255, 255, 0.08);
-    border-radius: 8px;
-}
+/* Botões da mini toolbar de edição de imagem */
 .ap-btn {
     min-width: 30px;
     padding: 4px 7px;
@@ -1057,26 +956,6 @@ body.editing .ap-palette { display: flex; flex-wrap: wrap; justify-content: cent
 .ap-btn:hover { background: #1e293b; color: #fff; }
 .ap-btn.danger:hover { background: #dc2626; }
 .ap-btn strong, .ap-btn b, .ap-btn i, .ap-btn u { font-size: 1rem; }
-
-.ap-props-panel {
-    position: fixed;
-    right: 12px;
-    top: 84px;
-    bottom: 70px;
-    width: 280px;
-    z-index: 9000;
-    display: none;
-    flex-direction: column;
-    gap: 10px;
-    padding: 14px;
-    background: #ffffff;
-    border: 1px solid #cbd5e1;
-    border-radius: 12px;
-    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.18);
-    font-size: 0.8rem;
-    overflow-y: auto;
-}
-body.editing .ap-props-panel.show { display: flex; }
 
 /* ===== TÍTULO DA SEÇÃO EDITÁVEL =====
    No modo de edição o texto do título (fora o ícone) fica editável e
@@ -1098,38 +977,6 @@ body.editing .section-title-text .sec-titulo-edit:focus {
     outline-offset: 1px;
     background: rgba(37, 99, 235, 0.08);
 }
-.ap-props-panel h4 { margin: 0 0 2px; font-size: 0.85rem; color: #0f172a; }
-.ap-props-panel label {
-    display: flex;
-    flex-direction: column;
-    gap: 3px;
-    font-weight: 600;
-    color: #334155;
-}
-.ap-props-panel input[type="text"],
-.ap-props-panel input[type="number"],
-.ap-props-panel input[type="range"],
-.ap-props-panel textarea,
-.ap-props-panel select {
-    font: inherit;
-    padding: 4px 6px;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    width: 100%;
-    box-sizing: border-box;
-}
-.ap-props-panel input[type="color"] {
-    width: 44px;
-    height: 28px;
-    padding: 0;
-    border: 1px solid #cbd5e1;
-    border-radius: 6px;
-    background: #fff;
-}
-.ap-row { display: flex; gap: 4px; flex-wrap: wrap; align-items: center; }
-.ap-row input[type="number"] { width: 62px; }
-#apPropsForm { display: none; flex-direction: column; gap: 10px; }
-.ap-only-img, .ap-only-text { display: none; }
 
 /* Painel de estilos da seção (modo edição) */
 .section-props-panel {
@@ -1241,6 +1088,11 @@ body.editing .section-props-panel.show { display: flex; }
     border-color: #0284c7;
     color: #0369a1;
 }
+.secp-divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 4px 0;
+}
 body.editing [data-ap-section] [data-editable="true"].sec-caixa-ativa {
     outline: 2px dashed #f59e0b;
     outline-offset: 2px;
@@ -1248,17 +1100,8 @@ body.editing [data-ap-section] [data-editable="true"].sec-caixa-ativa {
 }
 body.editing [data-ap-section] [data-editable="true"] { cursor: pointer; }
 body.editing [data-ap-section].sec-ativo { outline: 2px dashed #2563eb; outline-offset: 4px; }
-/* Se o painel de seção (direita) estiver aberto e o layout livre também, empurra o painel de layout para baixo */
-@media (min-width: 701px) {
-    body.sec-props-aberto .ap-props-panel.show { top: 340px; }
-}
 @media (max-width: 700px) {
     .section-props-panel { width: calc(100% - 16px); left: 8px; right: 8px; top: 64px; bottom: auto; max-height: 46vh; }
-}
-
-@media (max-width: 700px) {
-    .ap-props-panel { width: 240px; right: 8px; top: 64px; bottom: 160px; }
-    .ap-palette { bottom: 8px; }
 }
 
 .properties-panel {
@@ -1291,6 +1134,12 @@ body.editing [data-ap-section].sec-ativo { outline: 2px dashed #2563eb; outline-
     border: 1px solid var(--border-color);
     border-radius: 6px;
     font-size: 0.85rem;
+}
+
+.secp-divider {
+    border: none;
+    border-top: 1px solid var(--border-color);
+    margin: 4px 0;
 }
 
 /* Cabeçalho e mensagem de "nada selecionado" do painel de propriedades
@@ -1754,6 +1603,7 @@ body.editing .edit-step-bar {
     .editor-workspace { grid-template-columns: 1fr; height: auto; }
     .canvas-container { height: 450px; }
     .properties-panel { border-left: none; border-top: 1px solid var(--border-color); }
+    .edit-float-toolbar { top: 56px; left: 8px; right: 8px; transform: none; width: calc(100% - 16px); flex-wrap: wrap; justify-content: center; }
 }
 
 /* ============================================ */
@@ -2108,6 +1958,10 @@ body.editing .cadeia-desc {
     box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
     gap: 2px;
     align-items: center;
+    flex-direction: row;
+    top: 60px;
+    left: 50%;
+    transform: translateX(-50%);
 }
 
 body.editing .edit-float-toolbar.active {
